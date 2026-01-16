@@ -1,0 +1,88 @@
+agents:
+  - name: crush
+    description: "Powerful terminal-based AI assistant for software development"
+    install_command: "mise use -g npm:@charmland/crush"
+    version_command: "crush -v"
+    check_latest_command: 'curl -s https://api.github.com/repos/charmbracelet/crush/releases/latest | grep ''tag_name'' | cut -d''"'' -f4'
+    upgrade_command: "mise use -g npm:@charmland/crush@latest"
+    latest_version: null
+
+  - name: kilocode
+    description: "AI-powered coding assistant with TUI"
+    install_command: "mise use -g npm:@kilocode/cli"
+    version_command: "kilocode --version"
+    check_latest_command: "npm info @kilocode/cli version"
+    upgrade_command: "mise use -g npm:@kilocode/cli@latest"
+    latest_version: null
+
+  - name: opencode
+    description: "AI coding agent built for the terminal"
+    install_command: "mise use -g npm:opencode-ai"
+    version_command: "opencode --version"
+    check_latest_command: "npm info opencode-ai version"
+    upgrade_command: "mise use -g npm:opencode-ai@latest"
+    latest_version: "1.0.119"
+
+  - name: claude
+    description: "Claude Code - Anthropic's AI coding assistant"
+    install_command: "mise use -g npm:@anthropic-ai/claude-code"
+    version_command: "claude --version"
+    check_latest_command: "npm info @anthropic-ai/claude-code version"
+    upgrade_command: "mise use -g npm:@anthropic-ai/claude-code@latest"
+    latest_version: null
+
+  - name: grok
+    description: "Conversational AI CLI tool powered by Grok"
+    install_command: "mise use -g npm:grok-cli"
+    version_command: "npm list -g grok-cli | grep grok-cli || echo 'Unknown'"
+    check_latest_command: "npm info grok-cli version"
+    upgrade_command: "mise use -g npm:grok-cli@latest"
+    latest_version: null
+
+  - name: gemini
+    description: "Open-source AI agent that brings Gemini to terminal"
+    install_command: "mise use -g npm:@google/gemini-cli"
+    version_command: "gemini --version"
+    check_latest_command: "npm info @google/gemini-cli version"
+    upgrade_command: "mise use -g npm:@google/gemini-cli@latest"
+    latest_version: "0.18.4"
+
+  - name: cline
+    description: "Autonomous coding agent for VS Code with CLI capabilities"
+    install_command: "mise use -g npm:cline"
+    version_command: "npm list -g cline | grep cline || echo 'Unknown'"
+    check_latest_command: "npm info cline version"
+    upgrade_command: "mise use -g npm:cline@latest"
+    latest_version: "1.0.7"
+
+  - name: continue
+    description: "Continue CLI - AI coding assistant for development workflows"
+    install_command: "mise use -g npm:@continuedev/cli"
+    version_command: "cn --version"
+    check_latest_command: "npm info @continuedev/cli version"
+    upgrade_command: "mise use -g npm:@continuedev/cli@latest"
+    latest_version: "1.5.16"
+
+  - name: interpreter
+    description: "Open Interpreter - Natural language interface for computers"
+    install_command: "uv tool install open-interpreter"
+    version_command: "interpreter --version"
+    check_latest_command: "pip index versions open-interpreter | grep Latest"
+    upgrade_command: "uv tool upgrade open-interpreter"
+    latest_version: "0.4.3"
+
+  - name: droid
+    description: "Factory Droid - AI coding agent"
+    install_command: "curl -fsSL https://app.factory.ai/cli | sh"
+    version_command: "droid --version"
+    check_latest_command: 'curl -fsSL https://app.factory.ai/cli | grep ''VER='' | head -n 1 | cut -d''"'' -f2'
+    upgrade_command: "curl -fsSL https://app.factory.ai/cli | sh"
+    latest_version: "0.39.0"
+
+  - name: openhands
+    description: "OpenHands - Platform for autonomous AI agents (formerly OpenDevin)"
+    install_command: "uv tool install openhands --python 3.12"
+    version_command: "openhands --version"
+    check_latest_command: "pip index versions openhands | awk 'NR==1{print $2}' | tr -d '()'"
+    upgrade_command: "uv tool upgrade openhands"
+    latest_version: null

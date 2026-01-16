@@ -6,11 +6,26 @@ import asyncio
 import sys
 import json
 import os
-from typing import Dict, List, Optional
+from typing import TypedDict, cast
 from pathlib import Path
 
 
-def load_config() -> Dict:
+class AgentConfig(TypedDict):
+    name: str
+    description: str
+    install_command: str
+    version_command: str
+    check_latest_command: str
+    upgrade_command: str
+    latest_version: str | None
+    github_repo: str | None
+
+
+class Config(TypedDict):
+    agents: list[AgentConfig]
+
+
+def load_config() -> Config:
     """Load agents configuration from YAML file."""
     config_path = Path(__file__).parent / "agents.yaml"
     if not config_path.exists():
@@ -18,7 +33,7 @@ def load_config() -> Dict:
         sys.exit(1)
 
     with open(config_path, "r") as f:
-        return yaml.safe_load(f)
+        return cast(Config, yaml.safe_load(f))
 
 
 async def run_command_async(command: str, timeout: int = 30) -> tuple[str, int]:
@@ -31,9 +46,7 @@ async def run_command_async(command: str, timeout: int = 30) -> tuple[str, int]:
             stderr=asyncio.subprocess.PIPE,
         )
         try:
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=timeout
-            )
+            stdout, _ = await asyncio.wait_for(process.communicate(), timeout=timeout)
             # Use stdout if available, otherwise stderr?
             # Original implementation used capture_output=True which captures both,
             # but returned result.stdout.strip().
@@ -41,7 +54,7 @@ async def run_command_async(command: str, timeout: int = 30) -> tuple[str, int]:
             return output, process.returncode if process.returncode is not None else 1
         except asyncio.TimeoutError:
             process.kill()
-            await process.wait()
+            _ = await process.wait()
             return f"Command timed out after {timeout} seconds", 1
     except Exception as e:
         return f"Error: {str(e)}", 1
@@ -49,10 +62,10 @@ async def run_command_async(command: str, timeout: int = 30) -> tuple[str, int]:
         if process:
             transport = getattr(process, "_transport", None)
             if transport:
-                transport.close()
+                transport.close()  # pyright: ignore[reportAny]
 
 
-async def get_current_version(agent: Dict) -> tuple[Optional[str], str]:
+async def get_current_version(agent: AgentConfig) -> tuple[str | None, str]:
     """Get the current version of an agent."""
     version_command = agent.get("version_command")
     if not version_command:
@@ -65,7 +78,7 @@ async def get_current_version(agent: Dict) -> tuple[Optional[str], str]:
         return None, output or "Command failed"
 
 
-async def get_latest_version(agent: Dict) -> tuple[Optional[str], str]:
+async def get_latest_version(agent: AgentConfig) -> tuple[str | None, str]:
     """Get the latest version of an agent."""
     check_latest_command = agent.get("check_latest_command")
     if not check_latest_command:
@@ -104,7 +117,7 @@ def extract_version_number(version_str: str) -> str:
 def compare_versions(version1: str, version2: str) -> int:
     """Compare two version strings. Returns -1, 0, or 1."""
 
-    def version_tuple(v):
+    def version_tuple(v: str) -> tuple[int, ...]:
         return tuple(map(int, v.split(".")))
 
     try:
@@ -127,7 +140,17 @@ def compare_versions(version1: str, version2: str) -> int:
             return 0
 
 
-async def check_agent_updates(agent: Dict) -> Dict:
+class UpdateResult(TypedDict):
+    name: str
+    current_version: str | None
+    current_status: str
+    latest_version: str | None
+    latest_status: str
+    update_available: bool
+    description: str
+
+
+async def check_agent_updates(agent: AgentConfig) -> UpdateResult:
     """Check if an agent has an update available."""
     # Run checks in parallel
     current_future = get_current_version(agent)
@@ -137,7 +160,7 @@ async def check_agent_updates(agent: Dict) -> Dict:
         current_future, latest_future
     )
 
-    result = {
+    result: UpdateResult = {
         "name": agent["name"],
         "current_version": current,
         "current_status": current_status,
@@ -169,12 +192,12 @@ def cli():
 @cli.command()
 @click.option("--agent", "-a", help="Check specific agent")
 @click.option("--quiet", "-q", is_flag=True, help="Show only agents with updates")
-def check(agent: Optional[str], quiet: bool):
+def check(agent: str | None, quiet: bool):
     """Check for updates for agents."""
     asyncio.run(run_check(agent, quiet))
 
 
-async def run_check(agent: Optional[str], quiet: bool):
+async def run_check(agent: str | None, quiet: bool):
     config = load_config()
     agents = config["agents"]
 
@@ -223,12 +246,12 @@ async def run_check(agent: Optional[str], quiet: bool):
 @click.option(
     "--timeout", "-t", default=300, help="Command timeout in seconds (default: 300)"
 )
-def upgrade(agent: Optional[str], dry_run: bool, timeout: int):
+def upgrade(agent: str | None, dry_run: bool, timeout: int):
     """Upgrade agents to latest versions."""
     asyncio.run(run_upgrade(agent, dry_run, timeout))
 
 
-async def run_upgrade(agent: Optional[str], dry_run: bool, timeout: int):
+async def run_upgrade(agent: str | None, dry_run: bool, timeout: int):
     config = load_config()
     agents = config["agents"]
 
@@ -241,7 +264,7 @@ async def run_upgrade(agent: Optional[str], dry_run: bool, timeout: int):
     click.echo("Checking for available updates...")
     check_results = await asyncio.gather(*[check_agent_updates(a) for a in agents])
 
-    upgradeable_agents = []
+    upgradeable_agents: list[AgentConfig] = []
     for i, result in enumerate(check_results):
         if result["update_available"]:
             upgradeable_agents.append(agents[i])
@@ -262,7 +285,7 @@ async def run_upgrade(agent: Optional[str], dry_run: bool, timeout: int):
 
     click.echo(f"Upgrading {len(upgradeable_agents)} agents...")
 
-    async def perform_upgrade(agent_config):
+    async def perform_upgrade(agent_config: AgentConfig) -> tuple[str, int, str]:
         upgrade_command = agent_config.get("upgrade_command")
         if upgrade_command:
             click.echo(f"Upgrading {agent_config['name']}...")
@@ -357,7 +380,7 @@ async def run_list_agents():
         click.echo("")
 
 
-async def fetch_release_notes(agent: Dict) -> tuple[str, str]:
+async def fetch_release_notes(agent: AgentConfig) -> tuple[str, str]:
     """Fetch release notes for an agent."""
     repo = agent.get("github_repo")
     if not repo:
@@ -373,7 +396,7 @@ async def fetch_release_notes(agent: Dict) -> tuple[str, str]:
         return agent["name"], f"Failed to fetch release notes: {output}"
 
     try:
-        data = json.loads(output)
+        data = cast(dict[str, object], json.loads(output))
         if "body" not in data:
             # Fallback to just the name and url if body is missing or it's not a release object
             return agent[
@@ -383,12 +406,12 @@ async def fetch_release_notes(agent: Dict) -> tuple[str, str]:
         header = (
             f"# Release Notes: {agent['name']} ({data.get('tag_name', 'Latest')})\n\n"
         )
-        return agent["name"], header + data["body"]
+        return agent["name"], header + str(data["body"])
     except json.JSONDecodeError:
         return agent["name"], "Failed to parse release notes JSON."
 
 
-async def run_release_notes(agent: Optional[str]):
+async def run_release_notes(agent: str | None):
     config = load_config()
     agents = config["agents"]
 
@@ -418,25 +441,25 @@ async def run_release_notes(agent: Optional[str]):
         for name, content in results:
             file_path = rn_dir / f"{name}.md"
             with open(file_path, "w") as f:
-                f.write(content)
+                _ = f.write(content)
 
             # Append to combined file
-            combined_f.write(f"\n\n# {name}\n\n")
-            combined_f.write(content)
-            combined_f.write("\n\n---\n\n")
+            _ = combined_f.write(f"\n\n# {name}\n\n")
+            _ = combined_f.write(content)
+            _ = combined_f.write("\n\n---\n\n")
 
     if agent:
         # Render the single file
         file_path = rn_dir / f"{agents[0]['name']}.md"
-        os.system(f"{pager_cmd} {file_path}")
+        _ = os.system(f"{pager_cmd} {file_path}")
     else:
         # Render all
-        os.system(f"{pager_cmd} {combined_path}")
+        _ = os.system(f"{pager_cmd} {combined_path}")
 
 
 @cli.command(name="release-notes")
 @click.option("--agent", "-a", help="Get release notes for specific agent")
-def release_notes(agent: Optional[str]):
+def release_notes(agent: str | None):
     """Fetch and display release notes."""
     asyncio.run(run_release_notes(agent))
 

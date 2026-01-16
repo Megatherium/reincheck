@@ -4,6 +4,8 @@ import click
 import yaml
 import asyncio
 import sys
+import json
+import os
 from typing import Dict, List, Optional
 from pathlib import Path
 
@@ -353,6 +355,93 @@ async def run_list_agents():
         click.echo(f"  {agent.get('description', '')}")
         click.echo(f"  Current version: {current or 'Unknown'} ({status})")
         click.echo("")
+
+
+async def fetch_release_notes(agent: Dict) -> tuple[str, str]:
+    """Fetch release notes for an agent."""
+    repo = agent.get("github_repo")
+    if not repo:
+        return agent["name"], "No GitHub repository configured for release notes."
+
+    url = f"https://api.github.com/repos/{repo}/releases/latest"
+    # Use curl to fetch
+    cmd = f"curl -s -H 'Accept: application/vnd.github.v3+json' {url}"
+
+    output, returncode = await run_command_async(cmd)
+
+    if returncode != 0:
+        return agent["name"], f"Failed to fetch release notes: {output}"
+
+    try:
+        data = json.loads(output)
+        if "body" not in data:
+            # Fallback to just the name and url if body is missing or it's not a release object
+            return agent[
+                "name"
+            ], f"No release notes body found. Check {data.get('html_url', url)}"
+
+        header = (
+            f"# Release Notes: {agent['name']} ({data.get('tag_name', 'Latest')})\n\n"
+        )
+        return agent["name"], header + data["body"]
+    except json.JSONDecodeError:
+        return agent["name"], "Failed to parse release notes JSON."
+
+
+async def run_release_notes(agent: Optional[str]):
+    config = load_config()
+    agents = config["agents"]
+
+    if agent:
+        agents = [a for a in agents if a["name"] == agent]
+        if not agents:
+            click.echo(f"Agent '{agent}' not found.", err=True)
+            sys.exit(1)
+
+    # Create releasenotes directory
+    rn_dir = Path("releasenotes")
+    rn_dir.mkdir(exist_ok=True)
+
+    click.echo(f"Fetching release notes for {len(agents)} agents...")
+
+    results = await asyncio.gather(*[fetch_release_notes(a) for a in agents])
+
+    pager_cmd = os.environ.get("MYAGENTS_RN_PAGER", "cat")
+
+    combined_path = rn_dir / "all_release_notes.md"
+
+    # Clear combined file if it exists
+    if combined_path.exists():
+        combined_path.unlink()
+
+    with open(combined_path, "w") as combined_f:
+        for name, content in results:
+            file_path = rn_dir / f"{name}.md"
+            with open(file_path, "w") as f:
+                f.write(content)
+
+            # Append to combined file
+            combined_f.write(f"\n\n# {name}\n\n")
+            combined_f.write(content)
+            combined_f.write("\n\n---\n\n")
+
+    if agent:
+        # Render the single file
+        file_path = rn_dir / f"{agents[0]['name']}.md"
+        os.system(f"{pager_cmd} {file_path}")
+    else:
+        # Render all
+        os.system(f"{pager_cmd} {combined_path}")
+
+
+@cli.command(name="release-notes")
+@click.option("--agent", "-a", help="Get release notes for specific agent")
+def release_notes(agent: Optional[str]):
+    """Fetch and display release notes."""
+    asyncio.run(run_release_notes(agent))
+
+
+cli.add_command(release_notes, name="rn")
 
 
 if __name__ == "__main__":

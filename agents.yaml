@@ -1,6 +1,7 @@
 agents:
   - name: crush
     description: "Powerful terminal-based AI assistant for software development"
+    github_repo: "charmbracelet/crush"
     install_command: "mise use -g npm:@charmland/crush"
     version_command: "crush -v"
     check_latest_command: 'curl -s https://api.github.com/repos/charmbracelet/crush/releases/latest | grep ''tag_name'' | cut -d''"'' -f4'
@@ -17,6 +18,7 @@ agents:
 
   - name: opencode
     description: "AI coding agent built for the terminal"
+    github_repo: "opencode-ai/opencode"
     install_command: "mise use -g npm:opencode-ai"
     version_command: "opencode --version"
     check_latest_command: "npm info opencode-ai version"
@@ -49,6 +51,7 @@ agents:
 
   - name: cline
     description: "Autonomous coding agent for VS Code with CLI capabilities"
+    github_repo: "cline/cline"
     install_command: "mise use -g npm:cline"
     version_command: "npm list -g cline | grep cline || echo 'Unknown'"
     check_latest_command: "npm info cline version"
@@ -57,6 +60,7 @@ agents:
 
   - name: continue
     description: "Continue CLI - AI coding assistant for development workflows"
+    github_repo: "continuedev/continue"
     install_command: "mise use -g npm:@continuedev/cli"
     version_command: "cn --version"
     check_latest_command: "npm info @continuedev/cli version"
@@ -65,6 +69,7 @@ agents:
 
   - name: interpreter
     description: "Open Interpreter - Natural language interface for computers"
+    github_repo: "OpenInterpreter/open-interpreter"
     install_command: "uv tool install open-interpreter"
     version_command: "interpreter --version"
     check_latest_command: "pip index versions open-interpreter | grep Latest"
@@ -81,8 +86,54 @@ agents:
 
   - name: openhands
     description: "OpenHands - Platform for autonomous AI agents (formerly OpenDevin)"
+    github_repo: "All-Hands-AI/OpenHands"
     install_command: "uv tool install openhands --python 3.12"
     version_command: "openhands --version"
     check_latest_command: "pip index versions openhands | awk 'NR==1{print $2}' | tr -d '()'"
     upgrade_command: "uv tool upgrade openhands"
+    latest_version: null
+
+  - name: vibe
+    description: "Mistral Vibe - Command-line coding assistant powered by Mistral"
+    github_repo: "mistralai/mistral-vibe"
+    install_command: "uv tool install mistral-vibe"
+    version_command: "vibe --version"
+    check_latest_command: "pip index versions mistral-vibe | awk 'NR==1{print $2}' | tr -d '()'"
+    upgrade_command: "uv tool upgrade mistral-vibe"
+    latest_version: null
+
+  - name: codex
+    description: "OpenAI Codex CLI - Lightweight coding agent"
+    github_repo: "openai/codex"
+    install_command: "mise use -g npm:@openai/codex"
+    version_command: "codex --version"
+    check_latest_command: "npm info @openai/codex version"
+    upgrade_command: "mise use -g npm:@openai/codex@latest"
+    latest_version: null
+
+  - name: goose
+    description: "Goose - AI agent from Block for engineering tasks"
+    github_repo: "block/goose"
+    install_command: "curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | bash"
+    version_command: "goose --version"
+    check_latest_command: 'curl -s https://api.github.com/repos/block/goose/releases/latest | grep "tag_name" | cut -d"\"" -f4'
+    upgrade_command: "curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | bash"
+    latest_version: null
+
+  - name: roo
+    description: "Roo Code - Autonomous coding agent (Cline fork)"
+    github_repo: "RooCodeInc/Roo-Code"
+    install_command: "curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh"
+    version_command: "roo --version"
+    check_latest_command: 'curl -s https://api.github.com/repos/RooCodeInc/Roo-Code/releases/latest | grep "tag_name" | cut -d"\"" -f4'
+    upgrade_command: "curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh"
+    latest_version: null
+
+  - name: aider
+    description: "Aider - AI pair programming in your terminal"
+    github_repo: "Aider-AI/aider"
+    install_command: "uv tool install aider-chat"
+    version_command: "aider --version"
+    check_latest_command: "pip index versions aider-chat | awk 'NR==1{print $2}' | tr -d '()'"
+    upgrade_command: "uv tool upgrade aider-chat"
     latest_version: null

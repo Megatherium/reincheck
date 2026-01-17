@@ -227,7 +227,17 @@ async def run_release_notes(agent: str | None):
 
     click.echo(f"Fetching release notes for {len(agents)} agents...")
 
-    results = await asyncio.gather(*[fetch_release_notes(a) for a in agents])
+    # First fetch current versions to validate notes
+    click.echo("  Checking installed versions...")
+    version_results = await asyncio.gather(*[get_current_version(a) for a in agents])
+
+    # Pair agents with their current versions
+    tasks = []
+    for i, a in enumerate(agents):
+        current_ver, _ = version_results[i]
+        tasks.append(fetch_release_notes(a, current_ver))
+
+    results = await asyncio.gather(*tasks)
 
     pager_cmd = os.environ.get("REINCHECK_RN_PAGER", "cat")
 

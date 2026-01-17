@@ -78,6 +78,7 @@ agents:
 
   - name: droid
     description: "Factory Droid - AI coding agent"
+    release_notes_url: "https://docs.factory.ai/changelog/cli-updates"
     install_command: "curl -fsSL https://app.factory.ai/cli | sh"
     version_command: "droid --version"
     check_latest_command: 'curl -fsSL https://app.factory.ai/cli | grep ''VER='' | head -n 1 | cut -d''"'' -f2'

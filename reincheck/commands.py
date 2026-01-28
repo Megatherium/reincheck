@@ -6,11 +6,11 @@ from pathlib import Path
 
 from . import (
     load_config,
-    check_agent_updates,
     get_current_version,
     fetch_release_notes,
     run_command_async,
     AgentConfig,
+    save_config,
 )
 
 
@@ -38,33 +38,105 @@ async def run_check(agent: str | None, quiet: bool):
             click.echo(f"Agent '{agent}' not found in configuration.", err=True)
             sys.exit(1)
 
-    click.echo(f"Checking {len(agents)} agents for updates...")
-
-    results = await asyncio.gather(*[check_agent_updates(a) for a in agents])
-
     update_count = 0
-    for result in results:
-        if result["update_available"]:
-            update_count += 1
-            click.echo(
-                f"🔄 {result['name']}: {result['current_version']} → {result['latest_version']}"
-            )
-            click.echo(f"   {result['description']}")
-        elif not quiet:
-            if (
-                result["current_version"]
-                and result["current_version"].strip().lower() != "unknown"
-            ):
+    null_latest_count = 0
+
+    for agent_config in agents:
+        from . import get_current_version, compare_versions
+
+        current, status = await get_current_version(agent_config)
+        latest = agent_config.get("latest_version")
+
+        if latest is None:
+            null_latest_count += 1
+            if not quiet:
                 click.echo(
-                    f"✅ {result['name']}: {result['current_version']} (up to date)"
+                    f"⚠️  {agent_config['name']}: latest_version is null - run 'reincheck update' first"
+                )
+            continue
+
+        if (
+            current
+            and status == "success"
+            and latest
+            and current.strip().lower() != "unknown"
+        ):
+            if compare_versions(current, latest) < 0:
+                update_count += 1
+                click.echo(
+                    f"🔄 {agent_config['name']}: {current} → {latest}"
+                )
+                click.echo(f"   {agent_config.get('description', '')}")
+            elif not quiet:
+                click.echo(
+                    f"✅ {agent_config['name']}: {current} (up to date)"
+                )
+        elif not quiet:
+            if current and current.strip().lower() != "unknown":
+                click.echo(
+                    f"⚪ {agent_config['name']}: {current} (latest: {latest})"
                 )
             else:
-                click.echo(f"⚪ {result['name']}: Not installed")
+                click.echo(f"⚪ {agent_config['name']}: Not installed")
+
+    if null_latest_count > 0 and not quiet:
+        click.echo(
+            f"\n⚠️  {null_latest_count} agent(s) have null latest_version - run 'reincheck update' first"
+        )
 
     if update_count > 0:
         click.echo(f"\n{update_count} agent(s) have updates available.")
     else:
         click.echo("\nAll agents are up to date.")
+
+
+@cli.command()
+@click.option("--agent", "-a", help="Update specific agent")
+@click.option("--quiet", "-q", is_flag=True, help="Suppress output")
+def update(agent: str | None, quiet: bool):
+    """Update latest version info for agents."""
+    asyncio.run(run_update(agent, quiet))
+
+
+async def run_update(agent: str | None, quiet: bool):
+    config = load_config()
+    agents = config["agents"]
+
+    if agent:
+        agents = [a for a in agents if a["name"] == agent]
+        if not agents:
+            click.echo(f"Agent '{agent}' not found in configuration.", err=True)
+            sys.exit(2)
+
+    if not quiet:
+        click.echo(f"Updating {len(agents)} agents...")
+
+    failed_agents = []
+
+    for agent_config in agents:
+        from . import get_latest_version
+
+        latest_version, status = await get_latest_version(agent_config)
+
+        if status == "success" and latest_version:
+            agent_config["latest_version"] = latest_version
+            if not quiet:
+                click.echo(f"✅ {agent_config['name']}: {latest_version}")
+        else:
+            failed_agents.append(agent_config["name"])
+            if not quiet:
+                error_msg = status if status != "success" else "Unknown error"
+                click.echo(f"❌ {agent_config['name']}: {error_msg}")
+
+    save_config(config)
+
+    if failed_agents:
+        if not quiet:
+            click.echo(f"\n{len(failed_agents)} agent(s) failed to update.")
+        sys.exit(1)
+    else:
+        if not quiet:
+            click.echo(f"\nAll agents updated successfully.")
 
 
 @cli.command()
@@ -93,12 +165,22 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int):
             sys.exit(1)
 
     click.echo("Checking for available updates...")
-    check_results = await asyncio.gather(*[check_agent_updates(a) for a in agents])
 
     upgradeable_agents: list[AgentConfig] = []
-    for i, result in enumerate(check_results):
-        if result["update_available"]:
-            upgradeable_agents.append(agents[i])
+    from . import get_current_version, compare_versions
+
+    for agent_config in agents:
+        current, status = await get_current_version(agent_config)
+        latest = agent_config.get("latest_version")
+
+        if (
+            current
+            and status == "success"
+            and latest
+            and current.strip().lower() != "unknown"
+        ):
+            if compare_versions(current, latest) < 0:
+                upgradeable_agents.append(agent_config)
 
     if not upgradeable_agents:
         click.echo("No agents need updating.")
@@ -107,10 +189,10 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int):
     if dry_run:
         click.echo("The following upgrades would be performed:")
         for agent_config in upgradeable_agents:
-            # Re-find version info from results
-            result = next(r for r in check_results if r["name"] == agent_config["name"])
+            current, status = await get_current_version(agent_config)
+            latest = agent_config.get("latest_version")
             click.echo(
-                f"  {result['name']}: {result['current_version']} → {result['latest_version']}"
+                f"  {agent_config['name']}: {current} → {latest}"
             )
         return
 
@@ -275,3 +357,6 @@ def release_notes(agent: str | None):
 
 
 cli.add_command(release_notes, name="rn")
+
+if __name__ == "__main__":
+    cli()

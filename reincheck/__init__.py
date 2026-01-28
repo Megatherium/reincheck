@@ -45,6 +45,13 @@ def load_config() -> Config:
         return cast(Config, yaml.safe_load(f))
 
 
+def save_config(config: Config) -> None:
+    """Save agents configuration to YAML file."""
+    config_path = Path(__file__).parent / "agents.yaml"
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+
 async def run_command_async(command: str, timeout: int = 30) -> tuple[str, int]:
     """Run a command asynchronously and return output and return code."""
     process = None

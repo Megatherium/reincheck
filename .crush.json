@@ -1,0 +1,9 @@
+{
+  "mcp": {
+    "DeepWiki MCP": {
+      "disabled": false,
+      "type": "sse",
+      "url": "https://mcp.deepwiki.com/mcp"
+    }
+  }
+}

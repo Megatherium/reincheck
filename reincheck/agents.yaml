@@ -7,7 +7,7 @@ agents:
   check_latest_command: curl -s https://api.github.com/repos/charmbracelet/crush/releases/latest
     | grep 'tag_name' | cut -d'"' -f4
   upgrade_command: mise use -g npm:@charmland/crush@latest
-  latest_version: v0.38.1
+  latest_version: v0.39.0
 - name: kilocode
   description: AI-powered coding assistant with TUI
   install_command: mise use -g npm:@kilocode/cli
@@ -51,7 +51,7 @@ agents:
   version_command: npm list -g cline | grep cline || echo 'Unknown'
   check_latest_command: npm info cline version
   upgrade_command: mise use -g npm:cline@latest
-  latest_version: 2.0.1
+  latest_version: 2.0.2
 - name: continue
   description: Continue CLI - AI coding assistant for development workflows
   github_repo: continuedev/continue

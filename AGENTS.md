@@ -1,7 +1,16 @@
 ## MANDATORY: Use td for Task Management
 
-You must run td usage --new-session at conversation start (or after /clear) to see current work.
+You must run td usage --new-session at conversation start (or after /clear).
 Use td usage -q for subsequent reads.
+
+## Project Overview
+
+This is **reincheck**, a Python CLI tool for managing AI coding agents. Key files:
+- **reincheck/__init__.py**: Main logic - handles version checks, fetch_release_notes, commands from agents.yaml
+- **reincheck/commands.py**: Click CLI definitions (cli, check, update, upgrade, install, list, release-notes)
+- **reincheck/agents.yaml**: Configuration for 16 agents (crush, kilocode, opencode, claude, grok, gemini, cline, continue, interpreter, droid, openhands, mistral, codex, goose, roo, aider, kimi, amp)
+
+Agent versions fetched via `get_latest_version()` (executes check_latest_command) and `fetch_release_notes()` (GitHub API for agents with github_repo). NPM info via `get_npm_release_info()`, PyPI via `get_pypi_release_info()`. Uses uv for Python package management and mise for tool installation.
 
 ## Issue Tracking with bd (beads)
 

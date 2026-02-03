@@ -1,3 +1,6 @@
 /.venv
 /releasenotes
 /tmp
+.todos/
+__pycache__
+.sidecar

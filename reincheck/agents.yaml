@@ -7,14 +7,14 @@ agents:
   check_latest_command: curl -s https://api.github.com/repos/charmbracelet/crush/releases/latest
     | grep 'tag_name' | cut -d'"' -f4
   upgrade_command: mise use -g npm:@charmland/crush@latest
-  latest_version: v0.36.0
+  latest_version: v0.38.1
 - name: kilocode
   description: AI-powered coding assistant with TUI
   install_command: mise use -g npm:@kilocode/cli
   version_command: kilocode --version
   check_latest_command: npm info @kilocode/cli version
   upgrade_command: mise use -g npm:@kilocode/cli@latest
-  latest_version: 0.26.1
+  latest_version: 1.0.13
 - name: opencode
   description: AI coding agent built for the terminal
   github_repo: opencode-ai/opencode
@@ -22,14 +22,14 @@ agents:
   version_command: opencode --version
   check_latest_command: npm info opencode-ai version
   upgrade_command: mise use -g npm:opencode-ai@latest
-  latest_version: 1.1.39
+  latest_version: 1.1.49
 - name: claude
   description: Claude Code - Anthropic's AI coding assistant
   install_command: mise use -g npm:@anthropic-ai/claude-code
   version_command: claude --version
   check_latest_command: npm info @anthropic-ai/claude-code version
   upgrade_command: mise use -g npm:@anthropic-ai/claude-code@latest
-  latest_version: 2.1.22
+  latest_version: 2.1.30
 - name: grok
   description: Conversational AI CLI tool powered by Grok
   install_command: mise use -g npm:grok-cli
@@ -51,7 +51,7 @@ agents:
   version_command: npm list -g cline | grep cline || echo 'Unknown'
   check_latest_command: npm info cline version
   upgrade_command: mise use -g npm:cline@latest
-  latest_version: 1.0.10
+  latest_version: 2.0.1
 - name: continue
   description: Continue CLI - AI coding assistant for development workflows
   github_repo: continuedev/continue
@@ -59,7 +59,7 @@ agents:
   version_command: cn --version
   check_latest_command: npm info @continuedev/cli version
   upgrade_command: mise use -g npm:@continuedev/cli@latest
-  latest_version: 1.5.39
+  latest_version: 1.5.43
 - name: interpreter
   description: Open Interpreter - Natural language interface for computers
   github_repo: OpenInterpreter/open-interpreter
@@ -77,7 +77,7 @@ agents:
   check_latest_command: curl -fsSL https://app.factory.ai/cli | grep 'VER=' | head
     -n 1 | cut -d'"' -f2
   upgrade_command: curl -fsSL https://app.factory.ai/cli | sh
-  latest_version: 0.56.3
+  latest_version: 0.57.2
 - name: openhands
   description: OpenHands - Platform for autonomous AI agents (formerly OpenDevin)
   github_repo: All-Hands-AI/OpenHands
@@ -90,12 +90,12 @@ agents:
 - name: mistral
   description: Mistral Vibe - Command-line coding assistant powered by Mistral
   github_repo: mistralai/mistral-vibe
-  install_command: uv tool install mistral-vibe
+  install_command: mise use --global pipx:mistral-vibe
   version_command: vibe --version
   check_latest_command: curl https://pypi.org/pypi/mistral-vibe/json | jq -r '.releases
     | keys | last'
-  upgrade_command: uv tool upgrade mistral-vibe
-  latest_version: 2.0.0
+  upgrade_command: mise use --global pipx:mistral-vibe
+  latest_version: 2.0.2
 - name: codex
   description: OpenAI Codex CLI - Lightweight coding agent
   github_repo: openai/codex
@@ -103,7 +103,7 @@ agents:
   version_command: codex --version
   check_latest_command: npm info @openai/codex version
   upgrade_command: mise use -g npm:@openai/codex@latest
-  latest_version: 0.92.0
+  latest_version: 0.94.0
 - name: goose
   description: Goose - AI agent from Block for engineering tasks
   github_repo: block/goose
@@ -114,7 +114,7 @@ agents:
     | grep "tag_name" | cut -d"\"" -f4
   upgrade_command: curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh
     | bash
-  latest_version: v1.21.2
+  latest_version: v1.22.2
 - name: roo
   description: Roo Code - Autonomous coding agent (Cline fork)
   github_repo: RooCodeInc/Roo-Code
@@ -125,7 +125,7 @@ agents:
     | grep "tag_name" | cut -d"\"" -f4
   upgrade_command: curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh
     | sh
-  latest_version: v3.45.0
+  latest_version: v3.46.2
 - name: aider
   description: Aider - AI pair programming in your terminal
   github_repo: Aider-AI/aider
@@ -138,9 +138,16 @@ agents:
 - name: kimi
   description: Kimi Code CLI - AI agent that runs in the terminal, helping you complete
     software development tasks
-  install_command: uv tool install kimi-cli
+  install_command: mise use --global pipx:kimi-cli@latest
   version_command: kimi --version
   check_latest_command: curl https://pypi.org/pypi/kimi-cli/json | jq -r '.releases
     | keys | last'
-  upgrade_command: uv tool upgrade kimi-cli
-  latest_version: '1.3'
+  upgrade_command: mise use --global pipx:kimi-cli@latest
+  latest_version: '1.6'
+- name: amp
+  description: Sourcegraph Amp - Agentic CLI tool
+  install_command: mise use --global npm:@sourcegraph/amp
+  check_latest_command: npm info @sourcegraph/amp version
+  version_command: amp --version
+  upgrade_command: mise use --global npm:@sourcegraph/amp@latest
+  latest_version: 0.0.1770135218-ge57524

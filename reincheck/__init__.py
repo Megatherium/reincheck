@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import re
 import sys
 import yaml
@@ -75,7 +76,7 @@ async def run_command_async(command: str, timeout: int = 30) -> tuple[str, int]:
         if process:
             transport = getattr(process, "_transport", None)
             if transport:
-                transport.close()  # pyright: ignore[reportAny]
+                transport.close()
 
 
 async def get_current_version(agent: AgentConfig) -> tuple[str | None, str]:
@@ -91,12 +92,32 @@ async def get_current_version(agent: AgentConfig) -> tuple[str | None, str]:
         return None, output or "Command failed"
 
 
+def add_github_auth_if_needed(command: str) -> str:
+    """Add Bearer token header to curl commands targeting GitHub API if GITHUB_TOKEN is set."""
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token or "api.github.com" not in command:
+        return command
+
+    if "Authorization:" in command:
+        return command
+
+    if "curl " in command or "curl" == command[:4]:
+        header = " -H 'Authorization: Bearer $GITHUB_TOKEN'"
+        if "-H " in command:
+            command = command.replace("curl ", f"curl{header} ", 1)
+        else:
+            command = command.replace("curl", f"curl{header}", 1)
+
+    return command
+
+
 async def get_latest_version(agent: AgentConfig) -> tuple[str | None, str]:
     """Get the latest version of an agent."""
     check_latest_command = agent.get("check_latest_command")
     if not check_latest_command:
         return None, "No version check command configured"
 
+    check_latest_command = add_github_auth_if_needed(check_latest_command)
     output, returncode = await run_command_async(check_latest_command)
     if returncode == 0:
         return output, "success"
@@ -291,7 +312,7 @@ async def fetch_release_notes(
     repo = agent.get("github_repo")
     if repo:
         url = f"https://api.github.com/repos/{repo}/releases/latest"
-        cmd = f"curl -s -H 'Accept: application/vnd.github.v3+json' {url}"
+        cmd = add_github_auth_if_needed(f"curl -s -H 'Accept: application/vnd.github.v3+json' {url}")
         output, returncode = await run_command_async(cmd)
 
         if returncode == 0:

@@ -9,6 +9,20 @@ from typing import TypedDict, cast
 import click
 
 
+_debug_enabled = False
+
+
+def set_debug(enabled: bool):
+    """Enable or disable debug mode globally."""
+    global _debug_enabled
+    _debug_enabled = enabled
+
+
+def is_debug() -> bool:
+    """Check if debug mode is enabled."""
+    return _debug_enabled
+
+
 class AgentConfig(TypedDict):
     name: str
     description: str
@@ -57,20 +71,26 @@ async def run_command_async(command: str, timeout: int = 30) -> tuple[str, int]:
     """Run a command asynchronously and return output and return code."""
     process = None
     try:
+        if is_debug():
+            click.echo(f"[DEBUG] Running command: {command}", err=True)
         process = await asyncio.create_subprocess_shell(
             command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         try:
-            stdout, _ = await asyncio.wait_for(process.communicate(), timeout=timeout)
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
             output = stdout.decode().strip()
+            if is_debug() and stderr:
+                click.echo(f"[DEBUG] stderr: {stderr.decode().strip()}", err=True)
             return output, process.returncode if process.returncode is not None else 1
         except asyncio.TimeoutError:
             process.kill()
             _ = await process.wait()
             return f"Command timed out after {timeout} seconds", 1
     except Exception as e:
+        if is_debug():
+            click.echo(f"[DEBUG] Exception: {type(e).__name__}: {e}", err=True)
         return f"Error: {str(e)}", 1
     finally:
         if process:

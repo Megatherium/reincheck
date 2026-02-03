@@ -1,8 +1,3 @@
-## MANDATORY: Use td for Task Management
-
-You must run td usage --new-session at conversation start (or after /clear).
-Use td usage -q for subsequent reads.
-
 ## Project Overview
 
 This is **reincheck**, a Python CLI tool for managing AI coding agents. Key files:

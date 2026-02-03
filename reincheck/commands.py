@@ -11,24 +11,30 @@ from . import (
     run_command_async,
     AgentConfig,
     save_config,
+    set_debug,
 )
 
 
 @click.group()
-def cli():
+@click.option("--debug", is_flag=True, help="Enable debug output for troubleshooting")
+@click.pass_context
+def cli(ctx, debug):
     """CLI tool to manage AI coding agents."""
-    pass
+    ctx.ensure_object(dict)
+    ctx.obj["debug"] = debug
 
 
 @cli.command()
 @click.option("--agent", "-a", help="Check specific agent")
 @click.option("--quiet", "-q", is_flag=True, help="Show only agents with updates")
-def check(agent: str | None, quiet: bool):
+@click.pass_context
+def check(ctx, agent: str | None, quiet: bool):
     """Check for updates for agents."""
-    asyncio.run(run_check(agent, quiet))
+    debug = ctx.obj.get("debug", False)
+    asyncio.run(run_check(agent, quiet, debug))
 
 
-async def run_check(agent: str | None, quiet: bool):
+async def run_check(agent: str | None, quiet: bool, debug: bool):
     config = load_config()
     agents = config["agents"]
 
@@ -63,19 +69,13 @@ async def run_check(agent: str | None, quiet: bool):
         ):
             if compare_versions(current, latest) < 0:
                 update_count += 1
-                click.echo(
-                    f"🔄 {agent_config['name']}: {current} → {latest}"
-                )
+                click.echo(f"🔄 {agent_config['name']}: {current} → {latest}")
                 click.echo(f"   {agent_config.get('description', '')}")
             elif not quiet:
-                click.echo(
-                    f"✅ {agent_config['name']}: {current} (up to date)"
-                )
+                click.echo(f"✅ {agent_config['name']}: {current} (up to date)")
         elif not quiet:
             if current and current.strip().lower() != "unknown":
-                click.echo(
-                    f"⚪ {agent_config['name']}: {current} (latest: {latest})"
-                )
+                click.echo(f"⚪ {agent_config['name']}: {current} (latest: {latest})")
             else:
                 click.echo(f"⚪ {agent_config['name']}: Not installed")
 
@@ -93,12 +93,15 @@ async def run_check(agent: str | None, quiet: bool):
 @cli.command()
 @click.option("--agent", "-a", help="Update specific agent")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress output")
-def update(agent: str | None, quiet: bool):
+@click.pass_context
+def update(ctx, agent: str | None, quiet: bool):
     """Update latest version info for agents."""
-    asyncio.run(run_update(agent, quiet))
+    debug = ctx.obj.get("debug", False)
+    asyncio.run(run_update(agent, quiet, debug))
 
 
-async def run_update(agent: str | None, quiet: bool):
+async def run_update(agent: str | None, quiet: bool, debug: bool):
+    set_debug(debug)
     config = load_config()
     agents = config["agents"]
 
@@ -116,6 +119,12 @@ async def run_update(agent: str | None, quiet: bool):
     for agent_config in agents:
         from . import get_latest_version
 
+        if debug:
+            check_cmd = agent_config.get("check_latest_command", "")
+            click.echo(
+                f"Checking {agent_config['name']} with command: {check_cmd}", err=True
+            )
+
         latest_version, status = await get_latest_version(agent_config)
 
         if status == "success" and latest_version:
@@ -127,6 +136,10 @@ async def run_update(agent: str | None, quiet: bool):
             if not quiet:
                 error_msg = status if status != "success" else "Unknown error"
                 click.echo(f"❌ {agent_config['name']}: {error_msg}")
+            if debug:
+                check_cmd = agent_config.get("check_latest_command", "")
+                click.echo(f"   Command: {check_cmd}", err=True)
+                click.echo(f"   Status: {status}", err=True)
 
     save_config(config)
 
@@ -149,12 +162,15 @@ async def run_update(agent: str | None, quiet: bool):
 @click.option(
     "--timeout", "-t", default=300, help="Command timeout in seconds (default: 300)"
 )
-def upgrade(agent: str | None, dry_run: bool, timeout: int):
+@click.pass_context
+def upgrade(ctx, agent: str | None, dry_run: bool, timeout: int):
     """Upgrade agents to latest versions."""
-    asyncio.run(run_upgrade(agent, dry_run, timeout))
+    debug = ctx.obj.get("debug", False)
+    asyncio.run(run_upgrade(agent, dry_run, timeout, debug))
 
 
-async def run_upgrade(agent: str | None, dry_run: bool, timeout: int):
+async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: bool):
+    set_debug(debug)
     config = load_config()
     agents = config["agents"]
 
@@ -191,9 +207,7 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int):
         for agent_config in upgradeable_agents:
             current, status = await get_current_version(agent_config)
             latest = agent_config.get("latest_version")
-            click.echo(
-                f"  {agent_config['name']}: {current} → {latest}"
-            )
+            click.echo(f"  {agent_config['name']}: {current} → {latest}")
         return
 
     click.echo(f"Upgrading {len(upgradeable_agents)} agents...")
@@ -202,6 +216,8 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int):
         upgrade_command = agent_config.get("upgrade_command")
         if upgrade_command:
             click.echo(f"Upgrading {agent_config['name']}...")
+            if debug:
+                click.echo(f"  Running: {upgrade_command}", err=True)
             output, returncode = await run_command_async(
                 upgrade_command, timeout=timeout
             )
@@ -217,6 +233,8 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int):
             click.echo(f"✅ {name} upgraded successfully")
         else:
             click.echo(f"❌ {name} upgrade failed: {output}")
+            if debug:
+                click.echo(f"  Return code: {returncode}", err=True)
 
 
 @cli.command()
@@ -230,12 +248,15 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int):
 @click.option(
     "--timeout", "-t", default=600, help="Command timeout in seconds (default: 600)"
 )
-def install(agent_name: str, force: bool, timeout: int):
+@click.pass_context
+def install(ctx, agent_name: str, force: bool, timeout: int):
     """Install a specific agent."""
-    asyncio.run(run_install(agent_name, force, timeout))
+    debug = ctx.obj.get("debug", False)
+    asyncio.run(run_install(agent_name, force, timeout, debug))
 
 
-async def run_install(agent_name: str, force: bool, timeout: int):
+async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
+    set_debug(debug)
     config = load_config()
     agents = config["agents"]
 
@@ -243,6 +264,9 @@ async def run_install(agent_name: str, force: bool, timeout: int):
     if not agent_config:
         click.echo(f"Agent '{agent_name}' not found in configuration.", err=True)
         sys.exit(1)
+
+    if debug:
+        click.echo(f"Checking current version for {agent_name}...", err=True)
 
     current, status = await get_current_version(agent_config)
 
@@ -257,6 +281,8 @@ async def run_install(agent_name: str, force: bool, timeout: int):
         sys.exit(1)
 
     click.echo(f"Installing {agent_name}...")
+    if debug:
+        click.echo(f"  Running: {install_command}", err=True)
     output, returncode = await run_command_async(install_command, timeout=timeout)
 
     if returncode == 0:
@@ -266,16 +292,21 @@ async def run_install(agent_name: str, force: bool, timeout: int):
             click.echo(f"Installed version: {new_ver}")
     else:
         click.echo(f"❌ {agent_name} installation failed: {output}")
+        if debug:
+            click.echo(f"  Return code: {returncode}", err=True)
         sys.exit(1)
 
 
 @cli.command(name="list")
-def list_agents():
+@click.pass_context
+def list_agents(ctx):
     """List all configured agents."""
-    asyncio.run(run_list_agents())
+    debug = ctx.obj.get("debug", False)
+    asyncio.run(run_list_agents(debug))
 
 
-async def run_list_agents():
+async def run_list_agents(debug: bool):
+    set_debug(debug)
     config = load_config()
     agents = config["agents"]
 
@@ -293,7 +324,8 @@ async def run_list_agents():
         click.echo("")
 
 
-async def run_release_notes(agent: str | None):
+async def run_release_notes(agent: str | None, debug: bool):
+    set_debug(debug)
     config = load_config()
     agents = config["agents"]
 
@@ -351,9 +383,11 @@ async def run_release_notes(agent: str | None):
 
 @cli.command(name="release-notes")
 @click.option("--agent", "-a", help="Get release notes for specific agent")
-def release_notes(agent: str | None):
+@click.pass_context
+def release_notes(ctx, agent: str | None):
     """Fetch and display release notes."""
-    asyncio.run(run_release_notes(agent))
+    debug = ctx.obj.get("debug", False)
+    asyncio.run(run_release_notes(agent, debug))
 
 
 cli.add_command(release_notes, name="rn")

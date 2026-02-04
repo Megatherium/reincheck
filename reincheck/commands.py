@@ -1,6 +1,7 @@
 import asyncio
 import click
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from . import (
     AgentConfig,
     save_config,
     set_debug,
-    UPGRADE_TIMEOUT,
+    compare_versions,
     INSTALL_TIMEOUT,
 )
 
@@ -251,7 +252,10 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: boo
     help="Force installation even if already installed",
 )
 @click.option(
-    "--timeout", "-t", default=INSTALL_TIMEOUT, help="Command timeout in seconds (default: 600)"
+    "--timeout",
+    "-t",
+    default=INSTALL_TIMEOUT,
+    help="Command timeout in seconds (default: 600)",
 )
 @click.pass_context
 def install(ctx, agent_name: str, force: bool, timeout: int):
@@ -380,10 +384,10 @@ async def run_release_notes(agent: str | None, debug: bool):
     if agent:
         # Render the single file
         file_path = rn_dir / f"{agents[0]['name']}.md"
-        _ = os.system(f"{pager_cmd} {file_path}")
+        subprocess.run([pager_cmd, str(file_path)], check=False)
     else:
         # Render all
-        _ = os.system(f"{pager_cmd} {combined_path}")
+        subprocess.run([pager_cmd, str(combined_path)], check=False)
 
 
 @cli.command(name="release-notes")

@@ -1,3 +1,7 @@
+## Interacting the project
+
+Use `uv` to run script and manage Python packages. For further tooling `mise` is your friend.
+
 ## Project Overview
 
 This is **reincheck**, a Python CLI tool for managing AI coding agents. Key files:
@@ -5,7 +9,7 @@ This is **reincheck**, a Python CLI tool for managing AI coding agents. Key file
 - **reincheck/commands.py**: Click CLI definitions (cli, check, update, upgrade, install, list, release-notes)
 - **reincheck/agents.yaml**: Configuration for 16 agents (crush, kilocode, opencode, claude, grok, gemini, cline, continue, interpreter, droid, openhands, mistral, codex, goose, roo, aider, kimi, amp)
 
-Agent versions fetched via `get_latest_version()` (executes check_latest_command) and `fetch_release_notes()` (GitHub API for agents with github_repo). NPM info via `get_npm_release_info()`, PyPI via `get_pypi_release_info()`. Uses uv for Python package management and mise for tool installation.
+Agent versions fetched via `get_latest_version()` (executes check_latest_command) and `fetch_release_notes()` (GitHub API for agents with github_repo). NPM info via `get_npm_release_info()`, PyPI via `get_pypi_release_info()`. 
 
 ## Issue Tracking with bd (beads)
 

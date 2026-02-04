@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import yaml
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TypedDict, cast
 import click
@@ -26,20 +27,48 @@ def is_debug() -> bool:
     return _debug_enabled
 
 
-class AgentConfig(TypedDict):
+@dataclass
+class AgentConfig:
     name: str
     description: str
     install_command: str
     version_command: str
     check_latest_command: str
     upgrade_command: str
-    latest_version: str | None
-    github_repo: str | None
-    release_notes_url: str | None
+    latest_version: str | None = None
+    github_repo: str | None = None
+    release_notes_url: str | None = None
+
+    def __post_init__(self):
+        if not isinstance(self.name, str) or not self.name:
+            raise ValueError("Agent name must be a non-empty string")
+        if not isinstance(self.description, str):
+            raise ValueError("Agent description must be a string")
+        if not isinstance(self.install_command, str) or not self.install_command:
+            raise ValueError("Agent install_command must be a non-empty string")
+        if not isinstance(self.version_command, str) or not self.version_command:
+            raise ValueError("Agent version_command must be a non-empty string")
+        if not isinstance(self.check_latest_command, str) or not self.check_latest_command:
+            raise ValueError("Agent check_latest_command must be a non-empty string")
+        if not isinstance(self.upgrade_command, str) or not self.upgrade_command:
+            raise ValueError("Agent upgrade_command must be a non-empty string")
+        
+        # Validate commands for dangerous shell metacharacters
+        for cmd_field in [self.install_command, self.version_command, self.check_latest_command, self.upgrade_command]:
+            if cmd_field and not is_command_safe(cmd_field):
+                raise ValueError(f"Command contains dangerous characters: {cmd_field[:50]}...")
 
 
-class Config(TypedDict):
-    agents: list[AgentConfig]
+@dataclass
+class Config:
+    agents: list[AgentConfig] = field(default_factory=list)
+
+    def __post_init__(self):
+        if not isinstance(self.agents, list):
+            raise ValueError("Config agents must be a list")
+        for agent in self.agents:
+            if not isinstance(agent, AgentConfig):
+                raise ValueError("Each agent must be an AgentConfig instance")
 
 
 class UpdateResult(TypedDict):
@@ -59,18 +88,84 @@ def load_config() -> Config:
         click.echo(f"Error: Configuration file {config_path} not found.", err=True)
         sys.exit(1)
 
-    with open(config_path, "r") as f:
-        return cast(Config, yaml.safe_load(f))
+    try:
+        with open(config_path, "r") as f:
+            data = yaml.safe_load(f)
+    except (IOError, yaml.YAMLError) as e:
+        click.echo(f"Error loading configuration: {e}", err=True)
+        sys.exit(1)
+
+    # Validate config structure
+    if not isinstance(data, dict) or "agents" not in data:
+        click.echo("Error: Invalid configuration structure. Expected 'agents' key.", err=True)
+        sys.exit(1)
+
+    if not isinstance(data["agents"], list):
+        click.echo("Error: 'agents' must be a list.", err=True)
+        sys.exit(1)
+
+    # Create AgentConfig instances with validation
+    agents = []
+    for agent_data in data["agents"]:
+        try:
+            agent = AgentConfig(
+                name=agent_data.get("name", ""),
+                description=agent_data.get("description", ""),
+                install_command=agent_data.get("install_command", ""),
+                version_command=agent_data.get("version_command", ""),
+                check_latest_command=agent_data.get("check_latest_command", ""),
+                upgrade_command=agent_data.get("upgrade_command", ""),
+                latest_version=agent_data.get("latest_version"),
+                github_repo=agent_data.get("github_repo"),
+                release_notes_url=agent_data.get("release_notes_url"),
+            )
+            agents.append(agent)
+        except ValueError as e:
+            click.echo(f"Error in agent configuration: {e}", err=True)
+            sys.exit(1)
+
+    return Config(agents=agents)
 
 
 def save_config(config: Config) -> None:
-    """Save agents configuration to YAML file."""
+    """Save agents configuration to YAML file atomically."""
     config_path = Path(__file__).parent / "agents.yaml"
-    with open(config_path, "w") as f:
-        yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+    try:
+        # Convert dataclass to dict for YAML serialization
+        agents_data = []
+        for agent in config.agents:
+            agent_dict = {
+                "name": agent.name,
+                "description": agent.description,
+                "install_command": agent.install_command,
+                "version_command": agent.version_command,
+                "check_latest_command": agent.check_latest_command,
+                "upgrade_command": agent.upgrade_command,
+            }
+            if agent.latest_version is not None:
+                agent_dict["latest_version"] = agent.latest_version
+            if agent.github_repo is not None:
+                agent_dict["github_repo"] = agent.github_repo
+            if agent.release_notes_url is not None:
+                agent_dict["release_notes_url"] = agent.release_notes_url
+            agents_data.append(agent_dict)
+        
+        data = {"agents": agents_data}
+        
+        # Write to temp file first
+        temp_path = config_path.with_suffix(".tmp")
+        with open(temp_path, "w") as f:
+            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+        # Atomic rename (POSIX guarantees atomicity)
+        temp_path.replace(config_path)
+    except (IOError, yaml.YAMLError) as e:
+        click.echo(f"Error saving configuration: {e}", err=True)
+        raise
 
 
-async def run_command_async(command: str, timeout: int = DEFAULT_TIMEOUT) -> tuple[str, int]:
+async def run_command_async(
+    command: str, timeout: int = DEFAULT_TIMEOUT
+) -> tuple[str, int]:
     """Run a command asynchronously and return output and return code."""
     process = None
     try:
@@ -187,7 +282,7 @@ def compare_versions(version1: str, version2: str) -> int:
             return 1
         else:
             return 0
-    except:
+    except (ValueError, TypeError):
         # If parsing fails, do string comparison
         if version1 < version2:
             return -1
@@ -250,7 +345,7 @@ async def get_npm_release_info(package_name: str) -> str | None:
         try:
             tags = json.loads(output_tags)
             latest_ver = tags.get("latest")
-        except:
+        except (json.JSONDecodeError, KeyError, TypeError):
             pass
 
     # Get time info
@@ -269,7 +364,7 @@ async def get_npm_release_info(package_name: str) -> str | None:
 
             if latest_ver:
                 latest_time = data.get(latest_ver, "Unknown")
-        except:
+        except (json.JSONDecodeError, KeyError, TypeError):
             pass
 
     if latest_ver:
@@ -323,7 +418,7 @@ async def get_pypi_release_info(package_name: str) -> str | None:
             notes += f"Changelog: {changelog_url}\n"
 
         return notes
-    except:
+    except (json.JSONDecodeError, KeyError, TypeError):
         return None
 
 
@@ -435,3 +530,16 @@ async def fetch_release_notes(
         return agent["name"], "No release notes found from configured sources."
 
     return agent["name"], "\n".join(notes_parts)
+
+
+DANGEROUS_PATTERNS = [r"\$\(", r"`"]
+
+
+def is_command_safe(command: str) -> bool:
+    """Check if command contains dangerous shell metacharacters."""
+    if not command:
+        return False
+    for pattern in DANGEROUS_PATTERNS:
+        if re.search(pattern, command):
+            return False
+    return True

@@ -20,7 +20,7 @@ from . import (
 
 def filter_agent_by_name(agents: list[AgentConfig], name: str) -> list[AgentConfig]:
     """Filter agents list by name, returning empty list if not found."""
-    return [a for a in agents if a["name"] == name]
+    return [a for a in agents if a.name == name]
 
 
 @click.group()
@@ -44,10 +44,10 @@ def check(ctx, agent: str | None, quiet: bool):
 
 async def run_check(agent: str | None, quiet: bool, debug: bool):
     config = load_config()
-    agents = config["agents"]
+    agents = config.agents
 
     if agent:
-        agents = [a for a in agents if a["name"] == agent]
+        agents = [a for a in agents if a.name == agent]
         if not agents:
             click.echo(f"Agent '{agent}' not found in configuration.", err=True)
             sys.exit(1)
@@ -57,13 +57,13 @@ async def run_check(agent: str | None, quiet: bool, debug: bool):
 
     for agent_config in agents:
         current, status = await get_current_version(agent_config)
-        latest = agent_config.get("latest_version")
+        latest = agent_config.latest_version
 
         if latest is None:
             null_latest_count += 1
             if not quiet:
                 click.echo(
-                    f"⚠️  {agent_config['name']}: latest_version is null - run 'reincheck update' first"
+                    f"⚠️  {agent_config.name}: latest_version is null - run 'reincheck update' first"
                 )
             continue
 
@@ -75,15 +75,15 @@ async def run_check(agent: str | None, quiet: bool, debug: bool):
         ):
             if compare_versions(current, latest) < 0:
                 update_count += 1
-                click.echo(f"🔄 {agent_config['name']}: {current} → {latest}")
-                click.echo(f"   {agent_config.get('description', '')}")
+                click.echo(f"🔄 {agent_config.name}: {current} → {latest}")
+                click.echo(f"   {agent_config.description}")
             elif not quiet:
-                click.echo(f"✅ {agent_config['name']}: {current} (up to date)")
+                click.echo(f"✅ {agent_config.name}: {current} (up to date)")
         elif not quiet:
             if current and current.strip().lower() != "unknown":
-                click.echo(f"⚪ {agent_config['name']}: {current} (latest: {latest})")
+                click.echo(f"⚪ {agent_config.name}: {current} (latest: {latest})")
             else:
-                click.echo(f"⚪ {agent_config['name']}: Not installed")
+                click.echo(f"⚪ {agent_config.name}: Not installed")
 
     if null_latest_count > 0 and not quiet:
         click.echo(
@@ -109,7 +109,7 @@ def update(ctx, agent: str | None, quiet: bool):
 async def run_update(agent: str | None, quiet: bool, debug: bool):
     set_debug(debug)
     config = load_config()
-    agents = config["agents"]
+    agents = config.agents
 
     if agent:
         agents = filter_agent_by_name(agents, agent)
@@ -126,24 +126,24 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
         from . import get_latest_version
 
         if debug:
-            check_cmd = agent_config.get("check_latest_command", "")
+            check_cmd = agent_config.check_latest_command
             click.echo(
-                f"Checking {agent_config['name']} with command: {check_cmd}", err=True
+                f"Checking {agent_config.name} with command: {check_cmd}", err=True
             )
 
         latest_version, status = await get_latest_version(agent_config)
 
         if status == "success" and latest_version:
-            agent_config["latest_version"] = latest_version
+            agent_config.latest_version = latest_version
             if not quiet:
-                click.echo(f"✅ {agent_config['name']}: {latest_version}")
+                click.echo(f"✅ {agent_config.name}: {latest_version}")
         else:
-            failed_agents.append(agent_config["name"])
+            failed_agents.append(agent_config.name)
             if not quiet:
                 error_msg = status if status != "success" else "Unknown error"
-                click.echo(f"❌ {agent_config['name']}: {error_msg}")
+                click.echo(f"❌ {agent_config.name}: {error_msg}")
             if debug:
-                check_cmd = agent_config.get("check_latest_command", "")
+                check_cmd = agent_config.check_latest_command
                 click.echo(f"   Command: {check_cmd}", err=True)
                 click.echo(f"   Status: {status}", err=True)
 
@@ -178,10 +178,10 @@ def upgrade(ctx, agent: str | None, dry_run: bool, timeout: int):
 async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: bool):
     set_debug(debug)
     config = load_config()
-    agents = config["agents"]
+    agents = config.agents
 
     if agent:
-        agents = [a for a in agents if a["name"] == agent]
+        agents = [a for a in agents if a.name == agent]
         if not agents:
             click.echo(f"Agent '{agent}' not found in configuration.", err=True)
             sys.exit(1)
@@ -193,7 +193,7 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: boo
 
     for agent_config in agents:
         current, status = await get_current_version(agent_config)
-        latest = agent_config.get("latest_version")
+        latest = agent_config.latest_version
 
         if (
             current
@@ -212,23 +212,23 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: boo
         click.echo("The following upgrades would be performed:")
         for agent_config in upgradeable_agents:
             current, status = await get_current_version(agent_config)
-            latest = agent_config.get("latest_version")
-            click.echo(f"  {agent_config['name']}: {current} → {latest}")
+            latest = agent_config.latest_version
+            click.echo(f"  {agent_config.name}: {current} → {latest}")
         return
 
     click.echo(f"Upgrading {len(upgradeable_agents)} agents...")
 
     async def perform_upgrade(agent_config: AgentConfig) -> tuple[str, int, str]:
-        upgrade_command = agent_config.get("upgrade_command")
+        upgrade_command = agent_config.upgrade_command
         if upgrade_command:
-            click.echo(f"Upgrading {agent_config['name']}...")
+            click.echo(f"Upgrading {agent_config.name}...")
             if debug:
                 click.echo(f"  Running: {upgrade_command}", err=True)
             output, returncode = await run_command_async(
                 upgrade_command, timeout=timeout
             )
-            return agent_config["name"], returncode, output
-        return agent_config["name"], 1, "No upgrade command configured"
+            return agent_config.name, returncode, output
+        return agent_config.name, 1, "No upgrade command configured"
 
     upgrade_results = await asyncio.gather(
         *[perform_upgrade(a) for a in upgradeable_agents]
@@ -267,9 +267,9 @@ def install(ctx, agent_name: str, force: bool, timeout: int):
 async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
     set_debug(debug)
     config = load_config()
-    agents = config["agents"]
+    agents = config.agents
 
-    agent_config = next((a for a in agents if a["name"] == agent_name), None)
+    agent_config = next((a for a in agents if a.name == agent_name), None)
     if not agent_config:
         click.echo(f"Agent '{agent_name}' not found in configuration.", err=True)
         sys.exit(1)
@@ -284,7 +284,7 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
         click.echo("Use --force to reinstall.")
         return
 
-    install_command = agent_config.get("install_command")
+    install_command = agent_config.install_command
     if not install_command:
         click.echo(f"No install command defined for agent '{agent_name}'.", err=True)
         sys.exit(1)
@@ -317,7 +317,7 @@ def list_agents(ctx):
 async def run_list_agents(debug: bool):
     set_debug(debug)
     config = load_config()
-    agents = config["agents"]
+    agents = config.agents
 
     click.echo("Configured agents:")
     click.echo("")
@@ -327,8 +327,8 @@ async def run_list_agents(debug: bool):
 
     for i, agent in enumerate(agents):
         current, status = results[i]
-        click.echo(f"• {agent['name']}")
-        click.echo(f"  {agent.get('description', '')}")
+        click.echo(f"• {agent.name}")
+        click.echo(f"  {agent.description}")
         click.echo(f"  Current version: {current or 'Unknown'} ({status})")
         click.echo("")
 
@@ -336,10 +336,10 @@ async def run_list_agents(debug: bool):
 async def run_release_notes(agent: str | None, debug: bool):
     set_debug(debug)
     config = load_config()
-    agents = config["agents"]
+    agents = config.agents
 
     if agent:
-        agents = [a for a in agents if a["name"] == agent]
+        agents = [a for a in agents if a.name == agent]
         if not agents:
             click.echo(f"Agent '{agent}' not found.", err=True)
             sys.exit(1)
@@ -383,7 +383,7 @@ async def run_release_notes(agent: str | None, debug: bool):
 
     if agent:
         # Render the single file
-        file_path = rn_dir / f"{agents[0]['name']}.md"
+        file_path = rn_dir / f"{agents[0].name}.md"
         subprocess.run([pager_cmd, str(file_path)], check=False)
     else:
         # Render all

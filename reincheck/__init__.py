@@ -48,15 +48,25 @@ class AgentConfig:
             raise ValueError("Agent install_command must be a non-empty string")
         if not isinstance(self.version_command, str) or not self.version_command:
             raise ValueError("Agent version_command must be a non-empty string")
-        if not isinstance(self.check_latest_command, str) or not self.check_latest_command:
+        if (
+            not isinstance(self.check_latest_command, str)
+            or not self.check_latest_command
+        ):
             raise ValueError("Agent check_latest_command must be a non-empty string")
         if not isinstance(self.upgrade_command, str) or not self.upgrade_command:
             raise ValueError("Agent upgrade_command must be a non-empty string")
-        
+
         # Validate commands for dangerous shell metacharacters
-        for cmd_field in [self.install_command, self.version_command, self.check_latest_command, self.upgrade_command]:
+        for cmd_field in [
+            self.install_command,
+            self.version_command,
+            self.check_latest_command,
+            self.upgrade_command,
+        ]:
             if cmd_field and not is_command_safe(cmd_field):
-                raise ValueError(f"Command contains dangerous characters: {cmd_field[:50]}...")
+                raise ValueError(
+                    f"Command contains dangerous characters: {cmd_field[:50]}..."
+                )
 
 
 @dataclass
@@ -97,7 +107,9 @@ def load_config() -> Config:
 
     # Validate config structure
     if not isinstance(data, dict) or "agents" not in data:
-        click.echo("Error: Invalid configuration structure. Expected 'agents' key.", err=True)
+        click.echo(
+            "Error: Invalid configuration structure. Expected 'agents' key.", err=True
+        )
         sys.exit(1)
 
     if not isinstance(data["agents"], list):
@@ -149,9 +161,9 @@ def save_config(config: Config) -> None:
             if agent.release_notes_url is not None:
                 agent_dict["release_notes_url"] = agent.release_notes_url
             agents_data.append(agent_dict)
-        
+
         data = {"agents": agents_data}
-        
+
         # Write to temp file first
         temp_path = config_path.with_suffix(".tmp")
         with open(temp_path, "w") as f:
@@ -201,7 +213,7 @@ async def run_command_async(
 
 async def get_current_version(agent: AgentConfig) -> tuple[str | None, str]:
     """Get the current version of an agent."""
-    version_command = agent.get("version_command")
+    version_command = agent.version_command
     if not version_command:
         return None, "No version command configured"
 
@@ -233,7 +245,7 @@ def add_github_auth_if_needed(command: str) -> str:
 
 async def get_latest_version(agent: AgentConfig) -> tuple[str | None, str]:
     """Get the latest version of an agent."""
-    check_latest_command = agent.get("check_latest_command")
+    check_latest_command = agent.check_latest_command
     if not check_latest_command:
         return None, "No version check command configured"
 
@@ -303,13 +315,13 @@ async def check_agent_updates(agent: AgentConfig) -> UpdateResult:
     )
 
     result: UpdateResult = {
-        "name": agent["name"],
+        "name": agent.name,
         "current_version": current,
         "current_status": current_status,
         "latest_version": latest,
         "latest_status": latest_status,
         "update_available": False,
-        "description": agent.get("description", ""),
+        "description": agent.description,
     }
 
     if (
@@ -429,7 +441,7 @@ async def fetch_release_notes(
     notes_parts = []
 
     # 1. Try GitHub
-    repo = agent.get("github_repo")
+    repo = agent.github_repo
     if repo:
         url = f"https://api.github.com/repos/{repo}/releases/latest"
         cmd = add_github_auth_if_needed(
@@ -460,7 +472,7 @@ async def fetch_release_notes(
                     )
 
                 if body:
-                    header = f"# Release Notes: {agent['name']} ({tag_name})\n\n"
+                    header = f"# Release Notes: {agent.name} ({tag_name})\n\n"
                     notes_parts.append(header + body)
                 else:
                     notes_parts.append(
@@ -473,7 +485,7 @@ async def fetch_release_notes(
             notes_parts.append(f"Failed to fetch GitHub release notes: {output}")
 
     # 2. Try Release Notes URL (Fallback or Supplement)
-    rn_url = agent.get("release_notes_url")
+    rn_url = agent.release_notes_url
     if rn_url:
         # If we already have notes and they aren't outdated, maybe skip?
         # But user might want to see both if configured.
@@ -491,7 +503,7 @@ async def fetch_release_notes(
                 notes_parts.append(f"Please visit: {rn_url}")
 
     # 3. Try NPM Fallback
-    install_cmd = agent.get("install_command", "")
+    install_cmd = agent.install_command
     should_fallback = not notes_parts or any(
         x in notes_parts[0] for x in ["⚠️", "No release body", "Failed to fetch"]
     )
@@ -527,9 +539,9 @@ async def fetch_release_notes(
                     notes_parts.append(f"\n\n## PyPI Info\n{pypi_info}")
 
     if not notes_parts:
-        return agent["name"], "No release notes found from configured sources."
+        return agent.name, "No release notes found from configured sources."
 
-    return agent["name"], "\n".join(notes_parts)
+    return agent.name, "\n".join(notes_parts)
 
 
 DANGEROUS_PATTERNS = [r"\$\(", r"`"]

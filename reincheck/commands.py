@@ -12,7 +12,14 @@ from . import (
     AgentConfig,
     save_config,
     set_debug,
+    UPGRADE_TIMEOUT,
+    INSTALL_TIMEOUT,
 )
+
+
+def filter_agent_by_name(agents: list[AgentConfig], name: str) -> list[AgentConfig]:
+    """Filter agents list by name, returning empty list if not found."""
+    return [a for a in agents if a["name"] == name]
 
 
 @click.group()
@@ -48,8 +55,6 @@ async def run_check(agent: str | None, quiet: bool, debug: bool):
     null_latest_count = 0
 
     for agent_config in agents:
-        from . import get_current_version, compare_versions
-
         current, status = await get_current_version(agent_config)
         latest = agent_config.get("latest_version")
 
@@ -106,7 +111,7 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
     agents = config["agents"]
 
     if agent:
-        agents = [a for a in agents if a["name"] == agent]
+        agents = filter_agent_by_name(agents, agent)
         if not agents:
             click.echo(f"Agent '{agent}' not found in configuration.", err=True)
             sys.exit(2)
@@ -246,7 +251,7 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: boo
     help="Force installation even if already installed",
 )
 @click.option(
-    "--timeout", "-t", default=600, help="Command timeout in seconds (default: 600)"
+    "--timeout", "-t", default=INSTALL_TIMEOUT, help="Command timeout in seconds (default: 600)"
 )
 @click.pass_context
 def install(ctx, agent_name: str, force: bool, timeout: int):
@@ -365,12 +370,12 @@ async def run_release_notes(agent: str | None, debug: bool):
         for name, content in results:
             file_path = rn_dir / f"{name}.md"
             with open(file_path, "w") as f:
-                _ = f.write(content)
+                f.write(content)
 
             # Append to combined file
-            _ = combined_f.write(f"\n\n# {name}\n\n")
-            _ = combined_f.write(content)
-            _ = combined_f.write("\n\n---\n\n")
+            combined_f.write(f"\n\n# {name}\n\n")
+            combined_f.write(content)
+            combined_f.write("\n\n---\n\n")
 
     if agent:
         # Render the single file

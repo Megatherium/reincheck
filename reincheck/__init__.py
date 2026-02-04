@@ -8,6 +8,9 @@ from pathlib import Path
 from typing import TypedDict, cast
 import click
 
+DEFAULT_TIMEOUT = 30
+UPGRADE_TIMEOUT = 300
+INSTALL_TIMEOUT = 600
 
 _debug_enabled = False
 
@@ -67,7 +70,7 @@ def save_config(config: Config) -> None:
         yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
 
-async def run_command_async(command: str, timeout: int = 30) -> tuple[str, int]:
+async def run_command_async(command: str, timeout: int = DEFAULT_TIMEOUT) -> tuple[str, int]:
     """Run a command asynchronously and return output and return code."""
     process = None
     try:
@@ -79,7 +82,9 @@ async def run_command_async(command: str, timeout: int = 30) -> tuple[str, int]:
             stderr=asyncio.subprocess.PIPE,
         )
         try:
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=timeout
+            )
             output = stdout.decode().strip()
             if is_debug() and stderr:
                 click.echo(f"[DEBUG] stderr: {stderr.decode().strip()}", err=True)
@@ -122,7 +127,7 @@ def add_github_auth_if_needed(command: str) -> str:
         return command
 
     if "curl " in command or "curl" == command[:4]:
-        header = " -H 'Authorization: Bearer $GITHUB_TOKEN'"
+        header = ' -H "Authorization: Bearer $GITHUB_TOKEN"'
         if "-H " in command:
             command = command.replace("curl ", f"curl{header} ", 1)
         else:
@@ -332,7 +337,9 @@ async def fetch_release_notes(
     repo = agent.get("github_repo")
     if repo:
         url = f"https://api.github.com/repos/{repo}/releases/latest"
-        cmd = add_github_auth_if_needed(f"curl -s -H 'Accept: application/vnd.github.v3+json' {url}")
+        cmd = add_github_auth_if_needed(
+            f"curl -s -H 'Accept: application/vnd.github.v3+json' {url}"
+        )
         output, returncode = await run_command_async(cmd)
 
         if returncode == 0:

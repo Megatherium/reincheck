@@ -1,0 +1,242 @@
+# Machine-readable installation data for Python/uv/pipx-based harnesses
+# Generated from research/e19/DISTILLED.md
+# Ticket: reincheck-e19
+# Last Updated: 2026-02-05
+
+harnesses:
+  interpreter:
+    pypi:
+      package: "open-interpreter"
+      verified: true
+      install: "uv tool install open-interpreter"
+      upgrade: "uv tool upgrade open-interpreter"
+      version: "interpreter --version"
+      binary: "interpreter"
+      provenance: "https://pypi.org/project/open-interpreter"
+    python_version:
+      required: "3.10+"
+      recommended: "3.11+"
+    uv_tool:
+      install: "uv tool install open-interpreter"
+      upgrade: "uv tool upgrade open-interpreter"
+    pipx:
+      install: "pipx install open-interpreter"
+      upgrade: "pipx upgrade open-interpreter"
+    pip:
+      install: "pip install open-interpreter"
+      upgrade: "pip install -U open-interpreter"
+    homebrew:
+      available: false
+    curl:
+      available: true
+      verified: false
+      warning: "Untested - use with caution"
+  
+  openhands:
+    pypi:
+      package: "openhands"
+      verified: true
+      install: "uv tool install openhands"
+      upgrade: "uv tool upgrade openhands"
+      version: "openhands --version"
+      binary: "openhands"
+      provenance: "https://pypi.org/project/openhands"
+    python_version:
+      required: "3.12+"
+      note: "Strict requirement"
+    uv_tool:
+      install: "uv tool install openhands"
+      upgrade: "uv tool upgrade openhands"
+      install_pinned: "uv tool install openhands --python 3.12"
+    pipx:
+      install: "pipx install openhands"
+      upgrade: "pipx upgrade openhands"
+    pip:
+      install: "pip install openhands"
+      upgrade: "pip install -U openhands"
+    homebrew:
+      available: false
+    curl:
+      available: true
+      verified: false
+      warning: "Untested - use with caution"
+      install: "curl -fsSL https://install.openhands.dev/install.sh | bash"
+      upgrade: "Re-run install script"
+  
+  aider:
+    pypi:
+      package: "aider-chat"
+      verified: true
+      install: "uv tool install aider-chat"
+      upgrade: "uv tool upgrade aider-chat"
+      version: "aider --version"
+      binary: "aider"
+      provenance: "https://pypi.org/project/aider-chat"
+    python_version:
+      required: "3.8-3.13"
+      recommended: "3.13"
+    uv_tool:
+      install: "uv tool install aider-chat"
+      upgrade: "uv tool upgrade aider-chat"
+    pipx:
+      install: "pipx install aider-chat"
+      upgrade: "pipx upgrade aider-chat"
+    pip:
+      install: "pip install aider-chat"
+      upgrade: "pip install -U aider-chat"
+    homebrew:
+      available: true
+      type: "formula"
+      note: "Official formula"
+      install: "brew install aider"
+      upgrade: "brew upgrade aider"
+      version: "aider --version"
+      formula: "https://formulae.brew.sh/formula/aider"
+    mise:
+      run: "mise run -- uv tool install aider-chat"
+      upgrade: "mise run -- uv tool upgrade aider-chat"
+      version: "aider --version"
+  
+  mistral:
+    pypi:
+      package: "mistral-vibe"
+      verified: true
+      install: "uv tool install mistral-vibe"
+      upgrade: "uv tool upgrade mistral-vibe"
+      version: "vibe --version"
+      binary: "vibe"
+      note: "Binary is 'vibe', NOT 'mistral-vibe'"
+      provenance: "https://pypi.org/project/mistral-vibe"
+    python_version:
+      required: "3.12+"
+    uv_tool:
+      install: "uv tool install mistral-vibe"
+      upgrade: "uv tool upgrade mistral-vibe"
+    pipx:
+      install: "pipx install mistral-vibe"
+      upgrade: "pipx upgrade mistral-vibe"
+    pip:
+      install: "pip install mistral-vibe"
+      upgrade: "pip install -U mistral-vibe"
+    homebrew:
+      available: false
+    curl:
+      available: true
+      verified: false
+      warning: "Untested - use with caution"
+      install: "curl -LsSf https://mistral.ai/vibe/install.sh | bash"
+      upgrade: "Re-run install script"
+  
+  kimi:
+    pypi:
+      package: "kimi-cli"
+      verified: true
+      install: "uv tool install kimi-cli"
+      upgrade: "uv tool upgrade kimi-cli"
+      upgrade_flags: "--no-cache"
+      version: "kimi --version"
+      binary: "kimi"
+      provenance: "https://pypi.org/project/kimi-cli"
+    python_version:
+      required: "3.12-3.14"
+      recommended: "3.13"
+    uv_tool:
+      install: "uv tool install kimi-cli"
+      upgrade: "uv tool upgrade kimi-cli"
+      install_pinned: "uv tool install --python 3.13 kimi-cli"
+      upgrade_with_flags: "uv tool upgrade kimi-cli --no-cache"
+    pipx:
+      install: "pipx install kimi-cli"
+      upgrade: "pipx upgrade kimi-cli"
+    pip:
+      install: "pip install kimi-cli"
+      upgrade: "pip install -U kimi-cli"
+    npm:
+      package: "@jacksontian/kimi-cli"
+      verified: true
+      install: "npm install -g @jacksontian/kimi-cli@latest"
+      upgrade: "npm install -g @jacksontian/kimi-cli@latest"
+      version: "kimi --version"
+      binary: "kimi"
+      note: "Use scoped NPM package"
+    homebrew:
+      available: false
+      note: "Some models claimed homebrew exists but not verified"
+    curl:
+      available: true
+      verified: false
+      warning: "Untested - use with caution"
+      install: "curl -LsSf https://cdn.kimi.com/binaries/kimi-cli/install.sh | bash"
+      upgrade: "Re-run install script"
+
+# Standards used:
+version_check_pattern: "<binary> --version"
+uv_tool_install: "uv tool install <package>"
+uv_tool_upgrade: "uv tool upgrade <package>"
+uv_tool_install_pinned: "uv tool install <package> --python <version>"
+pipx_install: "pipx install <package>"
+pipx_upgrade: "pipx upgrade <package>"
+
+# Python version requirements summary:
+python_requirements:
+  interpreter: "3.10+ (3.11 recommended)"
+  openhands: "3.12+ (strict)"
+  aider: "3.8-3.13 (3.13 recommended)"
+  mistral: "3.12+"
+  kimi: "3.12-3.14 (3.13 recommended)"
+
+# Model accuracy summary:
+model_accuracy:
+  ChatGPT: 0.95
+  Gemini: 0.9
+  Mistral: 0.6
+  Zhipu: 0.85
+
+# Common hallucinations:
+common_hallucinations:
+  - mise_syntax: "mise use -g python:X + pipx install"
+    correct: "mise run -- uv tool install"
+    severity: "high"
+  - uv_tool_unavailable: "mistral-vibe, kimi-cli"
+    correct: "uv tool works for all verified packages"
+    severity: "high"
+  - binary_name: "mistral-vibe --version"
+    correct: "vibe --version"
+    severity: "medium"
+  - homebrew_kimi: "brew install kimi"
+    correct: "Not available - unverified claim"
+    severity: "medium"
+
+# Binary name mappings (important for config):
+binary_mappings:
+  interpreter: interpreter
+  openhands: openhands
+  aider: aider
+  mistral: vibe  # NOT mistral-vibe
+  kimi: kimi
+
+# PyPI package mappings:
+pypi_mappings:
+  interpreter: open-interpreter
+  openhands: openhands
+  aider: aider-chat
+  mistral: mistral-vibe
+  kimi: kimi-cli
+
+# Homebrew availability:
+homebrew_available:
+  aider:
+    available: true
+    type: formula
+    install: "brew install aider"
+  interpreter: false
+  openhands: false
+  mistral: false
+  kimi: false
+
+# NPM availability (only kimi has NPM package):
+npm_available:
+  kimi:
+    package: "@jacksontian/kimi-cli"
+    install: "npm install -g @jacksontian/kimi-cli@latest"
+    upgrade: "npm install -g @jacksontian/kimi-cli@latest"

@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import yaml
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TypedDict, cast
@@ -13,13 +14,28 @@ DEFAULT_TIMEOUT = 30
 UPGRADE_TIMEOUT = 300
 INSTALL_TIMEOUT = 600
 
+_logging = logging.getLogger(__name__)
+
 _debug_enabled = False
+
+
+def setup_logging():
+    """Configure logging for the application."""
+    if not _logging.handlers:
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+        _logging.addHandler(handler)
+        _logging.setLevel(logging.DEBUG if _debug_enabled else logging.INFO)
 
 
 def set_debug(enabled: bool):
     """Enable or disable debug mode globally."""
     global _debug_enabled
     _debug_enabled = enabled
+    setup_logging()
+    _logging.setLevel(logging.DEBUG if enabled else logging.INFO)
+    for handler in _logging.handlers:
+        handler.setLevel(logging.DEBUG if enabled else logging.INFO)
 
 
 def is_debug() -> bool:
@@ -102,6 +118,7 @@ def load_config() -> Config:
         with open(config_path, "r") as f:
             data = yaml.safe_load(f)
     except (IOError, yaml.YAMLError) as e:
+        _logging.error(f"Error loading configuration: {e}")
         click.echo(f"Error loading configuration: {e}", err=True)
         sys.exit(1)
 
@@ -171,6 +188,7 @@ def save_config(config: Config) -> None:
         # Atomic rename (POSIX guarantees atomicity)
         temp_path.replace(config_path)
     except (IOError, yaml.YAMLError) as e:
+        _logging.error(f"Error saving configuration: {e}")
         click.echo(f"Error saving configuration: {e}", err=True)
         raise
 
@@ -181,8 +199,7 @@ async def run_command_async(
     """Run a command asynchronously and return output and return code."""
     process = None
     try:
-        if is_debug():
-            click.echo(f"[DEBUG] Running command: {command}", err=True)
+        _logging.debug(f"Running command: {command}")
         process = await asyncio.create_subprocess_shell(
             command,
             stdout=asyncio.subprocess.PIPE,
@@ -193,16 +210,15 @@ async def run_command_async(
                 process.communicate(), timeout=timeout
             )
             output = stdout.decode().strip()
-            if is_debug() and stderr:
-                click.echo(f"[DEBUG] stderr: {stderr.decode().strip()}", err=True)
+            if stderr:
+                _logging.debug(f"stderr: {stderr.decode().strip()}")
             return output, process.returncode if process.returncode is not None else 1
         except asyncio.TimeoutError:
             process.kill()
             _ = await process.wait()
             return f"Command timed out after {timeout} seconds", 1
     except Exception as e:
-        if is_debug():
-            click.echo(f"[DEBUG] Exception: {type(e).__name__}: {e}", err=True)
+        _logging.debug(f"Exception: {type(e).__name__}: {e}")
         return f"Error: {str(e)}", 1
     finally:
         if process:

@@ -468,16 +468,16 @@ class TestRunCommandAsync:
     async def test_run_command_debug_mode(self):
         """Test command execution in debug mode."""
         with patch("reincheck.__init__.is_debug", return_value=True):
-            with patch("reincheck.__init__.click.echo") as mock_echo:
+            with patch("reincheck.__init__.logging.debug") as mock_debug:
                 await run_command_async("echo 'debug test'")
-                # Verify echo was called at least once
-                assert mock_echo.call_count >= 0
+                # Verify debug was called at least once
+                assert mock_debug.call_count >= 0
 
     @pytest.mark.asyncio
     async def test_run_command_malicious_chars(self):
         """Test that command with dangerous chars raises error."""
         with patch("reincheck.__init__.is_debug", return_value=True):
-            with patch("reincheck.__init__.click.echo") as mock_echo:
+            with patch("reincheck.__init__.logging.debug") as mock_debug:
                 result = await run_command_async("echo '$(malicious)'")
                 # The command might still run, just warn
                 assert result[1] == 0 or result[1] == 1

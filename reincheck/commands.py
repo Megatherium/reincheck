@@ -3,6 +3,7 @@ import click
 import os
 import subprocess
 import sys
+import logging
 from pathlib import Path
 
 from . import (
@@ -16,6 +17,8 @@ from . import (
     compare_versions,
     INSTALL_TIMEOUT,
 )
+
+_logging = logging.getLogger(__name__)
 
 
 def filter_agent_by_name(agents: list[AgentConfig], name: str) -> list[AgentConfig]:
@@ -126,10 +129,7 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
         from . import get_latest_version
 
         if debug:
-            check_cmd = agent_config.check_latest_command
-            click.echo(
-                f"Checking {agent_config.name} with command: {check_cmd}", err=True
-            )
+            _logging.debug(f"Checking {agent_config.name} with command: {agent_config.check_latest_command}")
 
         latest_version, status = await get_latest_version(agent_config)
 
@@ -143,9 +143,8 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
                 error_msg = status if status != "success" else "Unknown error"
                 click.echo(f"❌ {agent_config.name}: {error_msg}")
             if debug:
-                check_cmd = agent_config.check_latest_command
-                click.echo(f"   Command: {check_cmd}", err=True)
-                click.echo(f"   Status: {status}", err=True)
+                _logging.debug(f"Command: {agent_config.check_latest_command}")
+                _logging.debug(f"Status: {status}")
 
     save_config(config)
 
@@ -223,7 +222,7 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: boo
         if upgrade_command:
             click.echo(f"Upgrading {agent_config.name}...")
             if debug:
-                click.echo(f"  Running: {upgrade_command}", err=True)
+                _logging.debug(f"  Running: {upgrade_command}")
             output, returncode = await run_command_async(
                 upgrade_command, timeout=timeout
             )
@@ -240,7 +239,7 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: boo
         else:
             click.echo(f"❌ {name} upgrade failed: {output}")
             if debug:
-                click.echo(f"  Return code: {returncode}", err=True)
+                _logging.debug(f"  Return code: {returncode}")
 
 
 @cli.command()
@@ -275,7 +274,7 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
         sys.exit(1)
 
     if debug:
-        click.echo(f"Checking current version for {agent_name}...", err=True)
+        _logging.debug(f"Checking current version for {agent_name}...")
 
     current, status = await get_current_version(agent_config)
 
@@ -291,7 +290,7 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
 
     click.echo(f"Installing {agent_name}...")
     if debug:
-        click.echo(f"  Running: {install_command}", err=True)
+        _logging.debug(f"  Running: {install_command}")
     output, returncode = await run_command_async(install_command, timeout=timeout)
 
     if returncode == 0:
@@ -302,7 +301,7 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
     else:
         click.echo(f"❌ {agent_name} installation failed: {output}")
         if debug:
-            click.echo(f"  Return code: {returncode}", err=True)
+            _logging.debug(f"  Return code: {returncode}")
         sys.exit(1)
 
 

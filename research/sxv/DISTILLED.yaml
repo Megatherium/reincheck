@@ -1,0 +1,415 @@
+# Machine-readable Homebrew availability data for all harnesses
+# Generated from research/sxv/DISTILLED.md
+# Ticket: reincheck-sxv
+# Last Updated: 2026-02-06
+
+harnesses:
+  crush:
+    homebrew:
+      available: false
+      notes: "No formula or cask exists in Homebrew core or official taps"
+      verified_via: "formulae.brew.sh direct check"
+    recommended_install: "mise use -g npm:@charmland/crush"
+    npm:
+      package: "@charmland/crush"
+      install: "npm install -g @charmland/crush"
+
+  kilocode:
+    homebrew:
+      available: false
+      notes: "No formula or cask exists in Homebrew core or official taps"
+      verified_via: "formulae.brew.sh direct check"
+    recommended_install: "mise use -g npm:@kilocode/cli"
+    npm:
+      package: "@kilocode/cli"
+      install: "npm install -g @kilocode/cli"
+
+  opencode:
+    homebrew:
+      available: true
+      type: "formula"
+      formula: "opencode"
+      install: "brew install opencode"
+      upgrade: "brew upgrade opencode"
+      version: "opencode --version"
+      current_version: "1.1.50"
+      analytics_30d: 34720
+      platform_support:
+        macos_arm64: true
+        macos_intel: true
+        linux_arm64: true
+        linux_x86_64: true
+      bottles:
+        - "tahoe"
+        - "sequoia"
+        - "sonoma"
+      url: "https://formulae.brew.sh/formula/opencode"
+      verified_via: "formulae.brew.sh direct check"
+
+  claude:
+    homebrew:
+      available: true
+      type: "cask"
+      cask: "claude-code"
+      install: "brew install --cask claude-code"
+      upgrade: "brew upgrade --cask claude-code"
+      version: "claude --version"
+      current_version: "2.1.32"
+      analytics_30d: 124174
+      platform_support:
+        macos_arm64: true
+        macos_intel: true
+        linux_64bit: true
+      requirements: "macOS >= 10.15"
+      url: "https://formulae.brew.sh/cask/claude-code"
+      verified_via: "formulae.brew.sh direct check"
+
+  grok:
+    homebrew:
+      available: false
+      notes: "No formula or cask for grok-cli. A deprecated 'grok' formula exists but it's a different tool (jordansissel/grok regex tool)."
+      verified_via: "formulae.brew.sh direct check"
+      deprecated_formula_warning: "The 'grok' formula is deprecated and NOT the grok CLI from superagent-ai"
+    recommended_install: "mise use -g npm:grok-cli"
+    npm:
+      package: "grok-cli"
+      install: "npm install -g grok-cli"
+
+  gemini:
+    homebrew:
+      available: true
+      type: "formula"
+      formula: "gemini-cli"
+      install: "brew install gemini-cli"
+      upgrade: "brew upgrade gemini-cli"
+      version: "gemini --version"
+      current_version: "0.27.1"
+      analytics_30d: 99859
+      platform_support:
+        macos_arm64: true
+        macos_intel: true
+        linux_arm64: true
+        linux_x86_64: true
+      bottles:
+        - "tahoe"
+        - "sequoia"
+        - "sonoma"
+      url: "https://formulae.brew.sh/formula/gemini-cli"
+      verified_via: "formulae.brew.sh direct check"
+
+  cline:
+    homebrew:
+      available: false
+      notes: "No formula or cask exists in Homebrew core or official taps"
+      verified_via: "formulae.brew.sh direct check"
+    recommended_install: "mise use -g npm:cline"
+    npm:
+      package: "cline"
+      install: "npm install -g cline"
+
+  continue:
+    homebrew:
+      available: false
+      notes: "No formula or cask exists in Homebrew core or official taps"
+      verified_via: "formulae.brew.sh direct check"
+    recommended_install: "mise use -g npm:@continuedev/cli"
+    npm:
+      package: "@continuedev/cli"
+      install: "npm install -g @continuedev/cli"
+
+  interpreter:
+    homebrew:
+      available: false
+      notes: "No formula or cask exists in Homebrew core or official taps"
+      verified_via: "formulae.brew.sh direct check"
+    recommended_install: "uv tool install open-interpreter"
+    pypi:
+      package: "open-interpreter"
+      install: "uv tool install open-interpreter"
+
+  droid:
+    homebrew:
+      available: true
+      type: "cask"
+      cask: "droid"
+      install: "brew install --cask droid"
+      upgrade: "brew upgrade --cask droid"
+      version: "droid --version"
+      current_version: "0.57.5"
+      analytics_30d: 586
+      platform_support:
+        macos: true
+        linux: true
+      requirements: "macOS >= 10.15"
+      depends_on: "ripgrep"
+      url: "https://formulae.brew.sh/cask/droid"
+      verified_via: "formulae.brew.sh direct check"
+
+  openhands:
+    homebrew:
+      available: false
+      notes: "No formula or cask exists in Homebrew core or official taps"
+      verified_via: "formulae.brew.sh direct check"
+    recommended_install: "uv tool install openhands"
+    pypi:
+      package: "openhands"
+      install: "uv tool install openhands"
+
+  mistral:
+    homebrew:
+      available: true
+      type: "formula"
+      formula: "mistral-vibe"
+      install: "brew install mistral-vibe"
+      upgrade: "brew upgrade mistral-vibe"
+      version: "vibe --version"
+      current_version: "2.0.2"
+      analytics_30d: 832
+      platform_support:
+        macos_arm64: true
+        macos_intel: true
+        linux_arm64: true
+        linux_x86_64: true
+      bottles:
+        - "tahoe"
+        - "sequoia"
+        - "sonoma"
+      url: "https://formulae.brew.sh/formula/mistral-vibe"
+      verified_via: "formulae.brew.sh direct check"
+
+  codex:
+    homebrew:
+      available: true
+      type: "cask"
+      cask: "codex"
+      install: "brew install --cask codex"
+      upgrade: "brew upgrade --cask codex"
+      version: "codex --version"
+      current_version: "0.98.0"
+      analytics_30d: 48044
+      platform_support:
+        macos: true
+        linux_64bit: true
+      requirements: "macOS >= 10.15"
+      depends_on: "ripgrep"
+      url: "https://formulae.brew.sh/cask/codex"
+      verified_via: "formulae.brew.sh direct check"
+
+  goose:
+    homebrew:
+      available: true
+      type: "formula"
+      formula: "block-goose-cli"
+      install: "brew install block-goose-cli"
+      upgrade: "brew upgrade block-goose-cli"
+      version: "goose --version"
+      current_version: "1.23.0"
+      analytics_30d: 4984
+      platform_support:
+        macos_arm64: true
+        macos_intel: true
+        linux_arm64: true
+        linux_x86_64: true
+      bottles:
+        - "tahoe"
+        - "sequoia"
+        - "sonoma"
+      url: "https://formulae.brew.sh/formula/block-goose-cli"
+      verified_via: "formulae.brew.sh direct check"
+    desktop_app:
+      available: true
+      type: "cask"
+      cask: "block-goose"
+      install: "brew install --cask block-goose"
+      upgrade: "brew upgrade --cask block-goose"
+      current_version: "1.23.0"
+      analytics_30d: 1200
+      platform_support:
+        macos_only: true
+      requirements: "macOS >= 12"
+      url: "https://formulae.brew.sh/cask/block-goose"
+      verified_via: "formulae.brew.sh direct check"
+      notes: "Desktop app only - for CLI use block-goose-cli formula"
+
+  aider:
+    homebrew:
+      available: true
+      type: "formula"
+      formula: "aider"
+      install: "brew install aider"
+      upgrade: "brew upgrade aider"
+      version: "aider --version"
+      current_version: "0.86.1"
+      analytics_30d: 563
+      platform_support:
+        macos_arm64: true
+        macos_intel: true
+        linux_arm64: true
+        linux_x86_64: true
+      bottles:
+        - "tahoe"
+        - "sequoia"
+        - "sonoma"
+      url: "https://formulae.brew.sh/formula/aider"
+      verified_via: "formulae.brew.sh direct check"
+
+  kimi:
+    homebrew:
+      available: true
+      type: "formula"
+      formula: "kimi-cli"
+      install: "brew install kimi-cli"
+      upgrade: "brew upgrade kimi-cli"
+      version: "kimi --version"
+      current_version: "1.8.0"
+      analytics_30d: 1311
+      platform_support:
+        macos_arm64: true
+        macos_intel: true
+        linux_arm64: true
+        linux_x86_64: true
+      bottles:
+        - "tahoe"
+        - "sequoia"
+        - "sonoma"
+      url: "https://formulae.brew.sh/formula/kimi-cli"
+      verified_via: "formulae.brew.sh direct check"
+
+  roo:
+    homebrew:
+      available: false
+      notes: "No formula or cask exists in Homebrew core or official taps"
+      verified_via: "formulae.brew.sh direct check"
+    recommended_install: "curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh"
+    notes: "Primary distribution method is curl script; VS Code extension also available"
+
+  amp:
+    homebrew:
+      available: false
+      notes: "WARNING: The 'amp' formula in Homebrew is NOT Sourcegraph Amp (the AI CLI). It's the amp terminal editor (amp.rs). They are completely different tools."
+      verified_via: "formulae.brew.sh direct check"
+      wrong_formula_warning: "brew install amp installs the terminal editor, NOT Sourcegraph Amp"
+    recommended_install: "mise use -g npm:@sourcegraph/amp"
+    npm:
+      package: "@sourcegraph/amp"
+      install: "npm install -g @sourcegraph/amp"
+    notes: "Sourcegraph Amp is an AI CLI tool, not a terminal editor"
+
+# Homebrew formulae summary (core):
+formulae:
+  opencode:
+    type: formula
+    install: brew install opencode
+    platform: macos_linux
+  block-goose-cli:
+    type: formula
+    install: brew install block-goose-cli
+    platform: macos_linux
+  aider:
+    type: formula
+    install: brew install aider
+    platform: macos_linux
+  gemini-cli:
+    type: formula
+    install: brew install gemini-cli
+    platform: macos_linux
+  mistral-vibe:
+    type: formula
+    install: brew install mistral-vibe
+    platform: macos_linux
+  kimi-cli:
+    type: formula
+    install: brew install kimi-cli
+    platform: macos_linux
+
+# Homebrew casks summary:
+casks:
+  claude-code:
+    type: cask
+    install: brew install --cask claude-code
+    platform: macos_linux
+  droid:
+    type: cask
+    install: brew install --cask droid
+    platform: macos_linux
+  codex:
+    type: cask
+    install: brew install --cask codex
+    platform: macos_linux
+  block-goose:
+    type: cask
+    install: brew install --cask block-goose
+    platform: macos_only
+    notes: "Desktop app only"
+
+# No Homebrew support:
+no_homebrew:
+  - crush
+  - kilocode
+  - grok
+  - cline
+  - continue
+  - interpreter
+  - openhands
+  - roo
+  - amp
+
+# Special warnings:
+warnings:
+  amp:
+    type: identity_confusion
+    message: "The 'amp' formula in Homebrew is NOT Sourcegraph Amp (the AI CLI). It's the amp terminal editor (amp.rs)."
+    recommended: "Use mise use -g npm:@sourcegraph/amp instead"
+  grok:
+    type: deprecated_formula
+    message: "A deprecated 'grok' formula exists but it's NOT the grok CLI from superagent-ai (it's a regex tool)"
+    recommended: "Use mise use -g npm:grok-cli instead"
+
+# Platform support matrix:
+platform_support:
+  macos_linux_formulae:
+    - opencode
+    - block-goose-cli
+    - aider
+    - gemini-cli
+    - mistral-vibe
+    - kimi-cli
+  macos_linux_casks:
+    - claude-code
+    - droid
+    - codex
+  macos_only_casks:
+    - block-goose  # Desktop app
+
+# Model accuracy summary:
+model_accuracy:
+  ChatGPT: 0.6
+  Gemini: 0.55
+  Zhipu: 0.65
+
+# Common hallucinations:
+common_hallucinations:
+  - crush_formula: "ChatGPT claimed charmbracelet/tap/crush exists"
+    correct: "No Homebrew formula exists for crush"
+    severity: "high"
+  - open_interpreter_formula: "Gemini claimed brew install open-interpreter works"
+    correct: "No Homebrew formula exists for open-interpreter"
+    severity: "high"
+  - openhands_formula: "Gemini claimed brew install openhands works"
+    correct: "No Homebrew formula exists for openhands"
+    severity: "high"
+  - cline_cask: "Gemini claimed brew install --cask cline exists"
+    correct: "No Homebrew cask exists for cline"
+    severity: "medium"
+  - continue_cask: "Gemini claimed brew install --cask continue exists"
+    correct: "No Homebrew cask exists for continue"
+    severity: "medium"
+  - roo_code_cask: "Gemini claimed brew install --cask roo-code exists"
+    correct: "No Homebrew cask exists for roo-code"
+    severity: "medium"
+  - amp_confusion: "All models confused amp formula with Sourcegraph Amp"
+    correct: "amp formula is terminal editor, not Sourcegraph Amp (different tools)"
+    severity: "high"
+
+# Verification method:
+verification_method: "Direct checks against formulae.brew.sh (official Homebrew registry)"

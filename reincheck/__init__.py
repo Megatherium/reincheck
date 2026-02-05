@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import TypedDict, cast
 import click
 
+from .config import ConfigError
+
 DEFAULT_TIMEOUT = 30
 UPGRADE_TIMEOUT = 300
 INSTALL_TIMEOUT = 600
@@ -87,36 +89,18 @@ class UpdateResult(TypedDict):
     description: str
 
 
-def load_config(config_path: Path | None = None) -> Config:
-    """Load agents configuration from YAML file.
-
-    Args:
-        config_path: Optional path to config file. If None, uses default agents.yaml
+def _dict_to_config(data: dict) -> Config:
+    """Convert a raw dict to a Config object.
+    
+    Temporary bridge function until reincheck-ib5 implements proper
+    schema validation with dataclasses.
     """
-    if config_path is None:
-        config_path = Path(__file__).parent / "agents.yaml"
-    if not config_path.exists():
-        click.echo(f"Error: Configuration file {config_path} not found.", err=True)
-        sys.exit(1)
-
-    try:
-        with open(config_path, "r") as f:
-            data = yaml.safe_load(f)
-    except (IOError, yaml.YAMLError) as e:
-        _logging.error(f"Error loading configuration: {e}")
-        click.echo(f"Error loading configuration: {e}", err=True)
-        sys.exit(1)
-
     # Validate config structure
     if not isinstance(data, dict) or "agents" not in data:
-        click.echo(
-            "Error: Invalid configuration structure. Expected 'agents' key.", err=True
-        )
-        sys.exit(1)
+        raise ConfigError("Invalid configuration structure. Expected 'agents' key.")
 
     if not isinstance(data["agents"], list):
-        click.echo("Error: 'agents' must be a list.", err=True)
-        sys.exit(1)
+        raise ConfigError("'agents' must be a list.")
 
     # Create AgentConfig instances with validation
     agents = []
@@ -135,10 +119,52 @@ def load_config(config_path: Path | None = None) -> Config:
             )
             agents.append(agent)
         except ValueError as e:
-            click.echo(f"Error in agent configuration: {e}", err=True)
-            sys.exit(1)
+            raise ConfigError(f"Error in agent configuration: {e}")
 
     return Config(agents=agents)
+
+
+def load_config(config_path: Path | None = None) -> Config:
+    """Load agents configuration from a file.
+
+    Args:
+        config_path: Optional path to config file. If None, uses default agents.yaml
+        
+    Returns:
+        Config object with agents list
+        
+    Raises:
+        ConfigError: If the config cannot be loaded or parsed
+    """
+    if config_path is None:
+        config_path = Path(__file__).parent / "agents.yaml"
+    
+    # For now, still use YAML for the default config
+    # This will be migrated to JSON in reincheck-ij9
+    if not config_path.exists():
+        raise ConfigError(f"Configuration file not found: {config_path}")
+
+    try:
+        with open(config_path, "r") as f:
+            data = yaml.safe_load(f)
+    except (IOError, yaml.YAMLError) as e:
+        raise ConfigError(f"Error loading configuration: {e}")
+
+    return _dict_to_config(data)
+
+
+# Also export the new JSON loader for future use
+__all__ = [
+    'ConfigError',
+    'AgentConfig',
+    'Config',
+    'UpdateResult',
+    'load_config',
+    'setup_logging',
+    'DEFAULT_TIMEOUT',
+    'UPGRADE_TIMEOUT',
+    'INSTALL_TIMEOUT',
+]
 
 
 def save_config(config: Config, config_path: Path | None = None) -> None:

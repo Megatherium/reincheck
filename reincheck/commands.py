@@ -15,6 +15,7 @@ from . import (
     save_config,
     compare_versions,
     INSTALL_TIMEOUT,
+    ConfigError,
 )
 
 _logging = logging.getLogger(__name__)
@@ -82,7 +83,11 @@ def cli(ctx, debug):
 def check(ctx, agent: str | None, quiet: bool):
     """Check for updates for agents."""
     debug = ctx.obj.get("debug", False)
-    asyncio.run(run_check(agent, quiet, debug))
+    try:
+        asyncio.run(run_check(agent, quiet, debug))
+    except ConfigError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 async def run_check(agent: str | None, quiet: bool, debug: bool):
@@ -146,7 +151,11 @@ async def run_check(agent: str | None, quiet: bool, debug: bool):
 def update(ctx, agent: str | None, quiet: bool):
     """Update latest version info for agents."""
     debug = ctx.obj.get("debug", False)
-    asyncio.run(run_update(agent, quiet, debug))
+    try:
+        asyncio.run(run_update(agent, quiet, debug))
+    except ConfigError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 async def run_update(agent: str | None, quiet: bool, debug: bool):
@@ -195,7 +204,7 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
         sys.exit(1)
     else:
         if not quiet:
-            click.echo(f"\nAll agents updated successfully.")
+            click.echo("\nAll agents updated successfully.")
 
 
 @cli.command()
@@ -212,7 +221,11 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
 def upgrade(ctx, agent: str | None, dry_run: bool, timeout: int):
     """Upgrade agents to latest versions."""
     debug = ctx.obj.get("debug", False)
-    asyncio.run(run_upgrade(agent, dry_run, timeout, debug))
+    try:
+        asyncio.run(run_upgrade(agent, dry_run, timeout, debug))
+    except ConfigError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: bool):
@@ -302,7 +315,11 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: boo
 def install(ctx, agent_name: str, force: bool, timeout: int):
     """Install a specific agent."""
     debug = ctx.obj.get("debug", False)
-    asyncio.run(run_install(agent_name, force, timeout, debug))
+    try:
+        asyncio.run(run_install(agent_name, force, timeout, debug))
+    except ConfigError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
@@ -353,7 +370,11 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
 def list_agents(ctx):
     """List all configured agents."""
     debug = ctx.obj.get("debug", False)
-    asyncio.run(run_list_agents(debug))
+    try:
+        asyncio.run(run_list_agents(debug))
+    except ConfigError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 async def run_list_agents(debug: bool):
@@ -450,7 +471,11 @@ async def run_release_notes(agent: str | None, debug: bool):
 def release_notes(ctx, agent: str | None):
     """Fetch and display release notes."""
     debug = ctx.obj.get("debug", False)
-    asyncio.run(run_release_notes(agent, debug))
+    try:
+        asyncio.run(run_release_notes(agent, debug))
+    except ConfigError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 cli.add_command(release_notes, name="rn")

@@ -6,7 +6,7 @@ agents:
   check_latest_command: curl -s https://api.github.com/repos/charmbracelet/crush/releases/latest
     | grep 'tag_name' | cut -d'"' -f4
   upgrade_command: mise use -g npm:@charmland/crush@latest
-  latest_version: v0.39.0
+  latest_version: v0.39.1
   github_repo: charmbracelet/crush
 - name: kilocode
   description: AI-powered coding assistant with TUI
@@ -14,14 +14,14 @@ agents:
   version_command: kilocode --version
   check_latest_command: npm info @kilocode/cli version
   upgrade_command: mise use -g npm:@kilocode/cli@latest
-  latest_version: 1.0.13
+  latest_version: 1.0.14
 - name: opencode
   description: AI coding agent built for the terminal
   install_command: mise use -g npm:opencode-ai
   version_command: opencode --version
   check_latest_command: npm info opencode-ai version
   upgrade_command: mise use -g npm:opencode-ai@latest
-  latest_version: 1.1.49
+  latest_version: 1.1.51
   github_repo: opencode-ai/opencode
 - name: claude
   description: Claude Code - Anthropic's AI coding assistant
@@ -29,7 +29,7 @@ agents:
   version_command: claude --version
   check_latest_command: npm info @anthropic-ai/claude-code version
   upgrade_command: mise use -g npm:@anthropic-ai/claude-code@latest
-  latest_version: 2.1.30
+  latest_version: 2.1.31
 - name: grok
   description: Conversational AI CLI tool powered by Grok
   install_command: mise use -g npm:grok-cli
@@ -43,14 +43,14 @@ agents:
   version_command: gemini --version
   check_latest_command: npm info @google/gemini-cli version
   upgrade_command: mise use -g npm:@google/gemini-cli@latest
-  latest_version: 0.26.0
+  latest_version: 0.27.0
 - name: cline
   description: Autonomous coding agent for VS Code with CLI capabilities
   install_command: mise use -g npm:cline
   version_command: npm list -g cline | grep cline || echo 'Unknown'
   check_latest_command: npm info cline version
   upgrade_command: mise use -g npm:cline@latest
-  latest_version: 2.0.2
+  latest_version: 2.0.3
   github_repo: cline/cline
 - name: continue
   description: Continue CLI - AI coding assistant for development workflows
@@ -76,7 +76,7 @@ agents:
   check_latest_command: curl -fsSL https://app.factory.ai/cli | grep 'VER=' | head
     -n 1 | cut -d'"' -f2
   upgrade_command: curl -fsSL https://app.factory.ai/cli | sh
-  latest_version: 0.57.2
+  latest_version: 0.57.3
   release_notes_url: https://docs.factory.ai/changelog/cli-updates
 - name: openhands
   description: OpenHands - Platform for autonomous AI agents (formerly OpenDevin)
@@ -102,7 +102,7 @@ agents:
   version_command: codex --version
   check_latest_command: npm info @openai/codex version
   upgrade_command: mise use -g npm:@openai/codex@latest
-  latest_version: 0.94.0
+  latest_version: 0.96.0
   github_repo: openai/codex
 - name: goose
   description: Goose - AI agent from Block for engineering tasks
@@ -113,7 +113,7 @@ agents:
     | grep "tag_name" | cut -d"\"" -f4
   upgrade_command: curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh
     | bash
-  latest_version: v1.22.2
+  latest_version: v1.23.0
   github_repo: block/goose
 - name: roo
   description: Roo Code - Autonomous coding agent (Cline fork)
@@ -143,11 +143,11 @@ agents:
   check_latest_command: curl https://pypi.org/pypi/kimi-cli/json | jq -r '.releases
     | keys | last'
   upgrade_command: mise use --global pipx:kimi-cli@latest
-  latest_version: '1.6'
+  latest_version: 1.7.0
 - name: amp
   description: Sourcegraph Amp - Agentic CLI tool
   install_command: mise use --global npm:@sourcegraph/amp
   version_command: amp --version
   check_latest_command: npm info @sourcegraph/amp version
   upgrade_command: mise use --global npm:@sourcegraph/amp@latest
-  latest_version: 0.0.1770135218-ge57524
+  latest_version: 0.0.1770231444-g53361d

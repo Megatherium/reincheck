@@ -1,15 +1,20 @@
 import asyncio
 import json
+import logging
 import os
 import re
 import sys
-import yaml
-import logging
 from pathlib import Path
 from typing import TypedDict, cast
 import click
 
-from .config import ConfigError, AgentConfig, Config, validate_config, is_command_safe
+from .config import (
+    ConfigError,
+    AgentConfig,
+    Config,
+    validate_config,
+    load_config as load_json_config,
+)
 
 DEFAULT_TIMEOUT = 30
 UPGRADE_TIMEOUT = 300
@@ -39,7 +44,7 @@ class UpdateResult(TypedDict):
 
 def _dict_to_config(data: dict) -> Config:
     """Convert a raw dict to a Config object.
-    
+
     Temporary bridge function - delegates to validate_config from config.py.
     Kept for backward compatibility during migration.
     """
@@ -47,59 +52,50 @@ def _dict_to_config(data: dict) -> Config:
 
 
 def load_config(config_path: Path | None = None) -> Config:
-    """Load agents configuration from a file.
+    """Load agents configuration from a JSON file.
 
     Args:
-        config_path: Optional path to config file. If None, uses default agents.yaml
-        
+        config_path: Optional path to config file. If None, uses default agents.json
+
     Returns:
         Config object with agents list
-        
+
     Raises:
         ConfigError: If the config cannot be loaded or parsed
     """
     if config_path is None:
-        config_path = Path(__file__).parent / "agents.yaml"
-    
-    # For now, still use YAML for the default config
-    # This will be migrated to JSON in reincheck-ij9
-    if not config_path.exists():
-        raise ConfigError(f"Configuration file not found: {config_path}")
+        config_path = Path(__file__).parent / "agents.json"
 
-    try:
-        with open(config_path, "r") as f:
-            data = yaml.safe_load(f)
-    except (IOError, yaml.YAMLError) as e:
-        raise ConfigError(f"Error loading configuration: {e}")
-
+    # Load using the JSON loader from config module
+    data = load_json_config(config_path)
     return _dict_to_config(data)
 
 
 # Also export the new JSON loader for future use
 __all__ = [
-    'ConfigError',
-    'AgentConfig',
-    'Config',
-    'UpdateResult',
-    'load_config',
-    'setup_logging',
-    'DEFAULT_TIMEOUT',
-    'UPGRADE_TIMEOUT',
-    'INSTALL_TIMEOUT',
+    "ConfigError",
+    "AgentConfig",
+    "Config",
+    "UpdateResult",
+    "load_config",
+    "setup_logging",
+    "DEFAULT_TIMEOUT",
+    "UPGRADE_TIMEOUT",
+    "INSTALL_TIMEOUT",
 ]
 
 
 def save_config(config: Config, config_path: Path | None = None) -> None:
-    """Save agents configuration to YAML file atomically.
+    """Save agents configuration to JSON file atomically.
 
     Args:
         config: Config object to save
-        config_path: Optional path to config file. If None, uses default agents.yaml
+        config_path: Optional path to config file. If None, uses default agents.json
     """
     if config_path is None:
-        config_path = Path(__file__).parent / "agents.yaml"
+        config_path = Path(__file__).parent / "agents.json"
     try:
-        # Convert dataclass to dict for YAML serialization
+        # Convert dataclass to dict for JSON serialization
         agents_data = []
         for agent in config.agents:
             agent_dict = {
@@ -123,10 +119,10 @@ def save_config(config: Config, config_path: Path | None = None) -> None:
         # Write to temp file first
         temp_path = config_path.with_suffix(".tmp")
         with open(temp_path, "w") as f:
-            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+            json.dump(data, f, indent=2)
         # Atomic rename (POSIX guarantees atomicity)
         temp_path.replace(config_path)
-    except (IOError, yaml.YAMLError) as e:
+    except (IOError, OSError) as e:
         _logging.error(f"Error saving configuration: {e}")
         click.echo(f"Error saving configuration: {e}", err=True)
         raise
@@ -528,16 +524,3 @@ async def fetch_release_notes(
         return agent.name, "No release notes found from configured sources."
 
     return agent.name, "\n".join(notes_parts)
-
-
-DANGEROUS_PATTERNS = [r"\$\(", r"`"]
-
-
-def is_command_safe(command: str) -> bool:
-    """Check if command contains dangerous shell metacharacters."""
-    if not command:
-        return False
-    for pattern in DANGEROUS_PATTERNS:
-        if re.search(pattern, command):
-            return False
-    return True

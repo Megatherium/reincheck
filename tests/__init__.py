@@ -17,8 +17,8 @@ from reincheck import (
     run_command_async,
     get_npm_release_info,
     get_pypi_release_info,
-    is_command_safe,
 )
+from reincheck.config import is_command_safe
 
 
 class TestAgentConfig:

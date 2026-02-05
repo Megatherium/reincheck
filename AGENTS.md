@@ -1,7 +1,3 @@
-## Interacting the project
-
-Use `uv` to run script and manage Python packages. For further tooling `mise` is your friend.
-
 ## Project Overview
 
 This is **reincheck**, a Python CLI tool for managing AI coding agents. Key files:
@@ -11,6 +7,28 @@ This is **reincheck**, a Python CLI tool for managing AI coding agents. Key file
 
 Agent versions fetched via `get_latest_version()` (executes check_latest_command) and `fetch_release_notes()` (GitHub API for agents with github_repo). NPM info via `get_npm_release_info()`, PyPI via `get_pypi_release_info()`. 
 
+## Tooling:
+
+### Tools & libraries
+
+Use `uv` to run script and manage Python packages. For further tooling `mise` is your friend.
+CLI parts are written the the help of the Click library.
+For non-destructive exploration: you have podman rights. So `podman run docker.io/jdxcode/mise` oder `podman run docker.io/homebrew/brew` might make things easier or possible
+
+### Git Workflow & Commit Messages
+
+- **Conventional Commits**: All commit messages **must** adhere to the Conventional Commits specification. This is enforced by a `commit-msg` git hook.
+  - **Format**: `<type>[optional scope]: <description>`
+  - **Example**: `feat(converter): add vulkan backend support`
+  - **Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`
+  - **Enforcement**: The `pre-commit` framework with `conventional-pre-commit` hook is installed. If a commit message does not conform, the commit will be aborted.
+
+### File Editing Strategy
+
+- **Use the Right Tool for the Job**: For any non-trivial file modifications, you **must** use the advanced editing tools provided by the MCP server (e.g., `morph`).
+  - **Simple Edits**: Use `replace` only for simple, unambiguous, single-line changes.
+  - **Complex Edits**: For multi-line changes, refactoring, or context-aware modifications, try `fastapplyproxy` first.
+  - 
 ## Issue Tracking with bd (beads)
 
 **IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.

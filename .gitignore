@@ -2,5 +2,6 @@
 /releasenotes
 /tmp
 .todos/
+devdocs
 __pycache__
 .sidecar

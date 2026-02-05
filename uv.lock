@@ -222,7 +222,6 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
-    { name = "pyyaml" },
 ]
 
 [package.dev-dependencies]
@@ -231,13 +230,11 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-mock" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.0.0" },
-    { name = "pyyaml", specifier = ">=6.0.0" },
-]
+requires-dist = [{ name = "click", specifier = ">=8.0.0" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -245,6 +242,7 @@ dev = [
     { name = "pytest", specifier = ">=7.0.0" },
     { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "pytest-mock", specifier = ">=3.11.0" },
+    { name = "pyyaml", specifier = ">=6.0.0" },
 ]
 
 [[package]]

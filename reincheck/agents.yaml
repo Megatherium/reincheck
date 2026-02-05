@@ -21,7 +21,7 @@ agents:
   version_command: opencode --version
   check_latest_command: npm info opencode-ai version
   upgrade_command: mise use -g npm:opencode-ai@latest
-  latest_version: 1.1.51
+  latest_version: 1.1.52
   github_repo: opencode-ai/opencode
 - name: claude
   description: Claude Code - Anthropic's AI coding assistant
@@ -76,7 +76,7 @@ agents:
   check_latest_command: curl -fsSL https://app.factory.ai/cli | grep 'VER=' | head
     -n 1 | cut -d'"' -f2
   upgrade_command: curl -fsSL https://app.factory.ai/cli | sh
-  latest_version: 0.57.4
+  latest_version: 0.57.5
   release_notes_url: https://docs.factory.ai/changelog/cli-updates
 - name: openhands
   description: OpenHands - Platform for autonomous AI agents (formerly OpenDevin)
@@ -150,4 +150,4 @@ agents:
   version_command: amp --version
   check_latest_command: npm info @sourcegraph/amp version
   upgrade_command: mise use --global npm:@sourcegraph/amp@latest
-  latest_version: 0.0.1770307887-g3c28da
+  latest_version: 0.0.1770317189-gf1c0b2

@@ -21,7 +21,7 @@ def setup_logging(debug: bool = False):
     """Configure logging for the application."""
     if not _logging.handlers:
         handler = logging.StreamHandler(sys.stderr)
-        handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+        handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
         _logging.addHandler(handler)
         _logging.setLevel(logging.DEBUG if debug else logging.INFO)
 
@@ -39,20 +39,17 @@ class AgentConfig:
     release_notes_url: str | None = None
 
     def __post_init__(self):
-        if not isinstance(self.name, str) or not self.name:
+        if not self.name:
             raise ValueError("Agent name must be a non-empty string")
-        if not isinstance(self.description, str):
-            raise ValueError("Agent description must be a string")
-        if not isinstance(self.install_command, str) or not self.install_command:
+        if not self.description:
+            raise ValueError("Agent description must be a non-empty string")
+        if not self.install_command:
             raise ValueError("Agent install_command must be a non-empty string")
-        if not isinstance(self.version_command, str) or not self.version_command:
+        if not self.version_command:
             raise ValueError("Agent version_command must be a non-empty string")
-        if (
-            not isinstance(self.check_latest_command, str)
-            or not self.check_latest_command
-        ):
+        if not self.check_latest_command:
             raise ValueError("Agent check_latest_command must be a non-empty string")
-        if not isinstance(self.upgrade_command, str) or not self.upgrade_command:
+        if not self.upgrade_command:
             raise ValueError("Agent upgrade_command must be a non-empty string")
 
         # Validate commands for dangerous shell metacharacters
@@ -92,7 +89,7 @@ class UpdateResult(TypedDict):
 
 def load_config(config_path: Path | None = None) -> Config:
     """Load agents configuration from YAML file.
-    
+
     Args:
         config_path: Optional path to config file. If None, uses default agents.yaml
     """
@@ -146,7 +143,7 @@ def load_config(config_path: Path | None = None) -> Config:
 
 def save_config(config: Config, config_path: Path | None = None) -> None:
     """Save agents configuration to YAML file atomically.
-    
+
     Args:
         config: Config object to save
         config_path: Optional path to config file. If None, uses default agents.yaml
@@ -237,7 +234,8 @@ async def get_current_version(agent: AgentConfig) -> tuple[str | None, str]:
 
 
 def add_github_auth_if_needed(command: str) -> str:
-    """Add Bearer token header to curl commands targeting GitHub API if GITHUB_TOKEN is set."""
+    """Add Bearer token header to curl commands targeting GitHub API
+    if GITHUB_TOKEN is set."""
     token = os.environ.get("GITHUB_TOKEN")
     if not token or "api.github.com" not in command:
         return command
@@ -446,80 +444,82 @@ async def get_pypi_release_info(package_name: str) -> str | None:
         return None
 
 
-async def fetch_release_notes(
+async def fetch_github_release_notes(
     agent: AgentConfig, current_version: str | None
-) -> tuple[str, str]:
-    """Fetch release notes for an agent."""
+) -> list[str]:
+    """Fetch release notes from GitHub API."""
     notes_parts = []
-
-    # 1. Try GitHub
     repo = agent.github_repo
-    if repo:
-        url = f"https://api.github.com/repos/{repo}/releases/latest"
-        cmd = add_github_auth_if_needed(
-            f"curl -s -H 'Accept: application/vnd.github.v3+json' {url}"
-        )
-        output, returncode = await run_command_async(cmd)
+    if not repo:
+        return notes_parts
 
-        if returncode == 0:
-            try:
-                data = cast(dict[str, object], json.loads(output))
-                tag_name = str(data.get("tag_name", ""))
-                body = str(data.get("body", ""))
-
-                # Check version freshness
-                github_ver = extract_version_number(tag_name)
-                current_ver_num = extract_version_number(current_version or "")
-
-                is_outdated = False
-                if current_ver_num and github_ver:
-                    # Simple check: if current is "larger" than github, github is outdated
-                    # But we need to be careful about format.
-                    if compare_versions(github_ver, current_ver_num) < 0:
-                        is_outdated = True
-
-                if is_outdated:
-                    notes_parts.append(
-                        f"⚠️ **Warning**: The latest GitHub release ({tag_name}) appears older than your installed version ({current_version}).\n"
-                    )
-
-                if body:
-                    header = f"# Release Notes: {agent.name} ({tag_name})\n\n"
-                    notes_parts.append(header + body)
-                else:
-                    notes_parts.append(
-                        f"No release body found on GitHub. Check {data.get('html_url', url)}"
-                    )
-
-            except json.JSONDecodeError:
-                notes_parts.append("Failed to parse GitHub release notes JSON.")
-        else:
-            notes_parts.append(f"Failed to fetch GitHub release notes: {output}")
-
-    # 2. Try Release Notes URL (Fallback or Supplement)
-    rn_url = agent.release_notes_url
-    if rn_url:
-        # If we already have notes and they aren't outdated, maybe skip?
-        # But user might want to see both if configured.
-        # Let's append if we have nothing or if we found GitHub was outdated.
-        if not notes_parts or "⚠️" in notes_parts[0]:
-            notes_parts.append(f"\n\n## External Release Notes\nSource: {rn_url}\n")
-            # Try to fetch text content if it looks like a text file
-            if rn_url.endswith(".md") or rn_url.endswith(".txt"):
-                content, status = await fetch_url_content(rn_url)
-                if status == "success" and content:
-                    notes_parts.append(content)
-                else:
-                    notes_parts.append("Could not fetch content directly.")
-            else:
-                notes_parts.append(f"Please visit: {rn_url}")
-
-    # 3. Try NPM Fallback
-    install_cmd = agent.install_command
-    should_fallback = not notes_parts or any(
-        x in notes_parts[0] for x in ["⚠️", "No release body", "Failed to fetch"]
+    url = f"https://api.github.com/repos/{repo}/releases/latest"
+    cmd = add_github_auth_if_needed(
+        f"curl -s -H 'Accept: application/vnd.github.v3+json' {url}"
     )
+    output, returncode = await run_command_async(cmd)
 
+    if returncode == 0:
+        try:
+            data = cast(dict[str, object], json.loads(output))
+            tag_name = str(data.get("tag_name", ""))
+            body = str(data.get("body", ""))
+
+            # Check version freshness
+            github_ver = extract_version_number(tag_name)
+            current_ver_num = extract_version_number(current_version or "")
+
+            is_outdated = False
+            if current_ver_num and github_ver:
+                if compare_versions(github_ver, current_ver_num) < 0:
+                    is_outdated = True
+
+            if is_outdated:
+                notes_parts.append(
+                    f"⚠️ **Warning**: The latest GitHub release ({tag_name}) appears older than your installed version ({current_version}).\n"
+                )
+
+            if body:
+                header = f"# Release Notes: {agent.name} ({tag_name})\n\n"
+                notes_parts.append(header + body)
+            else:
+                notes_parts.append(
+                    f"No release body found on GitHub. Check {data.get('html_url', url)}"
+                )
+
+        except json.JSONDecodeError:
+            notes_parts.append("Failed to parse GitHub release notes JSON.")
+    else:
+        notes_parts.append(f"Failed to fetch GitHub release notes: {output}")
+
+    return notes_parts
+
+
+async def fetch_external_release_notes(agent: AgentConfig) -> list[str]:
+    """Fetch release notes from an external URL."""
+    notes_parts = []
+    rn_url = agent.release_notes_url
+    if not rn_url:
+        return notes_parts
+
+    notes_parts.append(f"\n\n## External Release Notes\nSource: {rn_url}\n")
+    # Try to fetch text content if it looks like a text file
+    if rn_url.endswith(".md") or rn_url.endswith(".txt"):
+        content, status = await fetch_url_content(rn_url)
+        if status == "success" and content:
+            notes_parts.append(content)
+        else:
+            notes_parts.append("Could not fetch content directly.")
+    else:
+        notes_parts.append(f"Please visit: {rn_url}")
+
+    return notes_parts
+
+
+async def fetch_npm_fallback(agent: AgentConfig) -> list[str]:
+    """Fetch release info from NPM as a fallback."""
+    notes_parts = []
+    install_cmd = agent.install_command
     if "npm" in install_cmd or "npm:" in install_cmd:
         # Extract package name
         match = re.search(r"npm:(@?[\w\-/]+)", install_cmd)
@@ -528,27 +528,53 @@ async def fetch_release_notes(
 
         if match:
             pkg_name = match.group(1)
-            # Only add NPM info if we don't have good notes yet
-            if should_fallback:
-                npm_info = await get_npm_release_info(pkg_name)
-                if npm_info:
-                    notes_parts.append(f"\n\n## NPM Info\n{npm_info}")
+            npm_info = await get_npm_release_info(pkg_name)
+            if npm_info:
+                notes_parts.append(f"\n\n## NPM Info\n{npm_info}")
+    return notes_parts
 
-    # 4. Try PyPI Fallback
+
+async def fetch_pypi_fallback(agent: AgentConfig) -> list[str]:
+    """Fetch release info from PyPI as a fallback."""
+    notes_parts = []
+    install_cmd = agent.install_command
     if "pip" in install_cmd or "uv tool" in install_cmd:
         # Extract package name
-        # uv tool install package-name
-        # pip install package-name
         match = re.search(r"uv tool install (@?[\w\-/]+)", install_cmd)
         if not match:
             match = re.search(r"pip install (@?[\w\-/]+)", install_cmd)
 
         if match:
             pkg_name = match.group(1)
-            if should_fallback:
-                pypi_info = await get_pypi_release_info(pkg_name)
-                if pypi_info:
-                    notes_parts.append(f"\n\n## PyPI Info\n{pypi_info}")
+            pypi_info = await get_pypi_release_info(pkg_name)
+            if pypi_info:
+                notes_parts.append(f"\n\n## PyPI Info\n{pypi_info}")
+    return notes_parts
+
+
+async def fetch_release_notes(
+    agent: AgentConfig, current_version: str | None
+) -> tuple[str, str]:
+    """Fetch release notes for an agent."""
+    notes_parts = []
+
+    # 1. Try GitHub
+    notes_parts.extend(await fetch_github_release_notes(agent, current_version))
+
+    # 2. Try Release Notes URL (Fallback or Supplement)
+    if not notes_parts or "⚠️" in notes_parts[0]:
+        notes_parts.extend(await fetch_external_release_notes(agent))
+
+    # 3. Try NPM Fallback
+    should_fallback = not notes_parts or any(
+        x in notes_parts[0] for x in ["⚠️", "No release body", "Failed to fetch"]
+    )
+    if should_fallback:
+        notes_parts.extend(await fetch_npm_fallback(agent))
+
+    # 4. Try PyPI Fallback
+    if should_fallback:
+        notes_parts.extend(await fetch_pypi_fallback(agent))
 
     if not notes_parts:
         return agent.name, "No release notes found from configured sources."

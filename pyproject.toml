@@ -23,3 +23,10 @@ dev = [
     "pytest-asyncio>=1.3.0",
     "pytest-mock>=3.11.0",
 ]
+
+[tool.basedpyright]
+typeCheckingMode = "basic"
+reportUnusedCallResult = "none"
+reportAny = "none"
+reportUnknownVariableType = "none"
+reportExplicitAny = "none"

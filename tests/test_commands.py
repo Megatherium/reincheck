@@ -22,21 +22,21 @@ class TestValidatePager:
         dangerous = ["rm", "sh", "bash", "evil", "curl", "wget", "nc"]
         for cmd in dangerous:
             with pytest.raises(ValueError, match="Unsafe pager"):
-                validate_pager(cmd)
+                _ = validate_pager(cmd)
 
     def test_rejected_absolute_paths(self):
         """Test that disallowed commands with absolute paths raise ValueError."""
         dangerous = ["/bin/rm", "/usr/bin/sh", "/bin/bash"]
         for cmd in dangerous:
             with pytest.raises(ValueError, match="Unsafe pager"):
-                validate_pager(cmd)
+                _ = validate_pager(cmd)
 
     def test_rejected_with_args(self):
         """Test that commands with arguments are rejected."""
         with pytest.raises(ValueError, match="Unsafe pager"):
-            validate_pager("less -R")
+            _ = validate_pager("less -R")
         with pytest.raises(ValueError, match="Unsafe pager"):
-            validate_pager("cat file.txt")
+            _ = validate_pager("cat file.txt")
 
     def test_error_message_includes_allowed_list(self):
         """Test that error message includes list of allowed pagers."""

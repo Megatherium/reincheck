@@ -150,4 +150,4 @@ agents:
   version_command: amp --version
   check_latest_command: npm info @sourcegraph/amp version
   upgrade_command: mise use --global npm:@sourcegraph/amp@latest
-  latest_version: 0.0.1770288815-gd19bd4
+  latest_version: 0.0.1770293119-gc187f5

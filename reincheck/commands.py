@@ -1,5 +1,6 @@
 import asyncio
 import click
+import json
 import os
 import subprocess
 import sys
@@ -17,6 +18,9 @@ from . import (
     INSTALL_TIMEOUT,
     ConfigError,
 )
+
+# Import config module for direct access to load_config
+from . import config as config_module
 
 _logging = logging.getLogger(__name__)
 
@@ -479,6 +483,77 @@ def release_notes(ctx, agent: str | None):
 
 
 cli.add_command(release_notes, name="rn")
+
+
+# ============================================================================
+# Config commands
+# ============================================================================
+
+@cli.group()
+def config():
+    """Configuration management commands."""
+    pass
+
+
+@config.command(name="fmt")
+@click.argument("file", required=False, type=click.Path())
+@click.option(
+    "--write", "-w",
+    is_flag=True,
+    help="Overwrite the file instead of printing to stdout"
+)
+@click.pass_context
+def config_fmt(ctx, file: str | None, write: bool):
+    """Format a config file (accepts trailing commas and // comments).
+    
+    Reads a JSON config file, parses it with tolerant parsing (accepting
+    trailing commas and // line comments), and outputs strict JSON.
+    
+    Note: Comments are accepted on input but not preserved after formatting.
+    
+    FILE: Path to config file (default: ~/.config/reincheck/agents.json)
+    """
+    # Determine the file path
+    if file is None:
+        file_path = Path.home() / ".config" / "reincheck" / "agents.json"
+    else:
+        file_path = Path(file)
+    
+    # Check if file exists
+    if not file_path.exists():
+        click.echo(f"Error: File not found: {file_path}", err=True)
+        sys.exit(1)
+    
+    try:
+        # Load with tolerant parser (accepts trailing commas, // comments)
+        data = config_module.load_config(file_path)
+    except ConfigError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error reading config: {e}", err=True)
+        sys.exit(1)
+    
+    # Output strict JSON
+    formatted = json.dumps(data, indent=2, sort_keys=False)
+    
+    if write:
+        # Create parent directories if needed
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        # Write atomically
+        temp_path = file_path.with_suffix(".tmp")
+        try:
+            with open(temp_path, "w") as f:
+                f.write(formatted)
+                f.write("\n")  # Trailing newline
+            temp_path.replace(file_path)
+            click.echo(f"Formatted {file_path}")
+        except Exception as e:
+            click.echo(f"Error writing file: {e}", err=True)
+            sys.exit(1)
+    else:
+        click.echo(formatted)
+
 
 if __name__ == "__main__":
     cli()

@@ -397,7 +397,7 @@ class TestValidateConfig:
     def test_config_not_a_dict(self):
         """Raise error when config is not a dict."""
         with pytest.raises(ConfigError) as exc:
-            validate_config(["not a dict"])
+            validate_config(["not a dict"])  # type: ignore
         assert "Config must be a JSON object" in str(exc.value)
 
     def test_multiple_agents(self):
@@ -521,11 +521,11 @@ class TestConfig:
     def test_agents_must_be_list(self):
         """Agents must be a list."""
         with pytest.raises(ValueError) as exc:
-            Config(agents="not a list")
+            Config(agents="not a list")  # type: ignore
         assert "agents must be a list" in str(exc.value)
 
     def test_agent_must_be_agentconfig(self):
         """Each agent must be AgentConfig instance."""
         with pytest.raises(ValueError) as exc:
-            Config(agents=[{"name": "not an AgentConfig"}])
+            Config(agents=[{"name": "not an AgentConfig"}])  # type: ignore
         assert "agents[0] must be an AgentConfig instance" in str(exc.value)

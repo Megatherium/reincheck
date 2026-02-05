@@ -157,3 +157,49 @@ class TestConfigFmt:
             z_pos = result.output.find('"z_last"')
             a_pos = result.output.find('"a_first"')
             assert z_pos < a_pos, "Key order should be preserved"
+
+    def test_fmt_write_adds_trailing_newline(self):
+        """Test that --write adds trailing newline."""
+        runner = CliRunner()
+        
+        json_content = '{"agents": []}'
+        
+        with runner.isolated_filesystem() as tmpdir:
+            config_file = Path(tmpdir) / "test.json"
+            config_file.write_text(json_content)
+            
+            result = runner.invoke(cli, ["config", "fmt", str(config_file), "--write"])
+            
+            assert result.exit_code == 0
+            content = config_file.read_text()
+            # File should end with newline
+            assert content.endswith('\n'), "File should end with trailing newline"
+
+    def test_fmt_default_path_not_found(self):
+        """Test that default path shows error when file doesn't exist."""
+        runner = CliRunner()
+        
+        # Override HOME to a temp directory so default path doesn't exist
+        with runner.isolated_filesystem() as tmpdir:
+            env = {"HOME": str(tmpdir)}
+            result = runner.invoke(cli, ["config", "fmt"], env=env)
+            
+            assert result.exit_code == 1
+            assert ".config/reincheck/agents.json" in result.output
+
+    def test_fmt_default_path_success(self):
+        """Test that default path works when file exists."""
+        runner = CliRunner()
+        
+        with runner.isolated_filesystem() as tmpdir:
+            # Create the default config path
+            config_dir = Path(tmpdir) / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+            config_file.write_text('{"agents": []}')
+            
+            env = {"HOME": str(tmpdir)}
+            result = runner.invoke(cli, ["config", "fmt"], env=env)
+            
+            assert result.exit_code == 0
+            assert '"agents": []' in result.output

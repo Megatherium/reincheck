@@ -4,6 +4,8 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
+import uuid
 import logging
 from pathlib import Path
 
@@ -19,8 +21,8 @@ from . import (
     ConfigError,
 )
 
-# Import config module for direct access to load_config
-from . import config as config_module
+# Import load_config from config module directly for the fmt command
+from .config import load_config as load_config_raw
 
 _logging = logging.getLogger(__name__)
 
@@ -526,7 +528,7 @@ def config_fmt(ctx, file: str | None, write: bool):
     
     try:
         # Load with tolerant parser (accepts trailing commas, // comments)
-        data = config_module.load_config(file_path)
+        data = load_config_raw(file_path)
     except ConfigError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
@@ -540,8 +542,8 @@ def config_fmt(ctx, file: str | None, write: bool):
     if write:
         # Create parent directories if needed
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        # Write atomically
-        temp_path = file_path.with_suffix(".tmp")
+        # Write atomically with unique temp file name
+        temp_path = file_path.with_suffix(f".tmp.{uuid.uuid4().hex[:8]}")
         try:
             with open(temp_path, "w") as f:
                 f.write(formatted)
@@ -549,6 +551,9 @@ def config_fmt(ctx, file: str | None, write: bool):
             temp_path.replace(file_path)
             click.echo(f"Formatted {file_path}")
         except Exception as e:
+            # Clean up temp file if it exists
+            if temp_path.exists():
+                temp_path.unlink()
             click.echo(f"Error writing file: {e}", err=True)
             sys.exit(1)
     else:

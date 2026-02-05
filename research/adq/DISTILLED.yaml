@@ -1,0 +1,278 @@
+# Machine-readable installation data for curl-script-based harnesses
+# Generated from research/adq/DISTILLED.md
+# Ticket: reincheck-adq
+# Last Updated: 2026-02-05
+
+harnesses:
+  droid:
+    npm:
+      package: "@factory/cli"
+      verified: true
+      install: "npm install -g @factory/cli"
+      upgrade: "npm update -g @factory/cli"
+      version: "droid --version"
+      binary: "droid"
+      provenance: "https://www.npmjs.com/package/@factory/cli"
+      dependencies: 0
+      notes: "Scoped package, minimal attack surface"
+    homebrew:
+      available: true
+      type: "cask"
+      install: "brew install --cask droid"
+      upgrade: "brew upgrade --cask droid"
+      version: "droid --version"
+      formula: "https://formulae.brew.sh/cask/droid"
+      notes: "Code-signed .app bundle + CLI, safest option"
+    curl:
+      available: true
+      verified: true
+      risk: "HIGH"
+      install: "curl -fsSL https://app.factory.ai/cli | sh"
+      upgrade: "Re-run install script"
+      version: "droid --version"
+      binary: "droid"
+      warning: "No checksum verification or signature - requires explicit user confirmation"
+      idempotent: true
+    mise:
+      npm:
+        install: "mise use -g npm:@factory/cli"
+        upgrade: "mise upgrade npm:@factory/cli"
+        version: "droid --version"
+        backend: "npm"
+      config_toml: |
+        [tools]
+        "npm:@factory/cli" = "latest"
+    release_notes_url: "https://docs.factory.ai/changelog/cli-updates"
+    platform_support:
+      - "macOS"
+      - "Linux"
+
+  goose:
+    homebrew:
+      available: true
+      type: "formula"
+      install: "brew install block-goose-cli"
+      upgrade: "brew upgrade block-goose-cli"
+      version: "goose --version"
+      formula: "https://formulae.brew.sh/formula/block-goose-cli"
+      notes: "Core formula with source audit and signed bottles, safest option"
+      bottles:
+        - "macOS Apple Silicon (Sequoia, Sonoma)"
+        - "macOS Intel (Sonoma)"
+        - "Linux ARM64"
+        - "Linux x86_64"
+    pypi:
+      package: "goose-ai"
+      verified: true
+      install: "pipx install goose-ai"
+      upgrade: "pipx upgrade goose-ai"
+      version: "goose --version"
+      binary: "goose"
+      provenance: "https://pypi.org/project/goose-ai"
+      notes: "Published by Block (verified), isolated environment via pipx"
+    curl:
+      available: true
+      verified: true
+      risk: "HIGH"
+      install: "curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | bash"
+      upgrade: "goose update"  # Special: has native update command
+      version: "goose --version"
+      binary: "goose"
+      warning: "Downloads from GitHub releases without automatic checksum verification - requires explicit user confirmation"
+      idempotent: true
+    mise:
+      github:
+        install: "mise use -g github:block/goose"
+        upgrade: "mise upgrade github:block/goose"
+        version: "goose --version"
+        backend: "github"
+      config_toml: |
+        [tools]
+        "github:block/goose" = "latest"
+    cargo:
+      available: true
+      verified: false
+      install: "cargo install --git https://github.com/block/goose"
+      upgrade: "cargo install --git https://github.com/block/goose --force"
+      version: "goose --version"
+      binary: "goose"
+      idempotent: false  # Always rebuilds from source
+      dependencies:
+        - "rust toolchain"
+        - "pkgconf"
+        - "protobuf"
+    desktop_app:
+      homebrew: "brew install --cask block-goose"
+    github_repo: "block/goose"
+    license: "Apache-2.0"
+
+  roo:
+    curl:
+      available: true
+      verified: true
+      risk: "CRITICAL"
+      primary: true  # This is the PRIMARY distribution method for CLI
+      install: "curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh"
+      upgrade: "Re-run install script"
+      version: "roo --version"
+      binary: "roo"
+      warning: "PRIMARY distribution method - NO cryptographically verified alternative exists for CLI - requires explicit user confirmation and version pinning recommended"
+      idempotent: true
+      version_pinning: "ROO_VERSION=0.0.49 curl -fsSL ... | sh"
+      checksum_verification: |
+        curl -fsSL https://github.com/RooCodeInc/Roo-Code/releases/download/cli-v0.0.49/checksums.txt > checksums.txt
+        sha256sum -c checksums.txt
+    vs_code_extension:
+      available: true
+      verified: true
+      install: "code --install-extension RooVeterinaryInc.roo-cline"
+      upgrade: "Auto-updated by VS Code or code --install-extension RooVeterinaryInc.roo-cline --force"
+      version: "Check Extensions panel in VS Code"
+      marketplace_url: "https://marketplace.visualstudio.com/items?itemName=RooVeterinaryInc.roo-cline"
+      notes: "Primary distribution method for most users - safer than CLI"
+    mise:
+      github:
+        install: "mise use -g github:RooCodeInc/Roo-Code"
+        upgrade: "mise upgrade github:RooCodeInc/Roo-Code"
+        version: "roo --version"
+        backend: "github"
+        notes: "Best CLI alternative to curl script"
+      config_toml: |
+        [tools]
+        "github:RooCodeInc/Roo-Code" = "latest"
+    platform_support:
+      - "macOS Apple Silicon (M1/M2/M3/M4)"
+      - "Linux x64"
+    requirements:
+      - "Node.js 20 or higher"
+    github_repo: "RooCodeInc/Roo-Code"
+
+# Security classifications:
+security_risks:
+  droid_curl:
+    level: "HIGH"
+    verification: "None"
+    checksums: false
+    signature: false
+    requires_confirmation: true
+  goose_curl:
+    level: "HIGH"
+    verification: "None"
+    checksums: false
+    signature: false
+    requires_confirmation: true
+  roo_curl:
+    level: "CRITICAL"
+    verification: "Manual only"
+    checksums: "Manual verification required"
+    signature: false
+    requires_confirmation: true
+    version_pinning_recommended: true
+
+# Recommended installation priority (per agent):
+installation_priority:
+  droid:
+    - homebrew  # Code-signed cask, lowest risk
+    - npm       # Registry verification
+    - mise      # npm backend
+    - curl      # Last resort, requires confirmation
+  goose:
+    - homebrew  # Core formula + bottles, lowest risk
+    - pypi      # Verified publisher
+    - mise      # GitHub backend
+    - curl      # Last resort, requires confirmation
+  roo:
+    - vs_code_extension  # Marketplace verified, safest
+    - mise               # GitHub backend, best CLI alternative
+    - curl               # Primary but high-risk, requires confirmation + version pinning
+
+# Binary name mappings (important for config):
+binary_mappings:
+  droid: droid
+  goose: goose
+  roo: roo
+
+# NPM package mappings:
+npm_mappings:
+  droid: "@factory/cli"
+  goose: None
+  roo: None
+
+# PyPI package mappings:
+pypi_mappings:
+  droid: None
+  goose: goose-ai
+  roo: None
+
+# Homebrew availability:
+homebrew_available:
+  droid:
+    available: true
+    type: cask
+    formula: "droid"
+    url: "https://formulae.brew.sh/cask/droid"
+  goose:
+    available: true
+    type: formula
+    formula: "block-goose-cli"
+    url: "https://formulae.brew.sh/formula/block-goose-cli"
+  roo:
+    available: false
+
+# Special upgrade commands:
+special_upgrade_commands:
+  goose: "goose update"  # Has native update command, not standard curl re-run
+
+# Check latest commands:
+check_latest_commands:
+  droid: "curl -fsSL https://app.factory.ai/cli | grep 'VER=' | head -n 1 | cut -d'\"' -f2"
+  goose: "curl -s https://api.github.com/repos/block/goose/releases/latest | grep \"tag_name\" | cut -d'\"' -f4"
+  roo: "curl -s https://api.github.com/repos/RooCodeInc/Roo-Code/releases/latest | grep \"tag_name\" | cut -d'\"' -f4"
+
+# Version check commands:
+version_commands:
+  droid: "droid --version"
+  goose: "goose --version"
+  roo: "roo --version"
+
+# Model accuracy summary:
+model_accuracy:
+  ChatGPT: 0.9
+  Gemini: 0.85
+  Zhipu: 0.95
+
+# Common hallucinations:
+common_hallucinations:
+  - npm_droid_wrong: "@facto/droid"
+    correct: "@factory/cli"
+    severity: "high"
+  - homebrew_droid_missed: "Some models missed the droid cask"
+    correct: "brew install --cask droid is available"
+    severity: "medium"
+  - pypi_goose_missed: "Some models claimed no PyPI package"
+    correct: "goose-ai is available on PyPI"
+    severity: "medium"
+  - npm_roo_hallucination: "Some models claimed NPM availability for roo CLI"
+    correct: "No NPM package exists for roo CLI"
+    severity: "high"
+  - homebrew_roo_hallucination: "Some models claimed Homebrew availability for roo"
+    correct: "No Homebrew formula or cask exists for roo"
+    severity: "medium"
+
+# Idempotent upgrade support:
+idempotent_upgrades:
+  droid:
+    npm: true
+    homebrew: true
+    curl: true
+    mise: true
+  goose:
+    homebrew: true
+    pypi: true
+    curl: true
+    mise: true
+    cargo: false  # Always rebuilds from source
+  roo:
+    curl: true
+    mise: true
+    vs_code: true

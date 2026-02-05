@@ -1,0 +1,294 @@
+# Machine-readable installation data for NPM-based harnesses
+# Generated from research/lyp/DISTILLED.md
+# Ticket: reincheck-lyp
+# Last Updated: 2026-02-05
+
+harnesses:
+  crush:
+    npm:
+      package: "@charmland/crush"
+      verified: true
+      install: "npm install -g @charmland/crush@latest"
+      upgrade: "npm install -g @charmland/crush@latest"
+      version: "crush --version"
+      binary: "crush"
+      provenance: "https://www.npmjs.com/package/@charmland/crush"
+    homebrew:
+      available: true
+      type: "tap"
+      install: "brew install charmbracelet/tap/crush"
+      upgrade: "brew upgrade charmbracelet/tap/crush"
+      version: "crush --version"
+      formula: "https://github.com/charmbracelet/homebrew-tap"
+    mise:
+      language:
+        syntax: "npm:@charmland/crush@latest"
+        verified_syntax: true
+        install: "mise use -g npm:@charmland/crush@latest"
+        version: "crush --version"
+        binary: "crush"
+  
+  kilocode:
+    npm:
+      package: "@kilocode/cli"
+      verified: true
+      install: "npm install -g @kilocode/cli@latest"
+      upgrade: "npm install -g @kilocode/cli@latest"
+      version: "kilocode --version"
+      binary: "kilocode"
+      aliases: ["kilo"]
+      provenance: "https://www.npmjs.com/package/@kilocode/cli"
+    homebrew:
+      available: false
+    mise:
+      language:
+        syntax: "npm:@kilocode/cli@latest"
+        verified_syntax: true
+        install: "mise use -g npm:@kilocode/cli@latest"
+        version: "kilocode --version"
+        binary: "kilocode"
+  
+  opencode:
+    npm:
+      package: "opencode-ai"
+      verified: true
+      install: "npm install -g opencode-ai@latest"
+      upgrade: "npm install -g opencode-ai@latest"
+      version: "opencode --version"
+      binary: "opencode"
+      provenance: "https://www.npmjs.com/package/opencode-ai"
+    homebrew:
+      available: true
+      type: "tap"
+      note: "Third-party tap only, not in core"
+      install: "brew install opencode-ai/tap/opencode"
+      upgrade: "brew upgrade opencode-ai/tap/opencode"
+      version: "opencode --version"
+      formula: "https://github.com/opencode-ai/homebrew-tap"
+    curl:
+      available: true
+      verified: false
+      warning: "Untested - use with caution"
+      install: "curl -fsSL https://opencode.ai/install | bash"
+      upgrade: "Re-run install script"
+      version: "opencode --version"
+      binary: "opencode"
+    mise:
+      language:
+        syntax: "npm:opencode-ai@latest"
+        verified_syntax: true
+        install: "mise use -g npm:opencode-ai@latest"
+        version: "opencode --version"
+        binary: "opencode"
+  
+  claude:
+    npm:
+      package: "@anthropic-ai/claude-code"
+      verified: true
+      note: "Still active - not deprecated as some models claimed"
+      install: "npm install -g @anthropic-ai/claude-code@latest"
+      upgrade: "npm install -g @anthropic-ai/claude-code@latest"
+      version: "claude --version"
+      binary: "claude"
+      provenance: "https://www.npmjs.com/package/@anthropic-ai/claude-code"
+    homebrew:
+      available: true
+      type: "cask"
+      note: "Official Anthropic distribution"
+      install: "brew install --cask claude-code"
+      upgrade: "brew upgrade --cask claude-code"
+      version: "claude --version"
+      formula: "https://formulae.brew.sh/cask/claude-code"
+    curl:
+      available: true
+      verified: true
+      install: "curl -fsSL https://claude.ai/install.sh | bash"
+      upgrade: "claude update"
+      version: "claude --version"
+      binary: "claude"
+      docs: "https://docs.claude.com/en/docs/claude-code/setup"
+    mise:
+      language:
+        syntax: "npm:@anthropic-ai/claude-code@latest"
+        verified_syntax: true
+        install: "mise use -g npm:@anthropic-ai/claude-code@latest"
+        version: "claude --version"
+        binary: "claude"
+      binary:
+        install: "mise use -g claude-code"
+        version: "claude --version"
+        binary: "claude"
+  
+  grok:
+    npm:
+      package: "@vibe-kit/grok-cli"
+      verified: true
+      install: "npm install -g @vibe-kit/grok-cli@latest"
+      upgrade: "npm install -g @vibe-kit/grok-cli@latest"
+      version: "grok --version"
+      binary: "grok"
+      provenance: "https://www.npmjs.com/package/@vibe-kit/grok-cli"
+    homebrew:
+      available: false
+    mise:
+      language:
+        syntax: "npm:@vibe-kit/grok-cli@latest"
+        verified_syntax: true
+        install: "mise use -g npm:@vibe-kit/grok-cli@latest"
+        version: "grok --version"
+        binary: "grok"
+  
+  gemini:
+    npm:
+      package: "@google/gemini-cli"
+      verified: true
+      install: "npm install -g @google/gemini-cli@latest"
+      upgrade: "npm install -g @google/gemini-cli@latest"
+      version: "gemini --version"
+      binary: "gemini"
+      provenance: "https://www.npmjs.com/package/@google/gemini-cli"
+    homebrew:
+      available: true
+      type: "formula"
+      note: "Official formula"
+      install: "brew install gemini-cli"
+      upgrade: "brew upgrade gemini-cli"
+      version: "gemini --version"
+      formula: "https://formulae.brew.sh/formula/gemini-cli"
+    mise:
+      language:
+        syntax: "npm:@google/gemini-cli@latest"
+        verified_syntax: true
+        install: "mise use -g npm:@google/gemini-cli@latest"
+        version: "gemini --version"
+        binary: "gemini"
+  
+  cline:
+    npm:
+      package: "cline"
+      verified: true
+      note: "Package is 'cline', NOT '@cline/cli' (hallucination)"
+      install: "npm install -g cline@latest"
+      upgrade: "npm install -g cline@latest"
+      version: "cline --version"
+      binary: "cline"
+      provenance: "https://www.npmjs.com/package/cline"
+    homebrew:
+      available: false
+    mise:
+      language:
+        syntax: "npm:cline@latest"
+        verified_syntax: true
+        install: "mise use -g npm:cline@latest"
+        version: "cline --version"
+        binary: "cline"
+  
+  continue:
+    npm:
+      package: "@continuedev/cli"
+      verified: true
+      note: "Binary is 'cn', NOT 'continue' (hallucination)"
+      install: "npm install -g @continuedev/cli@latest"
+      upgrade: "npm install -g @continuedev/cli@latest"
+      version: "cn --version"
+      binary: "cn"
+      provenance: "https://www.npmjs.com/package/@continuedev/cli"
+    homebrew:
+      available: false
+    mise:
+      language:
+        syntax: "npm:@continuedev/cli@latest"
+        verified_syntax: true
+        install: "mise use -g npm:@continuedev/cli@latest"
+        version: "cn --version"
+        binary: "cn"
+  
+  codex:
+    npm:
+      package: "@openai/codex"
+      verified: true
+      install: "npm install -g @openai/codex@latest"
+      upgrade: "npm install -g @openai/codex@latest"
+      version: "codex --version"
+      binary: "codex"
+      provenance: "https://www.npmjs.com/package/@openai/codex"
+    homebrew:
+      available: true
+      formula:
+        type: "formula"
+        note: "Source build"
+        install: "brew install codex"
+        upgrade: "brew upgrade codex"
+        version: "codex --version"
+        formula: "https://formulae.brew.sh/formula/codex"
+      cask:
+        type: "cask"
+        note: "Binary distribution"
+        install: "brew install --cask codex"
+        upgrade: "brew upgrade --cask codex"
+        version: "codex --version"
+        formula: "https://formulae.brew.sh/cask/codex"
+    mise:
+      language:
+        syntax: "npm:@openai/codex@latest"
+        verified_syntax: true
+        install: "mise use -g npm:@openai/codex@latest"
+        version: "codex --version"
+        binary: "codex"
+  
+  amp:
+    npm:
+      package: "@sourcegraph/amp"
+      verified: true
+      note: "Use scoped package, NOT plain 'amp' (name collision)"
+      install: "npm install -g @sourcegraph/amp@latest"
+      upgrade: "npm install -g @sourcegraph/amp@latest"
+      version: "amp --version"
+      binary: "amp"
+      provenance: "https://www.npmjs.com/package/@sourcegraph/amp"
+    homebrew:
+      available: false
+    curl:
+      available: true
+      verified: false
+      warning: "Untested - use with caution"
+      install: "curl -fsSL https://ampcode.com/install.sh | bash"
+      upgrade: "Re-run install script"
+      version: "amp --version"
+      binary: "amp"
+    mise:
+      language:
+        syntax: "npm:@sourcegraph/amp@latest"
+        verified_syntax: true
+        install: "mise use -g npm:@sourcegraph/amp@latest"
+        version: "amp --version"
+        binary: "amp"
+
+# Standards used:
+version_check_pattern: "<binary> --version"
+upgrade_pattern: "npm install -g <package>@latest"
+mise_language_pattern: "mise use -g npm:<package>@latest"
+
+# Model accuracy summary:
+model_accuracy:
+  ChatGPT: 0.9
+  Gemini: 0.85
+  Grok: 0.8
+  MiniMax: 0.85
+  Mistral: 0.4
+
+# Common hallucinations:
+common_hallucinations:
+  - package: "@cline/cli"
+    correct: "cline"
+    severity: "high"
+  - package: "continue-cli"
+    correct: "@continuedev/cli"
+    severity: "high"
+  - binary: "continue"
+    correct: "cn"
+    severity: "high"
+  - package: "claude"
+    note: "deprecated"
+    severity: "medium"
+    correction: "Still active - not deprecated"

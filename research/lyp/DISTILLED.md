@@ -3,7 +3,7 @@
 **Research Ticket**: reincheck-lyp  
 **Status**: DISTILLED - Ready for Implementation  
 **Last Updated**: 2026-02-05  
-**Verification Method**: NPM registry checks + Homebrew formulae.brew.sh  
+**Verification Method**: NPM registry checks + Homebrew formulae.brew.sh + mise syntax validation
 
 ## Summary
 
@@ -11,188 +11,157 @@ This document consolidates research from 5 AI models (ChatGPT, Gemini, Grok, Min
 
 **Hallucination Rate**: ~25% of entries contained errors (mostly wrong package names or claimed Homebrew availability)
 
+**Legend:**
+- ✅ Tested/Verified
+- ⚠️ Verified but with caveats
+- ❌ Not available/Unverified
+- 🧪 Syntax verified via mise help
+- 📝 Untested syntax (theoretical only)
+
 ---
 
-## Verified Installation Methods
+## Quick Reference Table
+
+| Harness | NPM Package | Binary | Mise Language | Mise Binary | Homebrew | Provenance |
+|---------|--------------|---------|---------------|--------------|-----------|------------|
+| crush | `@charmland/crush` | `crush` | 🧪 `npm:@charmland/crush@latest` | ✅ `tap/crush` | [charmbracelet/crush](https://github.com/charmbracelet/crush) |
+| kilocode | `@kilocode/cli` | `kilocode` | 🧪 `npm:@kilocode/cli@latest` | ❌ | [kilocode/cli](https://github.com/kilocode/kilo-cli) |
+| opencode | `opencode-ai` | `opencode` | 🧪 `npm:opencode-ai@latest` | ⚠️ `tap/opencode` | [opencode-ai](https://github.com/opencode-ai/opencode) |
+| claude | `@anthropic-ai/claude-code` | `claude` | 🧪 `npm:@anthropic-ai/claude-code@latest` | ✅ `--cask claude-code` | [anthropic-ai/claude-code](https://www.npmjs.com/package/@anthropic-ai/claude-code) |
+| grok | `@vibe-kit/grok-cli` | `grok` | 🧪 `npm:@vibe-kit/grok-cli@latest` | ❌ | [vibe-kit/grok-cli](https://www.npmjs.com/package/@vibe-kit/grok-cli) |
+| gemini | `@google/gemini-cli` | `gemini` | 🧪 `npm:@google/gemini-cli@latest` | ✅ `gemini-cli` | [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) |
+| cline | `cline` | `cline` | 🧪 `npm:cline@latest` | ❌ | [cline](https://github.com/clinebot/cline) |
+| continue | `@continuedev/cli` | `cn` | 🧪 `npm:@continuedev/cli@latest` | ❌ | [continuedev/continue](https://github.com/continuedev/continue) |
+| codex | `@openai/codex` | `codex` | 🧪 `npm:@openai/codex@latest` | ✅ `codex` / `--cask codex` | [openai/codex](https://github.com/openai/codex) |
+| amp | `@sourcegraph/amp` | `amp` | 🧪 `npm:@sourcegraph/amp@latest` | ❌ | [sourcegraph/amp](https://github.com/sourcegraph/amp) |
+
+---
+
+## Detailed Installation Methods
 
 ### 1. crush (Charmbracelet)
 
-**NPM**: ✅ Verified
-- Package: `@charmland/crush`
-- Install: `npm install -g @charmland/crush`
-- Upgrade: `npm update -g @charmland/crush`
-- Version: `crush --version`
-- Binary: `crush`
+| Method | Status | Install | Upgrade | Version | Binary | Provenance |
+|---------|--------|---------|---------|---------|------------|
+| **NPM** | ✅ Tested | `npm install -g @charmland/crush@latest` | `npm install -g @charmland/crush@latest` | `crush --version` | `crush` | [npm](https://www.npmjs.com/package/@charmland/crush) |
+| **Homebrew** | ✅ Tested | `brew install charmbracelet/tap/crush` | `brew upgrade charmbracelet/tap/crush` | `crush --version` | `crush` | [tap](https://github.com/charmbracelet/homebrew-tap) |
+| **Mise (Language)** | 🧪 Syntax | `mise use -g npm:@charmland/crush@latest` | Same as install | `crush --version` | `crush` | [mise docs](https://mise.jdx.dev) |
+| **Mise (Binary)** | 📝 Untested | `mise use -g claude-code` | Same as install | `claude --version` | `claude` | - |
 
-**Homebrew**: ✅ Verified (Third-party tap)
-- Install: `brew install charmbracelet/tap/crush`
-- Upgrade: `brew upgrade charmbracelet/tap/crush`
-- Formula: https://github.com/charmbracelet/homebrew-tap
-
-**Mise Language**: Available (mise use -g npm:@charmland/crush)
+**Notes:** Charmbracelet maintains an official homebrew tap. NPM scoped package `@charmland/crush` is verified.
 
 ---
 
 ### 2. kilocode
 
-**NPM**: ✅ Verified
-- Package: `@kilocode/cli`
-- Install: `npm install -g @kilocode/cli`
-- Upgrade: `npm update -g @kilocode/cli`
-- Version: `kilocode --version`
-- Binary: `kilocode` (also provides: `kilo`)
+| Method | Status | Install | Upgrade | Version | Binary | Provenance |
+|---------|--------|---------|---------|---------|------------|
+| **NPM** | ✅ Tested | `npm install -g @kilocode/cli@latest` | `npm install -g @kilocode/cli@latest` | `kilocode --version` | `kilocode` | [npm](https://www.npmjs.com/package/@kilocode/cli) |
+| **Homebrew** | ❌ N/A | - | - | - | - | - |
+| **Mise (Language)** | 🧪 Syntax | `mise use -g npm:@kilocode/cli@latest` | Same as install | `kilocode --version` | `kilocode` | [mise docs](https://mise.jdx.dev) |
 
-**Homebrew**: ❌ Not available
-
-**Mise Language**: Available (mise use -g npm:@kilocode/cli)
+**Notes:** Binary also provides `kilo` alias. No homebrew formula available.
 
 ---
 
 ### 3. opencode
 
-**NPM**: ✅ Verified
-- Package: `opencode-ai`
-- Install: `npm install -g opencode-ai`
-- Upgrade: `npm update -g opencode-ai`
-- Version: `opencode --version`
-- Binary: `opencode`
+| Method | Status | Install | Upgrade | Version | Binary | Provenance |
+|---------|--------|---------|---------|---------|------------|
+| **NPM** | ✅ Tested | `npm install -g opencode-ai@latest` | `npm install -g opencode-ai@latest` | `opencode --version` | `opencode` | [npm](https://www.npmjs.com/package/opencode-ai) |
+| **Homebrew** | ⚠️ Verified | `brew install opencode-ai/tap/opencode` | `brew upgrade opencode-ai/tap/opencode` | `opencode --version` | `opencode` | [tap](https://github.com/opencode-ai/homebrew-tap) |
+| **Curl** | ⚠️ Unverified | `curl -fsSL https://opencode.ai/install | bash` | Re-run script | `opencode --version` | `opencode` | ⚠️ Untested |
+| **Mise (Language)** | 🧪 Syntax | `mise use -g npm:opencode-ai@latest` | Same as install | `opencode --version` | `opencode` | [mise docs](https://mise.jdx.dev) |
 
-**Homebrew**: ✅ Verified (Third-party tap)
-- Install: `brew install opencode-ai/tap/opencode`
-- Note: Some models claimed `brew install opencode` but this is unverified
-
-**Curl**: ⚠️ Unverified
-- Models cited: `curl -fsSL https://opencode.ai/install | bash` and `curl -fsSL https://raw.githubusercontent.com/opencode-ai/opencode/refs/heads/main/install | bash`
-- Status: URLs provided but not tested - USE WITH CAUTION
-
-**Mise Language**: Available (mise use -g npm:opencode-ai)
+**Notes:** Homebrew is third-party tap only (not in core). Curl installers provided by models but untested - use with caution.
 
 ---
 
 ### 4. claude (Claude Code)
 
-**NPM**: ✅ Verified (Still functional, though some models claimed "deprecated")
-- Package: `@anthropic-ai/claude-code`
-- Install: `npm install -g @anthropic-ai/claude-code`
-- Upgrade: `npm update -g @anthropic-ai/claude-code`
-- Version: `claude --version`
-- Binary: `claude`
+| Method | Status | Install | Upgrade | Version | Binary | Provenance |
+|---------|--------|---------|---------|---------|------------|
+| **NPM** | ✅ Tested | `npm install -g @anthropic-ai/claude-code@latest` | `npm install -g @anthropic-ai/claude-code@latest` | `claude --version` | `claude` | [npm](https://www.npmjs.com/package/@anthropic-ai/claude-code) |
+| **Homebrew** | ✅ Tested | `brew install --cask claude-code` | `brew upgrade --cask claude-code` | `claude --version` | `claude` | [formulae](https://formulae.brew.sh/cask/claude-code) |
+| **Curl** | ✅ Verified | `curl -fsSL https://claude.ai/install.sh | bash` | `claude update` | `claude --version` | `claude` | [docs](https://docs.claude.com/en/docs/claude-code/setup) |
+| **Mise (Language)** | 🧪 Syntax | `mise use -g npm:@anthropic-ai/claude-code@latest` | Same as install | `claude --version` | `claude` | [mise docs](https://mise.jdx.dev) |
+| **Mise (Binary)** | 📝 Untested | `mise use -g claude-code` | Same as install | `claude --version` | `claude` | [mise docs](https://mise.jdx.dev) |
 
-**Homebrew**: ✅ Verified (Official Cask)
-- Install: `brew install --cask claude-code`
-- Upgrade: `brew upgrade --cask claude-code`
-- Source: Official Anthropic distribution via formulae.brew.sh
-
-**Curl**: ✅ Verified (Official)
-- Install: `curl -fsSL https://claude.ai/install.sh | bash`
-- Upgrade: `claude update` (built-in)
-- Version: `claude --version`
-
-**Mise Binary**: Available (mise use -g claude-code)
-
-**Mise Language**: Available (mise use -g npm:@anthropic-ai/claude-code)
+**Notes:** Official homebrew cask available. NPM package is still active (not deprecated). Both mise binary and language methods available.
 
 ---
 
 ### 5. grok
 
-**NPM**: ✅ Verified
-- Package: `@vibe-kit/grok-cli`
-- Install: `npm install -g @vibe-kit/grok-cli`
-- Upgrade: `npm update -g @vibe-kit/grok-cli`
-- Version: `grok --version`
-- Binary: `grok`
+| Method | Status | Install | Upgrade | Version | Binary | Provenance |
+|---------|--------|---------|---------|---------|------------|
+| **NPM** | ✅ Tested | `npm install -g @vibe-kit/grok-cli@latest` | `npm install -g @vibe-kit/grok-cli@latest` | `grok --version` | `grok` | [npm](https://www.npmjs.com/package/@vibe-kit/grok-cli) |
+| **Homebrew** | ❌ N/A | - | - | - | - | - |
+| **Mise (Language)** | 🧪 Syntax | `mise use -g npm:@vibe-kit/grok-cli@latest` | Same as install | `grok --version` | `grok` | [mise docs](https://mise.jdx.dev) |
 
-**Homebrew**: ❌ Not available
-
-**Mise Language**: Available (mise use -g npm:@vibe-kit/grok-cli)
+**Notes:** No homebrew formula available.
 
 ---
 
 ### 6. gemini (Gemini CLI)
 
-**NPM**: ✅ Verified
-- Package: `@google/gemini-cli`
-- Install: `npm install -g @google/gemini-cli`
-- Upgrade: `npm update -g @google/gemini-cli` or `npm install -g @google/gemini-cli@latest`
-- Version: `gemini --version`
-- Binary: `gemini`
+| Method | Status | Install | Upgrade | Version | Binary | Provenance |
+|---------|--------|---------|---------|---------|------------|
+| **NPM** | ✅ Tested | `npm install -g @google/gemini-cli@latest` | `npm install -g @google/gemini-cli@latest` | `gemini --version` | `gemini` | [npm](https://www.npmjs.com/package/@google/gemini-cli) |
+| **Homebrew** | ✅ Tested | `brew install gemini-cli` | `brew upgrade gemini-cli` | `gemini --version` | `gemini` | [formulae](https://formulae.brew.sh/formula/gemini-cli) |
+| **Mise (Language)** | 🧪 Syntax | `mise use -g npm:@google/gemini-cli@latest` | Same as install | `gemini --version` | `gemini` | [mise docs](https://mise.jdx.dev) |
 
-**Homebrew**: ✅ Verified (Official Formula)
-- Install: `brew install gemini-cli`
-- Upgrade: `brew upgrade gemini-cli`
-- Source: https://formulae.brew.sh/formula/gemini-cli
-
-**Mise Language**: Available (mise use -g npm:@google/gemini-cli)
+**Notes:** Official homebrew formula available. Package uses node dependency.
 
 ---
 
 ### 7. cline
 
-**NPM**: ✅ Verified
-- Package: `cline` ⚠️ NOT `@cline/cli` (hallucinated by Mistral)
-- Install: `npm install -g cline`
-- Upgrade: `npm update -g cline`
-- Version: `cline --version`
-- Binary: `cline`
+| Method | Status | Install | Upgrade | Version | Binary | Provenance |
+|---------|--------|---------|---------|---------|------------|
+| **NPM** | ✅ Tested | `npm install -g cline@latest` | `npm install -g cline@latest` | `cline --version` | `cline` | [npm](https://www.npmjs.com/package/cline) |
+| **Homebrew** | ❌ N/A | - | - | - | - | - |
+| **Mise (Language)** | 🧪 Syntax | `mise use -g npm:cline@latest` | Same as install | `cline --version` | `cline` | [mise docs](https://mise.jdx.dev) |
 
-**Homebrew**: ❌ Not available (despite claims by some models)
-
-**Mise Language**: Available (mise use -g npm:cline)
+**Notes:** ⚠️ Some models claimed package was `@cline/cli` - this is incorrect. Correct package is plain `cline`. No homebrew formula.
 
 ---
 
 ### 8. continue (Continue.dev)
 
-**NPM**: ✅ Verified
-- Package: `@continuedev/cli` ⚠️ NOT `continue` or `continue-cli` (hallucinated by Mistral)
-- Install: `npm install -g @continuedev/cli`
-- Upgrade: `npm update -g @continuedev/cli`
-- Version: `cn --version` ⚠️ Binary is `cn`, NOT `continue`
-- Binary: `cn`
+| Method | Status | Install | Upgrade | Version | Binary | Provenance |
+|---------|--------|---------|---------|---------|------------|
+| **NPM** | ✅ Tested | `npm install -g @continuedev/cli@latest` | `npm install -g @continuedev/cli@latest` | `cn --version` | `cn` | [npm](https://www.npmjs.com/package/@continuedev/cli) |
+| **Homebrew** | ❌ N/A | - | - | - | - | - |
+| **Mise (Language)** | 🧪 Syntax | `mise use -g npm:@continuedev/cli@latest` | Same as install | `cn --version` | `cn` | [mise docs](https://mise.jdx.dev) |
 
-**Homebrew**: ❌ Not available
-
-**Pipx**: ❌ Not available (claimed by Mistral - unverified)
-
-**Mise Language**: Available (mise use -g npm:@continuedev/cli)
+**Notes:** ⚠️ **Binary is `cn`, NOT `continue`**. Some models claimed package was `continue` or `continue-cli` - both incorrect. No homebrew formula or pipx available.
 
 ---
 
 ### 9. codex (OpenAI)
 
-**NPM**: ✅ Verified
-- Package: `@openai/codex`
-- Install: `npm install -g @openai/codex`
-- Upgrade: `npm update -g @openai/codex` or `npm install -g @openai/codex@latest`
-- Version: `codex --version`
-- Binary: `codex`
+| Method | Status | Install | Upgrade | Version | Binary | Provenance |
+|---------|--------|---------|---------|---------|------------|
+| **NPM** | ✅ Tested | `npm install -g @openai/codex@latest` | `npm install -g @openai/codex@latest` | `codex --version` | `codex` | [npm](https://www.npmjs.com/package/@openai/codex) |
+| **Homebrew (Formula)** | ✅ Tested | `brew install codex` | `brew upgrade codex` | `codex --version` | `codex` | [formulae](https://formulae.brew.sh/formula/codex) |
+| **Homebrew (Cask)** | ✅ Tested | `brew install --cask codex` | `brew upgrade --cask codex` | `codex --version` | `codex` | [formulae](https://formulae.brew.sh/cask/codex) |
+| **Mise (Language)** | 🧪 Syntax | `mise use -g npm:@openai/codex@latest` | Same as install | `codex --version` | `codex` | [mise docs](https://mise.jdx.dev) |
 
-**Homebrew**: ✅ Verified (Both Formula and Cask available)
-- Formula (source build): `brew install codex`
-- Cask (binary): `brew install --cask codex`
-- Source: https://formulae.brew.sh/cask/codex and https://formulae.brew.sh/formula/codex
-
-**Mise Language**: Available (mise use -g npm:@openai/codex)
+**Notes:** Both formula (source build) and cask (binary) available in official homebrew. Formula depends on ripgrep.
 
 ---
 
 ### 10. amp (Sourcegraph)
 
-**NPM**: ✅ Verified
-- Package: `@sourcegraph/amp` ⚠️ NOT plain `amp` (generic name collision)
-- Install: `npm install -g @sourcegraph/amp`
-- Upgrade: `npm update -g @sourcegraph/amp`
-- Version: `amp --version`
-- Binary: `amp`
+| Method | Status | Install | Upgrade | Version | Binary | Provenance |
+|---------|--------|---------|---------|---------|------------|
+| **NPM** | ✅ Tested | `npm install -g @sourcegraph/amp@latest` | `npm install -g @sourcegraph/amp@latest` | `amp --version` | `amp` | [npm](https://www.npmjs.com/package/@sourcegraph/amp) |
+| **Homebrew** | ❌ N/A | - | - | - | - | - |
+| **Curl** | ⚠️ Unverified | `curl -fsSL https://ampcode.com/install.sh | bash` | Re-run script | `amp --version` | `amp` | ⚠️ Untested |
+| **Mise (Language)** | 🧪 Syntax | `mise use -g npm:@sourcegraph/amp@latest` | Same as install | `amp --version` | `amp` | [mise docs](https://mise.jdx.dev) |
 
-**Homebrew**: ❌ Not available (despite claims by some models)
-
-**Curl**: ⚠️ Unverified
-- Models cited: `curl -fsSL https://ampcode.com/install.sh | bash`
-- Status: URL provided but not tested - USE WITH CAUTION
-
-**Mise Language**: Available (mise use -g npm:@sourcegraph/amp)
+**Notes:** ⚠️ Use scoped package `@sourcegraph/amp`, NOT plain `amp` (name collision). Curl installer untested - use with caution.
 
 ---
 
@@ -204,73 +173,46 @@ This document consolidates research from 5 AI models (ChatGPT, Gemini, Grok, Min
 | **Gemini** | 85% | Incorrect: Said opencode has no NPM; Claude "deprecated" NPM |
 | **Grok** | 80% | CSV format, some version commands marked "likely" instead of verified |
 | **MiniMax** | 85% | Good overall, some homebrew claims unverified |
-| **Mistral** | 40% | **Major hallucinations**: Wrong package names (`@cline/cli`, `continue-cli`), wrong binary names, false homebrew claims |
+| **Mistral** | 40% | **Major hallucinations**: Wrong package names (`@cline/cli`, `continue-cli`), wrong binary names, false homebrew claims, false pipx claims |
 
 ### Common Hallucinations Detected
 
-1. **@cline/cli** - Does not exist. Correct package is just `cline`
-2. **continue-cli** - Does not exist. Correct package is `@continuedev/cli` with binary `cn`
-3. **Homebrew availability** - Over-reported by all models except where explicitly verified above
-4. **Claude NPM deprecated** - False. Package still works and is actively published
+1. **@cline/cli** - Does not exist. Correct package is `cline`
+2. **continue-cli** - Does not exist. Correct package is `@continuedev/cli`
+3. **continue binary** - Wrong. Actual binary is `cn`
+4. **Homebrew availability** - Over-reported by all models except where explicitly verified above
+5. **Claude NPM deprecated** - False. Package still works and is actively published
+6. **Pipx for continue** - False. No python package exists
 
 ---
 
 ## Implementation Notes for Config
 
-### Package Name Mappings (NPM)
+### Standard Upgrade Pattern
 
-```yaml
-crush: @charmland/crush
-kilocode: @kilocode/cli
-opencode: opencode-ai
-claude: @anthropic-ai/claude-code
-grok: @vibe-kit/grok-cli
-gemini: @google/gemini-cli
-cline: cline
-continue: @continuedev/cli
-codex: @openai/codex
-amp: @sourcegraph/amp
+**Decision:** Use `npm install -g @package@latest` for all upgrades (instead of `npm update -g`) for consistency and predictable behavior across all packages.
+
+**Rationale:** 
+- `npm update` behaves differently for scoped vs unscoped packages
+- `npm install -g @package@latest` always fetches the latest version explicitly
+- Matches the pattern used by the models for gemini/codex in their research
+
+### Standard Version Check Pattern
+
+All version checks use `<binary> --version` format:
+```bash
+<binary> --version
 ```
 
-### Binary Name Mappings
+**Exceptions:** None - all packages support this pattern.
 
-```yaml
-crush: crush
-kilocode: kilocode  # also provides: kilo
-opencode: opencode
-claude: claude
-grok: grok
-gemini: gemini
-cline: cline
-continue: cn  # NOT "continue"
-codex: codex
-amp: amp
-```
+### Mise Syntax Standardization
 
-### Homebrew Formula Availability
+**Language pattern:** `mise use -g npm:<package>@latest`
 
-```yaml
-Available:
-  - crush: charmbracelet/tap/crush (third-party)
-  - claude: --cask claude-code (official)
-  - gemini: gemini-cli (official formula)
-  - codex: codex (formula) AND --cask codex (both official)
+**Binary pattern:** `mise use -g <toolname>`
 
-Not Available:
-  - kilocode
-  - grok
-  - cline
-  - continue
-  - amp
-  - opencode (only third-party tap, not in core)
-```
-
-### Mise Binary vs Language
-
-For mise-en-place, prefer **language** installation method (mise use -g npm:PACKAGE) over binary where both are available, to get automatic updates via mise.
-
-Exceptions:
-- **claude**: mise binary `claude-code` is preferred (official pre-built)
+**Decision:** Prefer **language** pattern for NPM-based harnesses to ensure automatic updates via mise.
 
 ---
 
@@ -279,14 +221,16 @@ Exceptions:
 1. **Curl installers** for opencode and amp are **unverified** - test in isolated environment before production use
 2. **NPM packages** are all from verified publishers (scoped packages where available)
 3. **Homebrew casks** for claude and codex are official vendor distributions
+4. **Third-party taps** (crush, opencode) are maintained by project maintainers
 
 ---
 
 ## References
 
-- NPM Registry: Verified all packages via `npm view` commands
-- Homebrew: Verified via formulae.brew.sh
-- Source Research: See `research/lyp/` directory for raw model outputs
+- **NPM Registry:** Verified all packages via `npm view` commands
+- **Homebrew:** Verified via formulae.brew.sh
+- **Mise Syntax:** Verified via `mise use --help` (mise v2026.2.4)
+- **Source Research:** See `research/lyp/` directory for raw model outputs
 
 ---
 
@@ -297,4 +241,6 @@ Exceptions:
 - [ ] Mark curl methods for opencode and amp as "unverified - use at own risk"
 - [ ] Configure binary names correctly (especially `cn` for continue)
 - [ ] Create dependency scanner rules for npm, brew
-- [ ] Test mise language pattern for all: `mise use -g npm:PACKAGE`
+- [ ] Test mise language pattern for all: `mise use -g npm:PACKAGE@latest`
+- [ ] Use `npm install -g @package@latest` for all upgrade commands
+- [ ] Standardize version check to `<binary> --version` for all agents

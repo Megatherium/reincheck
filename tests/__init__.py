@@ -1,11 +1,10 @@
 """Unit tests for core functionality in reincheck."""
 
-import asyncio
 import json
 import tempfile
 import yaml
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, Mock
+from unittest.mock import patch
 from pathlib import Path
 
 from reincheck import (
@@ -18,7 +17,6 @@ from reincheck import (
     run_command_async,
     get_npm_release_info,
     get_pypi_release_info,
-    UpdateResult,
     is_command_safe,
 )
 
@@ -172,7 +170,7 @@ class TestLoadConfigAndSaveConfig:
             config_path = f.name
 
         try:
-            config = load_config()
+            config = load_config(Path(config_path))
             assert len(config.agents) == 1
             assert config.agents[0].name == "test-agent"
         finally:
@@ -180,25 +178,15 @@ class TestLoadConfigAndSaveConfig:
 
     def test_load_config_file_not_found(self):
         """Test that missing config file exits with error."""
-        import reincheck
-        original_path = reincheck.__init__.Path
-        try:
-            # Temporarily replace the agents.yaml file with a non-existent one
-            import os
-            backup_path = reincheck.__init__.__file__
-            # Create a temp directory structure that won't exist
-            temp_dir = Path("/tmp/reincheck_test_nonexistent")
-            
-            with patch.object(Path, "__init__", lambda self, *args, **kwargs: None):
-                with patch("reincheck.__init__.Path.__truediv__") as mock_div:
-                    mock_div.return_value = MagicMock()
-                    mock_div.return_value.exists = MagicMock(return_value=False)
-                    mock_div.return_value.open = MagicMock()
-                    
-                    with pytest.raises(SystemExit):
-                        load_config()
-        finally:
-            pass
+        # Use a path that doesn't exist
+        nonexistent_path = Path("/tmp/nonexistent_reincheck_agents.yaml")
+        
+        # Ensure file doesn't exist
+        if nonexistent_path.exists():
+            nonexistent_path.unlink()
+        
+        with pytest.raises(SystemExit):
+            load_config(nonexistent_path)
 
     def test_load_config_invalid_yaml(self):
         """Test that invalid YAML exits with error."""
@@ -209,19 +197,8 @@ class TestLoadConfigAndSaveConfig:
             config_path = f.name
 
         try:
-            with patch("reincheck.__init__.Path") as mock_path:
-                mock_path_instance = MagicMock()
-                mock_path_instance.exists.return_value = True
-                
-                # Mock the open method to return a file handle
-                mock_file = MagicMock()
-                mock_file.__enter__ = MagicMock(return_value=open(config_path, "r"))
-                mock_file.__exit__ = MagicMock()
-                mock_path_instance.open = MagicMock(return_value=mock_file)
-                mock_path.return_value = mock_path_instance
-                
-                with pytest.raises(SystemExit):
-                    load_config()
+            with pytest.raises(SystemExit):
+                load_config(Path(config_path))
         finally:
             Path(config_path).unlink()
 
@@ -235,19 +212,8 @@ class TestLoadConfigAndSaveConfig:
             config_path = f.name
 
         try:
-            with patch("reincheck.__init__.Path") as mock_path:
-                mock_path_instance = MagicMock()
-                mock_path_instance.exists.return_value = True
-                
-                # Mock the open method to return a file handle
-                mock_file = MagicMock()
-                mock_file.__enter__ = MagicMock(return_value=open(config_path, "r"))
-                mock_file.__exit__ = MagicMock()
-                mock_path_instance.open = MagicMock(return_value=mock_file)
-                mock_path.return_value = mock_path_instance
-                
-                with pytest.raises(SystemExit):
-                    load_config()
+            with pytest.raises(SystemExit):
+                load_config(Path(config_path))
         finally:
             Path(config_path).unlink()
 
@@ -271,40 +237,29 @@ class TestLoadConfigAndSaveConfig:
             mode="w", suffix=".yaml", delete=False
         ) as f:
             temp_path = Path(f.name)
+            # Delete the temp file so save_config can create it
+            temp_path.unlink()
 
         try:
-            with patch("reincheck.__init__.Path") as mock_path:
-                mock_path_instance = MagicMock()
-                mock_path_instance.with_suffix.return_value = temp_path.with_suffix(".tmp")
-                mock_path_instance.exists.return_value = False
-                mock_path_instance.open.return_value.__enter__.return_value = open(temp_path.with_suffix(".tmp"), "w")
-                mock_path_instance.open.return_value.__exit__ = MagicMock()
-                mock_path_instance.replace.return_value = MagicMock()
-                mock_path_instance.replace.return_value.exists.return_value = True
-                mock_path.return_value = mock_path_instance
-                
-                # Also mock Path(__file__).parent to return a MagicMock
-                with patch("reincheck.__init__.Path") as main_path:
-                    main_path_instance = MagicMock()
-                    main_path_instance.__truediv__.return_value = temp_path
-                    main_path.return_value = main_path_instance
-                
-                save_config(config)
-                
-                assert temp_path.with_suffix(".tmp").exists()
-                
-                with open(temp_path, "r") as f:
-                    saved_data = yaml.safe_load(f)
+            save_config(config, temp_path)
+            
+            assert temp_path.exists()
+            
+            with open(temp_path, "r") as f:
+                saved_data = yaml.safe_load(f)
 
-                assert "agents" in saved_data
-                assert len(saved_data["agents"]) == 1
-                assert saved_data["agents"][0]["name"] == "test-agent"
-                assert saved_data["agents"][0]["latest_version"] == "1.0.0"
-                assert saved_data["agents"][0]["github_repo"] == "test/repo"
+            assert "agents" in saved_data
+            assert len(saved_data["agents"]) == 1
+            assert saved_data["agents"][0]["name"] == "test-agent"
+            assert saved_data["agents"][0]["latest_version"] == "1.0.0"
+            assert saved_data["agents"][0]["github_repo"] == "test/repo"
         finally:
-            for p in [temp_path, temp_path.with_suffix(".tmp")]:
-                if p.exists():
-                    p.unlink()
+            if temp_path.exists():
+                temp_path.unlink()
+            # Clean up the .tmp file if it exists
+            tmp_path = temp_path.with_suffix(".tmp")
+            if tmp_path.exists():
+                tmp_path.unlink()
 
     def test_save_config_with_latest_version_none(self):
         """Test saving config where latest_version is None."""
@@ -325,36 +280,25 @@ class TestLoadConfigAndSaveConfig:
             mode="w", suffix=".yaml", delete=False
         ) as f:
             temp_path = Path(f.name)
+            # Delete the temp file so save_config can create it
+            temp_path.unlink()
 
         try:
-            with patch("reincheck.__init__.Path") as mock_path:
-                mock_path_instance = MagicMock()
-                mock_path_instance.with_suffix.return_value = temp_path.with_suffix(".tmp")
-                mock_path_instance.exists.return_value = False
-                mock_path_instance.open.return_value.__enter__.return_value = open(temp_path.with_suffix(".tmp"), "w")
-                mock_path_instance.open.return_value.__exit__ = MagicMock()
-                mock_path_instance.replace.return_value = MagicMock()
-                mock_path_instance.replace.return_value.exists.return_value = True
-                mock_path.return_value = mock_path_instance
-                
-                # Also mock Path(__file__).parent to return a MagicMock
-                with patch("reincheck.__init__.Path") as main_path:
-                    main_path_instance = MagicMock()
-                    main_path_instance.__truediv__.return_value = temp_path
-                    main_path.return_value = main_path_instance
-                
-                save_config(config)
-                
-                with open(temp_path, "r") as f:
-                    saved_data = yaml.safe_load(f)
+            save_config(config, temp_path)
+            
+            with open(temp_path, "r") as f:
+                saved_data = yaml.safe_load(f)
 
-                assert "agents" in saved_data
-                assert len(saved_data["agents"]) == 1
-                assert "latest_version" not in saved_data["agents"][0]
+            assert "agents" in saved_data
+            assert len(saved_data["agents"]) == 1
+            assert "latest_version" not in saved_data["agents"][0]
         finally:
-            for p in [temp_path, temp_path.with_suffix(".tmp")]:
-                if p.exists():
-                    p.unlink()
+            if temp_path.exists():
+                temp_path.unlink()
+            # Clean up the .tmp file if it exists
+            tmp_path = temp_path.with_suffix(".tmp")
+            if tmp_path.exists():
+                tmp_path.unlink()
 
 
 class TestCompareVersions:
@@ -492,7 +436,7 @@ class TestGetNpmReleaseInfo:
         mock_output = json.dumps(
             {"latest": "1.2.3", "modified": "2024-01-01"}
         )
-        with patch("reincheck.__init__.run_command_async") as mock_run:
+        with patch("reincheck.run_command_async") as mock_run:
             mock_run.side_effect = [
                 (mock_output, 0),  # tags
                 (json.dumps({"1.2.3": "2024-01-01"}), 0),  # time
@@ -515,7 +459,7 @@ class TestGetNpmReleaseInfo:
                 return mock_time_output, 0
             return '', 1
         
-        with patch('reincheck.__init__.run_command_async', side_effect=mock_run):
+        with patch('reincheck.run_command_async', side_effect=mock_run):
             result = await get_npm_release_info('test-package')
             # Should return None when no tags found and no version from time
             assert result is None or result == ""
@@ -528,7 +472,7 @@ class TestGetNpmReleaseInfo:
         async def mock_run(cmd):
             return mock_tags_output, 0
         
-        with patch('reincheck.__init__.run_command_async', side_effect=mock_run):
+        with patch('reincheck.run_command_async', side_effect=mock_run):
             result = await get_npm_release_info('test-package')
             # Should return None on parse error
             assert result is None
@@ -537,9 +481,9 @@ class TestGetNpmReleaseInfo:
     async def test_get_npm_release_info_timeout(self):
         """Test handling of timeout."""
         async def mock_run(cmd):
-            raise asyncio.TimeoutError()
+            return ("Command timed out after 30 seconds", 1)
         
-        with patch('reincheck.__init__.run_command_async', side_effect=mock_run):
+        with patch('reincheck.run_command_async', side_effect=mock_run):
             result = await get_npm_release_info('test-package')
             # Should return None on timeout
             assert result is None
@@ -563,7 +507,7 @@ class TestGetPyPIReleaseInfo:
                 "1.2.3": [{"upload_time": "2024-01-01"}]
             }
         })
-        with patch("reincheck.__init__.run_command_async") as mock_run:
+        with patch("reincheck.run_command_async") as mock_run:
             mock_run.return_value = (mock_output, 0)
             result = await get_pypi_release_info("test-package")
             # Should return markdown formatted text with version
@@ -578,7 +522,7 @@ class TestGetPyPIReleaseInfo:
         async def mock_run(cmd):
             return mock_output, 0
         
-        with patch('reincheck.__init__.run_command_async', side_effect=mock_run):
+        with patch('reincheck.run_command_async', side_effect=mock_run):
             result = await get_pypi_release_info('test-package')
             # Should return None when no version found
             assert result is None
@@ -591,7 +535,7 @@ class TestGetPyPIReleaseInfo:
         async def mock_run(cmd):
             return mock_output, 0
         
-        with patch('reincheck.__init__.run_command_async', side_effect=mock_run):
+        with patch('reincheck.run_command_async', side_effect=mock_run):
             result = await get_pypi_release_info('test-package')
             # Should return None on parse error
             assert result is None
@@ -603,7 +547,7 @@ class TestGetPyPIReleaseInfo:
             "info": {"version": "1.0.0"},
             "releases": {}
         })
-        with patch("reincheck.__init__.run_command_async") as mock_run:
+        with patch("reincheck.run_command_async") as mock_run:
             mock_run.return_value = (mock_output, 0)
             result = await get_pypi_release_info("test-package")
             # Should return markdown formatted text even if releases is empty

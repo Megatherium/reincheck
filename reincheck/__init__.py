@@ -107,9 +107,14 @@ class UpdateResult(TypedDict):
     description: str
 
 
-def load_config() -> Config:
-    """Load agents configuration from YAML file."""
-    config_path = Path(__file__).parent / "agents.yaml"
+def load_config(config_path: Path | None = None) -> Config:
+    """Load agents configuration from YAML file.
+    
+    Args:
+        config_path: Optional path to config file. If None, uses default agents.yaml
+    """
+    if config_path is None:
+        config_path = Path(__file__).parent / "agents.yaml"
     if not config_path.exists():
         click.echo(f"Error: Configuration file {config_path} not found.", err=True)
         sys.exit(1)
@@ -156,9 +161,15 @@ def load_config() -> Config:
     return Config(agents=agents)
 
 
-def save_config(config: Config) -> None:
-    """Save agents configuration to YAML file atomically."""
-    config_path = Path(__file__).parent / "agents.yaml"
+def save_config(config: Config, config_path: Path | None = None) -> None:
+    """Save agents configuration to YAML file atomically.
+    
+    Args:
+        config: Config object to save
+        config_path: Optional path to config file. If None, uses default agents.yaml
+    """
+    if config_path is None:
+        config_path = Path(__file__).parent / "agents.yaml"
     try:
         # Convert dataclass to dict for YAML serialization
         agents_data = []

@@ -216,7 +216,7 @@ class TestLoadConfig:
     def test_invalid_type_raises_typeerror(self):
         """Passing invalid type should raise TypeError."""
         with pytest.raises(TypeError) as exc:
-            load_config(123)
+            load_config(123)  # type: ignore
         assert "Path or str" in str(exc.value)
 
     def test_utf8_file_encoding(self, tmp_path):

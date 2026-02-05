@@ -5,12 +5,11 @@ import re
 import sys
 import yaml
 import logging
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TypedDict, cast
 import click
 
-from .config import ConfigError
+from .config import ConfigError, AgentConfig, Config, validate_config, is_command_safe
 
 DEFAULT_TIMEOUT = 30
 UPGRADE_TIMEOUT = 300
@@ -28,57 +27,6 @@ def setup_logging(debug: bool = False):
         _logging.setLevel(logging.DEBUG if debug else logging.INFO)
 
 
-@dataclass
-class AgentConfig:
-    name: str
-    description: str
-    install_command: str
-    version_command: str
-    check_latest_command: str
-    upgrade_command: str
-    latest_version: str | None = None
-    github_repo: str | None = None
-    release_notes_url: str | None = None
-
-    def __post_init__(self):
-        if not self.name:
-            raise ValueError("Agent name must be a non-empty string")
-        if not self.description:
-            raise ValueError("Agent description must be a non-empty string")
-        if not self.install_command:
-            raise ValueError("Agent install_command must be a non-empty string")
-        if not self.version_command:
-            raise ValueError("Agent version_command must be a non-empty string")
-        if not self.check_latest_command:
-            raise ValueError("Agent check_latest_command must be a non-empty string")
-        if not self.upgrade_command:
-            raise ValueError("Agent upgrade_command must be a non-empty string")
-
-        # Validate commands for dangerous shell metacharacters
-        for cmd_field in [
-            self.install_command,
-            self.version_command,
-            self.check_latest_command,
-            self.upgrade_command,
-        ]:
-            if cmd_field and not is_command_safe(cmd_field):
-                raise ValueError(
-                    f"Command contains dangerous characters: {cmd_field[:50]}..."
-                )
-
-
-@dataclass
-class Config:
-    agents: list[AgentConfig] = field(default_factory=list)
-
-    def __post_init__(self):
-        if not isinstance(self.agents, list):
-            raise ValueError("Config agents must be a list")
-        for agent in self.agents:
-            if not isinstance(agent, AgentConfig):
-                raise ValueError("Each agent must be an AgentConfig instance")
-
-
 class UpdateResult(TypedDict):
     name: str
     current_version: str | None
@@ -92,36 +40,10 @@ class UpdateResult(TypedDict):
 def _dict_to_config(data: dict) -> Config:
     """Convert a raw dict to a Config object.
     
-    Temporary bridge function until reincheck-ib5 implements proper
-    schema validation with dataclasses.
+    Temporary bridge function - delegates to validate_config from config.py.
+    Kept for backward compatibility during migration.
     """
-    # Validate config structure
-    if not isinstance(data, dict) or "agents" not in data:
-        raise ConfigError("Invalid configuration structure. Expected 'agents' key.")
-
-    if not isinstance(data["agents"], list):
-        raise ConfigError("'agents' must be a list.")
-
-    # Create AgentConfig instances with validation
-    agents = []
-    for agent_data in data["agents"]:
-        try:
-            agent = AgentConfig(
-                name=agent_data.get("name", ""),
-                description=agent_data.get("description", ""),
-                install_command=agent_data.get("install_command", ""),
-                version_command=agent_data.get("version_command", ""),
-                check_latest_command=agent_data.get("check_latest_command", ""),
-                upgrade_command=agent_data.get("upgrade_command", ""),
-                latest_version=agent_data.get("latest_version"),
-                github_repo=agent_data.get("github_repo"),
-                release_notes_url=agent_data.get("release_notes_url"),
-            )
-            agents.append(agent)
-        except ValueError as e:
-            raise ConfigError(f"Error in agent configuration: {e}")
-
-    return Config(agents=agents)
+    return validate_config(data)
 
 
 def load_config(config_path: Path | None = None) -> Config:

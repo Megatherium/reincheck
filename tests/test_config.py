@@ -6,6 +6,9 @@ import pytest
 
 from reincheck.config import (
     ConfigError,
+    AgentConfig,
+    Config,
+    validate_config,
     preprocess_jsonish,
     load_config,
     _format_syntax_error,
@@ -262,3 +265,267 @@ class TestLoadConfig:
         result = load_config(json_text)
         assert len(result["agents"]) == 1
         assert result["agents"][0]["name"] == "claude"
+
+
+class TestValidateConfig:
+    """Tests for validate_config function."""
+
+    def test_valid_config(self):
+        """Validate a properly structured config."""
+        data = {
+            "agents": [
+                {
+                    "name": "test-agent",
+                    "description": "A test agent",
+                    "install_command": "npm install -g test",
+                    "version_command": "test --version",
+                    "check_latest_command": "npm info test version",
+                    "upgrade_command": "npm update -g test",
+                }
+            ]
+        }
+        config = validate_config(data)
+        assert isinstance(config, Config)
+        assert len(config.agents) == 1
+        assert config.agents[0].name == "test-agent"
+        assert config.agents[0].description == "A test agent"
+
+    def test_config_with_optional_fields(self):
+        """Validate config with optional fields populated."""
+        data = {
+            "agents": [
+                {
+                    "name": "test-agent",
+                    "description": "A test agent",
+                    "install_command": "npm install -g test",
+                    "version_command": "test --version",
+                    "check_latest_command": "npm info test version",
+                    "upgrade_command": "npm update -g test",
+                    "latest_version": "1.0.0",
+                    "github_repo": "owner/repo",
+                    "release_notes_url": "https://example.com/changelog",
+                }
+            ]
+        }
+        config = validate_config(data)
+        assert config.agents[0].latest_version == "1.0.0"
+        assert config.agents[0].github_repo == "owner/repo"
+        assert config.agents[0].release_notes_url == "https://example.com/changelog"
+
+    def test_empty_agents_list(self):
+        """Validate config with empty agents list."""
+        data = {"agents": []}
+        config = validate_config(data)
+        assert config.agents == []
+
+    def test_missing_agents_key(self):
+        """Raise error when agents key is missing."""
+        data = {}
+        with pytest.raises(ConfigError) as exc:
+            validate_config(data)
+        assert "Missing required field: agents" in str(exc.value)
+
+    def test_agents_not_a_list(self):
+        """Raise error when agents is not a list."""
+        data = {"agents": "not a list"}
+        with pytest.raises(ConfigError) as exc:
+            validate_config(data)
+        assert "agents must be a list" in str(exc.value)
+
+    def test_agent_not_an_object(self):
+        """Raise error when an agent is not an object."""
+        data = {"agents": ["not an object"]}
+        with pytest.raises(ConfigError) as exc:
+            validate_config(data)
+        assert "agents[0] must be an object" in str(exc.value)
+
+    def test_missing_required_field(self):
+        """Raise error with field path when required field is missing."""
+        data = {
+            "agents": [
+                {
+                    "name": "test-agent",
+                    # missing description
+                    "install_command": "npm install -g test",
+                    "version_command": "test --version",
+                    "check_latest_command": "npm info test version",
+                    "upgrade_command": "npm update -g test",
+                }
+            ]
+        }
+        with pytest.raises(ConfigError) as exc:
+            validate_config(data)
+        assert "agents[0].description is required" in str(exc.value)
+
+    def test_wrong_type_for_required_field(self):
+        """Raise error when required field has wrong type."""
+        data = {
+            "agents": [
+                {
+                    "name": 123,  # should be string
+                    "description": "A test agent",
+                    "install_command": "npm install -g test",
+                    "version_command": "test --version",
+                    "check_latest_command": "npm info test version",
+                    "upgrade_command": "npm update -g test",
+                }
+            ]
+        }
+        with pytest.raises(ConfigError) as exc:
+            validate_config(data)
+        assert "agents[0].name must be a string" in str(exc.value)
+
+    def test_wrong_type_for_optional_field(self):
+        """Raise error when optional field has wrong type."""
+        data = {
+            "agents": [
+                {
+                    "name": "test-agent",
+                    "description": "A test agent",
+                    "install_command": "npm install -g test",
+                    "version_command": "test --version",
+                    "check_latest_command": "npm info test version",
+                    "upgrade_command": "npm update -g test",
+                    "latest_version": 123,  # should be string or null
+                }
+            ]
+        }
+        with pytest.raises(ConfigError) as exc:
+            validate_config(data)
+        assert "agents[0].latest_version must be a string or null" in str(exc.value)
+
+    def test_config_not_a_dict(self):
+        """Raise error when config is not a dict."""
+        with pytest.raises(ConfigError) as exc:
+            validate_config(["not a dict"])
+        assert "Config must be a JSON object" in str(exc.value)
+
+    def test_multiple_agents(self):
+        """Validate config with multiple agents."""
+        data = {
+            "agents": [
+                {
+                    "name": "agent-1",
+                    "description": "First agent",
+                    "install_command": "npm install -g agent1",
+                    "version_command": "agent1 --version",
+                    "check_latest_command": "npm info agent1 version",
+                    "upgrade_command": "npm update -g agent1",
+                },
+                {
+                    "name": "agent-2",
+                    "description": "Second agent",
+                    "install_command": "npm install -g agent2",
+                    "version_command": "agent2 --version",
+                    "check_latest_command": "npm info agent2 version",
+                    "upgrade_command": "npm update -g agent2",
+                }
+            ]
+        }
+        config = validate_config(data)
+        assert len(config.agents) == 2
+        assert config.agents[0].name == "agent-1"
+        assert config.agents[1].name == "agent-2"
+
+    def test_error_in_second_agent(self):
+        """Field path should indicate which agent has the error."""
+        data = {
+            "agents": [
+                {
+                    "name": "agent-1",
+                    "description": "First agent",
+                    "install_command": "npm install -g agent1",
+                    "version_command": "agent1 --version",
+                    "check_latest_command": "npm info agent1 version",
+                    "upgrade_command": "npm update -g agent1",
+                },
+                {
+                    "name": "agent-2",
+                    # missing description
+                    "install_command": "npm install -g agent2",
+                    "version_command": "agent2 --version",
+                    "check_latest_command": "npm info agent2 version",
+                    "upgrade_command": "npm update -g agent2",
+                }
+            ]
+        }
+        with pytest.raises(ConfigError) as exc:
+            validate_config(data)
+        assert "agents[1].description is required" in str(exc.value)
+
+
+class TestAgentConfig:
+    """Tests for AgentConfig dataclass validation."""
+
+    def test_valid_agent_config(self):
+        """Create valid AgentConfig."""
+        agent = AgentConfig(
+            name="test",
+            description="A test agent",
+            install_command="npm install -g test",
+            version_command="test --version",
+            check_latest_command="npm info test version",
+            upgrade_command="npm update -g test",
+        )
+        assert agent.name == "test"
+        assert agent.latest_version is None
+
+    def test_empty_name_raises_error(self):
+        """Empty name should raise ValueError."""
+        with pytest.raises(ValueError) as exc:
+            AgentConfig(
+                name="",
+                description="A test agent",
+                install_command="npm install -g test",
+                version_command="test --version",
+                check_latest_command="npm info test version",
+                upgrade_command="npm update -g test",
+            )
+        assert "name must be a non-empty string" in str(exc.value)
+
+    def test_dangerous_command_raises_error(self):
+        """Command with dangerous characters should raise ValueError."""
+        with pytest.raises(ValueError) as exc:
+            AgentConfig(
+                name="test",
+                description="A test agent",
+                install_command="rm -rf $(echo hack)",
+                version_command="test --version",
+                check_latest_command="npm info test version",
+                upgrade_command="npm update -g test",
+            )
+        assert "dangerous characters" in str(exc.value)
+
+
+class TestConfig:
+    """Tests for Config dataclass validation."""
+
+    def test_valid_config(self):
+        """Create valid Config."""
+        agent = AgentConfig(
+            name="test",
+            description="A test agent",
+            install_command="npm install -g test",
+            version_command="test --version",
+            check_latest_command="npm info test version",
+            upgrade_command="npm update -g test",
+        )
+        config = Config(agents=[agent])
+        assert len(config.agents) == 1
+
+    def test_default_empty_agents(self):
+        """Config should default to empty agents list."""
+        config = Config()
+        assert config.agents == []
+
+    def test_agents_must_be_list(self):
+        """Agents must be a list."""
+        with pytest.raises(ValueError) as exc:
+            Config(agents="not a list")
+        assert "agents must be a list" in str(exc.value)
+
+    def test_agent_must_be_agentconfig(self):
+        """Each agent must be AgentConfig instance."""
+        with pytest.raises(ValueError) as exc:
+            Config(agents=[{"name": "not an AgentConfig"}])
+        assert "agents[0] must be an AgentConfig instance" in str(exc.value)

@@ -1,7 +1,10 @@
 """Configuration loading and JSON preprocessing utilities."""
 
 import json
+import re
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 
 class ConfigError(Exception):
@@ -11,6 +14,146 @@ class ConfigError(Exception):
     column positions, and caret indicators for syntax errors.
     """
     pass
+
+
+# Dangerous shell metacharacters that could enable command injection
+DANGEROUS_PATTERNS = [r"\$\(", r"`"]
+
+
+def is_command_safe(command: str) -> bool:
+    """Check if command contains dangerous shell metacharacters."""
+    if not command:
+        return False
+    for pattern in DANGEROUS_PATTERNS:
+        if re.search(pattern, command):
+            return False
+    return True
+
+
+@dataclass
+class AgentConfig:
+    """Configuration for a single AI agent."""
+    name: str
+    description: str
+    install_command: str
+    version_command: str
+    check_latest_command: str
+    upgrade_command: str
+    latest_version: str | None = None
+    github_repo: str | None = None
+    release_notes_url: str | None = None
+
+    def __post_init__(self):
+        # Validate required string fields are non-empty
+        if not self.name or not isinstance(self.name, str):
+            raise ValueError("name must be a non-empty string")
+        if not self.description or not isinstance(self.description, str):
+            raise ValueError("description must be a non-empty string")
+        if not self.install_command or not isinstance(self.install_command, str):
+            raise ValueError("install_command must be a non-empty string")
+        if not self.version_command or not isinstance(self.version_command, str):
+            raise ValueError("version_command must be a non-empty string")
+        if not self.check_latest_command or not isinstance(self.check_latest_command, str):
+            raise ValueError("check_latest_command must be a non-empty string")
+        if not self.upgrade_command or not isinstance(self.upgrade_command, str):
+            raise ValueError("upgrade_command must be a non-empty string")
+
+        # Validate commands for dangerous shell metacharacters
+        for cmd_field in [
+            self.install_command,
+            self.version_command,
+            self.check_latest_command,
+            self.upgrade_command,
+        ]:
+            if cmd_field and not is_command_safe(cmd_field):
+                raise ValueError(
+                    f"Command contains dangerous characters: {cmd_field[:50]}..."
+                )
+
+
+@dataclass
+class Config:
+    """Root configuration containing all agents."""
+    agents: list[AgentConfig] = field(default_factory=list)
+
+    def __post_init__(self):
+        if not isinstance(self.agents, list):
+            raise ValueError("agents must be a list")
+        for i, agent in enumerate(self.agents):
+            if not isinstance(agent, AgentConfig):
+                raise ValueError(f"agents[{i}] must be an AgentConfig instance")
+
+
+def validate_config(data: dict) -> Config:
+    """Validate and convert raw dict to Config dataclass.
+    
+    Args:
+        data: Raw dict from json.loads() containing config data
+        
+    Returns:
+        Config object with validated AgentConfig instances
+        
+    Raises:
+        ConfigError: If validation fails with clear field path errors
+    """
+    if not isinstance(data, dict):
+        raise ConfigError(f"Config must be a JSON object, got {type(data).__name__}")
+    
+    if "agents" not in data:
+        raise ConfigError("Missing required field: agents")
+    
+    agents_data = data["agents"]
+    if not isinstance(agents_data, list):
+        raise ConfigError(f"agents must be a list, got {type(agents_data).__name__}")
+    
+    agents = []
+    for i, agent_data in enumerate(agents_data):
+        if not isinstance(agent_data, dict):
+            raise ConfigError(f"agents[{i}] must be an object, got {type(agent_data).__name__}")
+        
+        # Required fields
+        required_fields = [
+            "name", "description", "install_command",
+            "version_command", "check_latest_command", "upgrade_command"
+        ]
+        
+        for field_name in required_fields:
+            if field_name not in agent_data:
+                raise ConfigError(f"agents[{i}].{field_name} is required")
+            if not isinstance(agent_data[field_name], str):
+                raise ConfigError(
+                    f"agents[{i}].{field_name} must be a string, "
+                    f"got {type(agent_data[field_name]).__name__}"
+                )
+        
+        # Optional fields - must be string or None
+        optional_fields = ["latest_version", "github_repo", "release_notes_url"]
+        for field_name in optional_fields:
+            value = agent_data.get(field_name)
+            if value is not None and not isinstance(value, str):
+                raise ConfigError(
+                    f"agents[{i}].{field_name} must be a string or null, "
+                    f"got {type(value).__name__}"
+                )
+        
+        # Create AgentConfig with validation
+        try:
+            agent = AgentConfig(
+                name=agent_data["name"],
+                description=agent_data["description"],
+                install_command=agent_data["install_command"],
+                version_command=agent_data["version_command"],
+                check_latest_command=agent_data["check_latest_command"],
+                upgrade_command=agent_data["upgrade_command"],
+                latest_version=agent_data.get("latest_version"),
+                github_repo=agent_data.get("github_repo"),
+                release_notes_url=agent_data.get("release_notes_url"),
+            )
+            agents.append(agent)
+        except ValueError as e:
+            raise ConfigError(f"agents[{i}]: {e}")
+    
+    return Config(agents=agents)
 
 
 def preprocess_jsonish(text: str) -> str:
@@ -219,4 +362,12 @@ def load_config(path_or_text: Path | str) -> dict:
     return result
 
 
-__all__ = ['ConfigError', 'preprocess_jsonish', 'load_config']
+__all__ = [
+    'ConfigError',
+    'AgentConfig',
+    'Config',
+    'validate_config',
+    'is_command_safe',
+    'preprocess_jsonish',
+    'load_config',
+]

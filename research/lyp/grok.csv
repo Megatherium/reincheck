@@ -1,0 +1,13 @@
+Agent,Method,Install Command,Upgrade Command,Version Check Command,Binary Name
+crush,Homebrew,brew install charmbracelet/tap/crush,brew upgrade charmbracelet/tap/crush,crush --version (likely),crush
+crush,NPM,npm install -g @charmland/crush,npm update -g @charmland/crush,crush --version (likely),crush
+kilocode,NPM,npm install -g @kilocode/cli,npm update -g @kilocode/cli,kilocode --version (likely),kilocode
+opencode,Curl/Shell,`curl -fsSL https://opencode.ai/install,bash`,Rerun the install script,Not specified (likely opencode)
+continue,NPM,npm i -g @continuedev/cli,npm update -g @continuedev/cli (standard),cn --version (likely),cn
+amp,Curl/Shell,`curl -fsSL https://ampcode.com/install.sh,bash`,Rerun the install script,Not specified (likely amp)
+cline,NPM,npm install -g cline,npm update -g cline,cline --version,cline
+claude,NPM,npm install -g @anthropic-ai/claude-code,npm update -g @anthropic-ai/claude-code,claude --version,claude
+grok,NPM,npm install -g @vibe-kit/grok-cli,npm update -g @vibe-kit/grok-cli,grok --version,grok
+gemini,NPM,npm install -g @google/gemini-cli,npm install -g @google/gemini-cli@latest,gemini --version,gemini
+gemini,Homebrew,brew install gemini-cli,brew upgrade gemini-cli,gemini --version,gemini
+codex,NPM,npm i -g @openai/codex,npm i -g @openai/codex@latest,codex --version,codex

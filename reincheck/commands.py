@@ -26,6 +26,47 @@ def filter_agent_by_name(agents: list[AgentConfig], name: str) -> list[AgentConf
     return [a for a in agents if a.name == name]
 
 
+def validate_pager(pager_cmd: str) -> str:
+    """Validate pager command against whitelist for security.
+    
+    Args:
+        pager_cmd: Pager command from environment variable or default
+        
+    Returns:
+        The validated pager command
+        
+    Raises:
+        ValueError: If pager command is not in the allowed list
+    """
+    SAFE_PAGERS = {
+        "cat",
+        "less",
+        "more",
+        "bat",
+        "most",
+        "pager",
+    }
+    
+    # Handle absolute paths - extract base command
+    if os.path.isabs(pager_cmd):
+        base_cmd = os.path.basename(pager_cmd)
+        if base_cmd in SAFE_PAGERS:
+            return pager_cmd
+        raise ValueError(
+            f"Unsafe pager: '{pager_cmd}'. "
+            f"Allowed commands: {', '.join(sorted(SAFE_PAGERS))}"
+        )
+    
+    # Handle relative/bare commands
+    if pager_cmd in SAFE_PAGERS:
+        return pager_cmd
+    
+    raise ValueError(
+        f"Unsafe pager: '{pager_cmd}'. "
+        f"Allowed commands: {', '.join(sorted(SAFE_PAGERS))}"
+    )
+
+
 @click.group()
 @click.option("--debug", is_flag=True, help="Enable debug output for troubleshooting")
 @click.pass_context
@@ -361,7 +402,13 @@ async def run_release_notes(agent: str | None, debug: bool):
 
     results = await asyncio.gather(*tasks)
 
-    pager_cmd = os.environ.get("REINCHECK_RN_PAGER", "cat")
+    raw_pager = os.environ.get("REINCHECK_RN_PAGER", "cat")
+    
+    try:
+        pager_cmd = validate_pager(raw_pager)
+    except ValueError as e:
+        click.echo(f"Security error: {e}", err=True)
+        sys.exit(1)
 
     combined_path = rn_dir / "all_release_notes.md"
 
@@ -383,10 +430,14 @@ async def run_release_notes(agent: str | None, debug: bool):
     if agent:
         # Render the single file
         file_path = rn_dir / f"{agents[0].name}.md"
-        subprocess.run([pager_cmd, str(file_path)], check=False)
+        result = subprocess.run([pager_cmd, str(file_path)], check=False)
+        if result.returncode != 0:
+            click.echo(f"Pager exited with code {result.returncode}", err=True)
     else:
         # Render all
-        subprocess.run([pager_cmd, str(combined_path)], check=False)
+        result = subprocess.run([pager_cmd, str(combined_path)], check=False)
+        if result.returncode != 0:
+            click.echo(f"Pager exited with code {result.returncode}", err=True)
 
 
 @cli.command(name="release-notes")

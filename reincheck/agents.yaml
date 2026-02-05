@@ -6,7 +6,7 @@ agents:
   check_latest_command: curl -s https://api.github.com/repos/charmbracelet/crush/releases/latest
     | grep 'tag_name' | cut -d'"' -f4
   upgrade_command: mise use -g npm:@charmland/crush@latest
-  latest_version: v0.39.1
+  latest_version: v0.39.3
   github_repo: charmbracelet/crush
 - name: kilocode
   description: AI-powered coding assistant with TUI
@@ -14,7 +14,7 @@ agents:
   version_command: kilocode --version
   check_latest_command: npm info @kilocode/cli version
   upgrade_command: mise use -g npm:@kilocode/cli@latest
-  latest_version: 1.0.14
+  latest_version: 1.0.15
 - name: opencode
   description: AI coding agent built for the terminal
   install_command: mise use -g npm:opencode-ai
@@ -29,7 +29,7 @@ agents:
   version_command: claude --version
   check_latest_command: npm info @anthropic-ai/claude-code version
   upgrade_command: mise use -g npm:@anthropic-ai/claude-code@latest
-  latest_version: 2.1.31
+  latest_version: 2.1.32
 - name: grok
   description: Conversational AI CLI tool powered by Grok
   install_command: mise use -g npm:grok-cli
@@ -102,7 +102,7 @@ agents:
   version_command: codex --version
   check_latest_command: npm info @openai/codex version
   upgrade_command: mise upgrade codex@latest
-  latest_version: 0.97.0
+  latest_version: 0.98.0
   github_repo: openai/codex
 - name: goose
   description: Goose - AI agent from Block for engineering tasks
@@ -150,4 +150,4 @@ agents:
   version_command: amp --version
   check_latest_command: npm info @sourcegraph/amp version
   upgrade_command: mise use --global npm:@sourcegraph/amp@latest
-  latest_version: 0.0.1770293119-gc187f5
+  latest_version: 0.0.1770307887-g3c28da

@@ -98,10 +98,10 @@ agents:
   github_repo: mistralai/mistral-vibe
 - name: codex
   description: OpenAI Codex CLI - Lightweight coding agent
-  install_command: mise use -g npm:@openai/codex
+  install_command: mise use -g codex
   version_command: codex --version
   check_latest_command: npm info @openai/codex version
-  upgrade_command: mise use -g npm:@openai/codex@latest
+  upgrade_command: mise upgrade codex@latest
   latest_version: 0.96.0
   github_repo: openai/codex
 - name: goose

@@ -50,7 +50,7 @@ agents:
   version_command: npm list -g cline | grep cline || echo 'Unknown'
   check_latest_command: npm info cline version
   upgrade_command: mise use -g npm:cline@latest
-  latest_version: 2.0.3
+  latest_version: 2.0.4
   github_repo: cline/cline
 - name: continue
   description: Continue CLI - AI coding assistant for development workflows
@@ -76,7 +76,7 @@ agents:
   check_latest_command: curl -fsSL https://app.factory.ai/cli | grep 'VER=' | head
     -n 1 | cut -d'"' -f2
   upgrade_command: curl -fsSL https://app.factory.ai/cli | sh
-  latest_version: 0.57.3
+  latest_version: 0.57.4
   release_notes_url: https://docs.factory.ai/changelog/cli-updates
 - name: openhands
   description: OpenHands - Platform for autonomous AI agents (formerly OpenDevin)
@@ -102,7 +102,7 @@ agents:
   version_command: codex --version
   check_latest_command: npm info @openai/codex version
   upgrade_command: mise upgrade codex@latest
-  latest_version: 0.96.0
+  latest_version: 0.97.0
   github_repo: openai/codex
 - name: goose
   description: Goose - AI agent from Block for engineering tasks
@@ -143,11 +143,11 @@ agents:
   check_latest_command: curl https://pypi.org/pypi/kimi-cli/json | jq -r '.releases
     | keys | last'
   upgrade_command: mise use --global pipx:kimi-cli@latest
-  latest_version: 1.7.0
+  latest_version: 1.8.0
 - name: amp
   description: Sourcegraph Amp - Agentic CLI tool
   install_command: mise use --global npm:@sourcegraph/amp
   version_command: amp --version
   check_latest_command: npm info @sourcegraph/amp version
   upgrade_command: mise use --global npm:@sourcegraph/amp@latest
-  latest_version: 0.0.1770231444-g53361d
+  latest_version: 0.0.1770288815-gd19bd4

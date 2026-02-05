@@ -411,20 +411,18 @@ class TestRunCommandAsync:
     @pytest.mark.asyncio
     async def test_run_command_debug_mode(self):
         """Test command execution in debug mode."""
-        with patch("reincheck.__init__.is_debug", return_value=True):
-            with patch("reincheck.__init__.logging.debug") as mock_debug:
-                await run_command_async("echo 'debug test'")
-                # Verify debug was called at least once
-                assert mock_debug.call_count >= 0
+        with patch("reincheck.__init__._logging.debug") as mock_debug:
+            await run_command_async("echo 'debug test'", debug=True)
+            # Verify debug was called at least once
+            assert mock_debug.call_count >= 0
 
     @pytest.mark.asyncio
     async def test_run_command_malicious_chars(self):
         """Test that command with dangerous chars raises error."""
-        with patch("reincheck.__init__.is_debug", return_value=True):
-            with patch("reincheck.__init__.logging.debug") as mock_debug:
-                result = await run_command_async("echo '$(malicious)'")
-                # The command might still run, just warn
-                assert result[1] == 0 or result[1] == 1
+        with patch("reincheck.__init__._logging.debug") as mock_debug:
+            result = await run_command_async("echo '$(malicious)'", debug=True)
+            # The command might still run, just warn
+            assert result[1] == 0 or result[1] == 1
 
 
 class TestGetNpmReleaseInfo:

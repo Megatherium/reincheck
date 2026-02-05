@@ -13,7 +13,6 @@ from . import (
     run_command_async,
     AgentConfig,
     save_config,
-    set_debug,
     compare_versions,
     INSTALL_TIMEOUT,
 )
@@ -151,7 +150,8 @@ def update(ctx, agent: str | None, quiet: bool):
 
 
 async def run_update(agent: str | None, quiet: bool, debug: bool):
-    set_debug(debug)
+    from . import setup_logging
+    setup_logging(debug)
     config = load_config()
     agents = config.agents
 
@@ -216,7 +216,8 @@ def upgrade(ctx, agent: str | None, dry_run: bool, timeout: int):
 
 
 async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: bool):
-    set_debug(debug)
+    from . import setup_logging
+    setup_logging(debug)
     config = load_config()
     agents = config.agents
 
@@ -265,7 +266,7 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: boo
             if debug:
                 _logging.debug(f"  Running: {upgrade_command}")
             output, returncode = await run_command_async(
-                upgrade_command, timeout=timeout
+                upgrade_command, timeout=timeout, debug=debug
             )
             return agent_config.name, returncode, output
         return agent_config.name, 1, "No upgrade command configured"
@@ -305,7 +306,8 @@ def install(ctx, agent_name: str, force: bool, timeout: int):
 
 
 async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
-    set_debug(debug)
+    from . import setup_logging
+    setup_logging(debug)
     config = load_config()
     agents = config.agents
 
@@ -332,7 +334,7 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
     click.echo(f"Installing {agent_name}...")
     if debug:
         _logging.debug(f"  Running: {install_command}")
-    output, returncode = await run_command_async(install_command, timeout=timeout)
+    output, returncode = await run_command_async(install_command, timeout=timeout, debug=debug)
 
     if returncode == 0:
         click.echo(f"✅ {agent_name} installed successfully")
@@ -355,7 +357,8 @@ def list_agents(ctx):
 
 
 async def run_list_agents(debug: bool):
-    set_debug(debug)
+    from . import setup_logging
+    setup_logging(debug)
     config = load_config()
     agents = config.agents
 
@@ -374,7 +377,8 @@ async def run_list_agents(debug: bool):
 
 
 async def run_release_notes(agent: str | None, debug: bool):
-    set_debug(debug)
+    from . import setup_logging
+    setup_logging(debug)
     config = load_config()
     agents = config.agents
 

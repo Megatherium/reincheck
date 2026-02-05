@@ -16,31 +16,14 @@ INSTALL_TIMEOUT = 600
 
 _logging = logging.getLogger(__name__)
 
-_debug_enabled = False
 
-
-def setup_logging():
+def setup_logging(debug: bool = False):
     """Configure logging for the application."""
     if not _logging.handlers:
         handler = logging.StreamHandler(sys.stderr)
         handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
         _logging.addHandler(handler)
-        _logging.setLevel(logging.DEBUG if _debug_enabled else logging.INFO)
-
-
-def set_debug(enabled: bool):
-    """Enable or disable debug mode globally."""
-    global _debug_enabled
-    _debug_enabled = enabled
-    setup_logging()
-    _logging.setLevel(logging.DEBUG if enabled else logging.INFO)
-    for handler in _logging.handlers:
-        handler.setLevel(logging.DEBUG if enabled else logging.INFO)
-
-
-def is_debug() -> bool:
-    """Check if debug mode is enabled."""
-    return _debug_enabled
+        _logging.setLevel(logging.DEBUG if debug else logging.INFO)
 
 
 @dataclass
@@ -205,12 +188,13 @@ def save_config(config: Config, config_path: Path | None = None) -> None:
 
 
 async def run_command_async(
-    command: str, timeout: int = DEFAULT_TIMEOUT
+    command: str, timeout: int = DEFAULT_TIMEOUT, debug: bool = False
 ) -> tuple[str, int]:
     """Run a command asynchronously and return output and return code."""
     process = None
     try:
-        _logging.debug(f"Running command: {command}")
+        if debug:
+            _logging.debug(f"Running command: {command}")
         process = await asyncio.create_subprocess_shell(
             command,
             stdout=asyncio.subprocess.PIPE,
@@ -221,7 +205,7 @@ async def run_command_async(
                 process.communicate(), timeout=timeout
             )
             output = stdout.decode().strip()
-            if stderr:
+            if stderr and debug:
                 _logging.debug(f"stderr: {stderr.decode().strip()}")
             return output, process.returncode if process.returncode is not None else 1
         except asyncio.TimeoutError:
@@ -229,7 +213,8 @@ async def run_command_async(
             _ = await process.wait()
             return f"Command timed out after {timeout} seconds", 1
     except Exception as e:
-        _logging.debug(f"Exception: {type(e).__name__}: {e}")
+        if debug:
+            _logging.debug(f"Exception: {type(e).__name__}: {e}")
         return f"Error: {str(e)}", 1
     finally:
         if process:

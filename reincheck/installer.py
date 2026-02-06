@@ -197,6 +197,7 @@ class Preset:
     description: str
     methods: dict[str, str]
     fallback_strategy: str | None = None
+    priority: int = 999
 
 
 @dataclass

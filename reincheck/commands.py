@@ -23,14 +23,10 @@ from reincheck import (
 )
 
 # Import path helpers
-from reincheck.paths import (
-    get_config_dir,
-    get_config_path,
-    get_packaged_config_path,
-)
+from reincheck.paths import get_config_path
 
 # Import migration helpers
-from reincheck.migration import ensure_user_config
+# from reincheck.migration import ensure_user_config
 
 # Import load_config from config module directly for the fmt command
 from reincheck.config import load_config as load_config_raw
@@ -548,14 +544,11 @@ def _validate_setup_options(
 
     # --override required for custom preset
     if preset == "custom" and not override:
-        from reincheck.data_loader import get_presets
-        presets = get_presets()
-        example_preset = list(presets.keys())[0] if presets else "mise_binary"
         raise click.BadArgumentUsage(
             "preset 'custom' requires at least one --override\n"
             "Example: reincheck setup --preset custom --override claude=language_native\n\n"
-            f"Available methods depend on the preset. Use --list-presets to see available presets.\n"
-            f"Common method names: mise_binary, mise_language, language_native, homebrew"
+            "Available methods depend on the preset. Use --list-presets to see available presets.\n"
+            "Common method names: mise_binary, mise_language, language_native, homebrew"
         )
 
     # --apply requires --harness
@@ -629,7 +622,7 @@ def _list_presets_with_status(debug: bool = False) -> None:
     # Sort presets by priority field if available, otherwise by name
     sorted_presets = sorted(
         presets.values(),
-        key=lambda p: (p.methods.get("_priority", 999) if isinstance(p.methods, dict) else 999, p.name)
+        key=lambda p: (p.priority, p.name)
     )
 
     for preset in sorted_presets:
@@ -828,7 +821,7 @@ async def _execute_installation_with_progress(
         List of step results
     """
     from reincheck.installer import StepResult, RiskLevel
-    from reincheck import run_command_async, INSTALL_TIMEOUT, setup_logging
+    from reincheck import run_command_async, setup_logging
 
     setup_logging(debug)
     results = []
@@ -840,7 +833,7 @@ async def _execute_installation_with_progress(
     else:
         harness_list = ", ".join(harness_names[:5]) + f", ... ({len(harness_names)} total)"
 
-    click.echo(f"\nInstallation plan:")
+    click.echo("\nInstallation plan:")
     click.echo(f"  Installing {len(plan.steps)} harness(es)")
     click.echo(f"  Harnesses: {harness_list}")
 
@@ -920,7 +913,7 @@ def setup(
     """Generate agents.json config and optionally install harnesses."""
     from reincheck import setup_logging
     from reincheck.data_loader import get_presets, get_harnesses, get_all_methods
-    from reincheck.installer import plan_install, apply_plan, Preset as InstallerPreset
+    from reincheck.installer import plan_install, Preset as InstallerPreset
 
     debug = ctx.obj.get("debug", False)
     setup_logging(debug)
@@ -962,20 +955,14 @@ def setup(
     # Resolve methods and build config
     click.echo(f"Generating agents.json from preset '{preset}'...")
 
-    # For custom preset, build methods dict from overrides
+    # For custom preset, create a temporary preset object for resolution
     if preset == "custom":
-        custom_preset_methods = {}
-        for harness_name, method_name in overrides.items():
-            if harness_name in available_harnesses:
-                custom_preset_methods[harness_name] = method_name
-
-        # Create custom preset with override methods
         from reincheck.installer import Preset as InstallerPreset
         selected_preset = InstallerPreset(
             name="custom",
             strategy="custom",
             description="Custom configuration with overrides",
-            methods=custom_preset_methods,
+            methods={},
         )
 
     resolved_methods = _resolve_all_methods(
@@ -1056,18 +1043,9 @@ def setup(
             click.echo("No harnesses selected for installation (use --harness and --apply to install)")
             return
 
-        # Build InstallerPreset for planning
-        installer_preset = InstallerPreset(
-            name=selected_preset.name,
-            strategy=selected_preset.strategy,
-            description=selected_preset.description,
-            methods=dict(selected_preset.methods),
-            fallback_strategy=selected_preset.fallback_strategy,
-        )
-
         # Generate installation plan
         try:
-            plan = plan_install(installer_preset, harnesses_to_install, all_methods, overrides)
+            plan = plan_install(selected_preset, harnesses_to_install, all_methods, overrides)
         except Exception as e:
             click.echo(f"Error generating installation plan: {e}", err=True)
             sys.exit(EXIT_CONFIG_ERROR)
@@ -1097,7 +1075,6 @@ def setup(
         click.echo("")
         successful = [r for r in results if r.status == "success"]
         failed = [r for r in results if r.status == "failed"]
-        skipped = [r for r in results if r.status == "skipped"]
 
         if failed:
             click.echo(f"❌ Installation failed for {len(failed)} harness(es):")
@@ -1210,7 +1187,7 @@ def config_init(ctx, force: bool):
         backup_path = config_path.with_suffix(".json.bak")
         click.echo(f"Backing up existing config to {backup_path}...")
         config_path.rename(backup_path)
-        click.echo(f"✅ Backup created")
+        click.echo("✅ Backup created")
 
     click.echo(f"Initializing config at {config_path}...")
 
@@ -1234,7 +1211,7 @@ def config_init(ctx, force: bool):
             else:
                 packaged_default = get_packaged_config_path()
                 if packaged_default.exists():
-                    click.echo(f"📋 Creating user config from packaged defaults...")
+                    click.echo("📋 Creating user config from packaged defaults...")
                     config_path.parent.mkdir(parents=True, exist_ok=True)
                     config_path.write_text(packaged_default.read_text())
                 else:
@@ -1244,7 +1221,7 @@ def config_init(ctx, force: bool):
             from reincheck import ensure_user_config
             ensure_user_config(config_path)
 
-        click.echo(f"✅ Config initialized successfully")
+        click.echo("✅ Config initialized successfully")
     except ConfigError as e:
         click.echo(f"❌ Initialization failed: {e}", err=True)
         sys.exit(1)

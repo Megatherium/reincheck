@@ -1,7 +1,6 @@
 """Data loader for harness configuration files."""
 
 from pathlib import Path
-from typing import Any
 
 from reincheck.config import ConfigError, load_config
 from reincheck.installer import (
@@ -142,6 +141,12 @@ def _validate_preset_data(data: dict, preset_name: str) -> None:
 
     if not isinstance(data["methods"], dict):
         raise ConfigError(f"Preset '{preset_name}' field 'methods' must be an object")
+
+    if "priority" in data and data["priority"] is not None:
+        if not isinstance(data["priority"], int):
+            raise ConfigError(
+                f"Preset '{preset_name}' field 'priority' must be an integer or null"
+            )
 
     # Validate fallback_strategy if present
     if "fallback_strategy" in data and data["fallback_strategy"] is not None:
@@ -364,11 +369,12 @@ def get_presets() -> dict[str, Preset]:
         _validate_preset_data(preset_data, preset_name)
 
         presets[preset_name] = Preset(
-            name=preset_name,  # Name comes from dict key, not data field
+            name=preset_name,
             strategy=preset_data["strategy"],
             description=preset_data["description"],
             methods=dict(preset_data["methods"]),
             fallback_strategy=preset_data.get("fallback_strategy"),
+            priority=preset_data.get("priority", 999),
         )
 
     _presets_cache = presets

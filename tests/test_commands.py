@@ -4,6 +4,9 @@ from pathlib import Path
 import os
 import json
 from reincheck.commands import validate_pager, cli
+from reincheck.config import AgentConfig, Config
+from reincheck.adapter import EffectiveMethod
+from reincheck.installer import Harness, InstallMethod, RiskLevel
 
 
 @pytest.fixture
@@ -376,3 +379,69 @@ class TestSetupCommand:
         result = runner.invoke(cli, ["setup", "--preset", "custom", "--override", "invalid"])
         assert result.exit_code != 0
         assert "Invalid override format" in result.output
+
+
+class TestCheckCommand:
+    """Tests for the check command behavior."""
+
+    @pytest.mark.asyncio
+    async def test_check_uses_adapter_description(self, monkeypatch, capsys):
+        """Check output should use adapter-resolved description."""
+        config = Config(
+            agents=[
+                AgentConfig(
+                    name="test-agent",
+                    description="Config description",
+                    install_command="echo install",
+                    version_command="echo 1.0.0",
+                    check_latest_command="echo 2.0.0",
+                    upgrade_command="echo upgrade",
+                    latest_version="2.0.0",
+                )
+            ]
+        )
+
+        monkeypatch.setattr("reincheck.commands.load_config", lambda: config)
+
+        async def mock_get_current_version(_agent):
+            return "1.0.0", "success"
+
+        monkeypatch.setattr(
+            "reincheck.commands.get_current_version", mock_get_current_version
+        )
+
+        call_count = {"value": 0}
+
+        def mock_get_effective_method_from_config(agent_config):
+            call_count["value"] += 1
+            harness = Harness(
+                name=agent_config.name,
+                display_name="Test Agent",
+                description="Adapter description",
+                github_repo=None,
+                release_notes_url=None,
+            )
+            method = InstallMethod(
+                harness=agent_config.name,
+                method_name="config",
+                install=agent_config.install_command,
+                upgrade=agent_config.upgrade_command,
+                version=agent_config.version_command,
+                check_latest=agent_config.check_latest_command,
+                dependencies=[],
+                risk_level=RiskLevel.SAFE,
+            )
+            return EffectiveMethod(harness=harness, method=method, source="config")
+
+        monkeypatch.setattr(
+            "reincheck.commands.get_effective_method_from_config",
+            mock_get_effective_method_from_config,
+        )
+
+        from reincheck.commands import run_check
+
+        await run_check(agent=None, quiet=False, debug=False)
+
+        captured = capsys.readouterr()
+        assert "Adapter description" in captured.out
+        assert call_count["value"] == 1

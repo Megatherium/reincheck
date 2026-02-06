@@ -22,6 +22,8 @@ from reincheck import (
     ConfigError,
 )
 
+from reincheck.adapter import get_effective_method_from_config
+
 # Import path helpers
 from reincheck.paths import get_config_path
 
@@ -126,14 +128,18 @@ async def run_check(agent: str | None, quiet: bool, debug: bool):
     null_latest_count = 0
 
     for agent_config in agents:
-        current, status = await get_current_version(agent_config)
-        latest = agent_config.latest_version
+        effective = get_effective_method_from_config(agent_config)
+        effective_config = effective.to_agent_config()
+        effective_config.latest_version = agent_config.latest_version
+
+        current, status = await get_current_version(effective_config)
+        latest = effective_config.latest_version
 
         if latest is None:
             null_latest_count += 1
             if not quiet:
                 click.echo(
-                    f"⚠️  {agent_config.name}: latest_version is null - run 'reincheck update' first"
+                    f"⚠️  {effective.name}: latest_version is null - run 'reincheck update' first"
                 )
             continue
 
@@ -145,15 +151,15 @@ async def run_check(agent: str | None, quiet: bool, debug: bool):
         ):
             if compare_versions(current, latest) < 0:
                 update_count += 1
-                click.echo(f"🔄 {agent_config.name}: {current} → {latest}")
-                click.echo(f"   {agent_config.description}")
+                click.echo(f"🔄 {effective.name}: {current} → {latest}")
+                click.echo(f"   {effective.description}")
             elif not quiet:
-                click.echo(f"✅ {agent_config.name}: {current} (up to date)")
+                click.echo(f"✅ {effective.name}: {current} (up to date)")
         elif not quiet:
             if current and current.strip().lower() != "unknown":
-                click.echo(f"⚪ {agent_config.name}: {current} (latest: {latest})")
+                click.echo(f"⚪ {effective.name}: {current} (latest: {latest})")
             else:
-                click.echo(f"⚪ {agent_config.name}: Not installed")
+                click.echo(f"⚪ {effective.name}: Not installed")
 
     if null_latest_count > 0 and not quiet:
         click.echo(
@@ -536,11 +542,9 @@ def _validate_setup_options(
             raise click.BadArgumentUsage("--list-presets cannot be used with other options")
         return
 
-    # --preset is required unless --list-presets
-    if not preset:
-        raise click.BadArgumentUsage(
-            "--preset is required (use --list-presets to see available presets)"
-        )
+    if preset is None:
+        click.echo("Error: --preset is required.", err=True)
+        sys.exit(EXIT_CONFIG_ERROR)
 
     # --override required for custom preset
     if preset == "custom" and not override:
@@ -926,6 +930,10 @@ def setup(
         _list_presets_with_status(debug)
         return
 
+    if preset is None:
+        click.echo("Error: --preset is required.", err=True)
+        sys.exit(EXIT_CONFIG_ERROR)
+
     # Parse overrides
     overrides = _parse_overrides(override)
 
@@ -964,6 +972,10 @@ def setup(
             description="Custom configuration with overrides",
             methods={},
         )
+
+    if selected_preset is None:
+        click.echo("Error: Preset resolution failed.", err=True)
+        sys.exit(EXIT_CONFIG_ERROR)
 
     resolved_methods = _resolve_all_methods(
         selected_preset, overrides, available_harnesses, all_methods

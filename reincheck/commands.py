@@ -206,12 +206,6 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
 
     for agent_config in agents:
         effective = get_effective_method_from_config(agent_config)
-
-        if debug:
-            _logging.debug(
-                f"Checking {agent_config.name} with command: {effective.check_latest_command}"
-            )
-
         latest_version, status = await get_latest_version(
             check_command=effective.check_latest_command
         )
@@ -361,6 +355,7 @@ def install(ctx, agent_name: str, force: bool, timeout: int):
 
 async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
     from . import setup_logging
+    from .adapter import get_effective_method, get_effective_method_from_config
 
     setup_logging(debug)
     config = load_config()
@@ -381,7 +376,32 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
         click.echo("Use --force to reinstall.")
         return
 
-    install_command = agent_config.install_command
+    # Try to get effective method from preset first, fall back to config
+    install_command = None
+    effective_method = None
+    
+    if config.preset:
+        try:
+            effective_method = get_effective_method(agent_name, preset_name=config.preset)
+            if effective_method:
+                install_command = effective_method.install_command
+                if debug:
+                    _logging.debug(f"Using install command from preset '{config.preset}': {install_command}")
+            else:
+                # Harness not in preset - will fall back to config
+                if debug:
+                    _logging.debug(f"Harness '{agent_name}' not found in preset '{config.preset}', falling back to config")
+        except (ValueError, Exception) as e:
+            # Resolution failed - fall back to config
+            if debug:
+                _logging.debug(f"Failed to resolve method from preset: {e}, falling back to config")
+    
+    # Fall back to config's install_command if preset method not available
+    if install_command is None:
+        install_command = agent_config.install_command
+        if debug:
+            _logging.debug(f"Using install command from config: {install_command}")
+
     if not install_command:
         click.echo(f"No install command defined for agent '{agent_name}'.", err=True)
         sys.exit(1)
@@ -781,12 +801,13 @@ def _build_agent_config(
     return config
 
 
-def _write_agent_config(agent_configs: list[dict], config_path: Path) -> None:
+def _write_agent_config(agent_configs: list[dict], config_path: Path, preset_name: str | None = None) -> None:
     """Write agent configuration to file.
 
     Args:
         agent_configs: List of agent config dicts
         config_path: Path to write config file
+        preset_name: Optional preset name to store as active preset
 
     Raises:
         ConfigError: If write fails
@@ -796,6 +817,10 @@ def _write_agent_config(agent_configs: list[dict], config_path: Path) -> None:
     try:
         config_path.parent.mkdir(parents=True, exist_ok=True)
         data = {"agents": agent_configs}
+        
+        # Store active preset if provided
+        if preset_name:
+            data["preset"] = preset_name
 
         # Write to temp file first
         temp_path = config_path.with_suffix(".tmp")
@@ -1092,15 +1117,8 @@ def setup(
         config_path.rename(backup_path)
 
     try:
-        _write_agent_config(agent_configs, config_path)
+        _write_agent_config(agent_configs, config_path, preset_name=preset)
         click.echo(f"✅ Configured {len(agent_configs)} harnesses")
-        harness_list = ", ".join(c["name"] for c in agent_configs)
-        if len(harness_list) <= 60:
-            click.echo(f"  {harness_list}")
-        else:
-            click.echo(
-                f"  {', '.join(c['name'] for c in agent_configs[:5])}, ... ({len(agent_configs)} total)"
-            )
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(EXIT_CONFIG_ERROR)

@@ -1549,3 +1549,301 @@ class TestListCommand:
             assert short_flag_result.exit_code == 0
             assert long_flag_result.exit_code == 0
             assert short_flag_result.output == long_flag_result.output
+
+
+class TestInstallCommand:
+    """Tests for install command behavior."""
+
+    def test_install_uses_preset_method_when_available(self, runner, monkeypatch):
+        """Test that install uses method from preset when harness is in preset."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config with preset and claude agent
+            test_config = {
+                "agents": [
+                    {
+                        "name": "claude",
+                        "description": "Claude Code",
+                        "install_command": "echo config-install",  # Should NOT use this
+                        "version_command": "claude --version",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ],
+                "preset": "mise_binary"  # Active preset
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return not installed
+            async def mock_get_current_version(agent_config):
+                return None, "not_installed"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            # Track which install command was executed
+            executed_commands = []
+
+            async def mock_run_command_async(command, **kwargs):
+                executed_commands.append(command)
+                return "installed successfully", 0
+
+            monkeypatch.setattr(
+                "reincheck.commands.run_command_async", mock_run_command_async
+            )
+
+            result = runner.invoke(cli, ["install", "claude"])
+
+            assert result.exit_code == 0
+            assert "✅ claude installed successfully" in result.output
+            # Should use mise_binary method, not config's install_command
+            assert len(executed_commands) == 1
+            assert "mise" in executed_commands[0].lower()
+            assert "config-install" not in executed_commands[0]
+
+    def test_install_falls_back_to_config_when_harness_not_in_preset(self, runner, monkeypatch):
+        """Test that install falls back to config when harness not in preset."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config with preset but custom agent not in preset
+            test_config = {
+                "agents": [
+                    {
+                        "name": "custom-agent",
+                        "description": "Custom Agent",
+                        "install_command": "echo custom-config-install",  # Should use this
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ],
+                "preset": "mise_binary"  # Active preset (but custom-agent not in it)
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return not installed
+            async def mock_get_current_version(agent_config):
+                return None, "not_installed"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            # Track which install command was executed
+            executed_commands = []
+
+            async def mock_run_command_async(command, **kwargs):
+                executed_commands.append(command)
+                return "installed successfully", 0
+
+            monkeypatch.setattr(
+                "reincheck.commands.run_command_async", mock_run_command_async
+            )
+
+            result = runner.invoke(cli, ["install", "custom-agent"])
+
+            assert result.exit_code == 0
+            assert "✅ custom-agent installed successfully" in result.output
+            # Should fall back to config's install_command
+            assert len(executed_commands) == 1
+            assert executed_commands[0] == "echo custom-config-install"
+
+    def test_install_falls_back_to_config_when_no_preset(self, runner, monkeypatch):
+        """Test that install uses config when no preset is set."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config without preset
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "Test Agent",
+                        "install_command": "echo legacy-install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+                # No preset field
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return not installed
+            async def mock_get_current_version(agent_config):
+                return None, "not_installed"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            # Track which install command was executed
+            executed_commands = []
+
+            async def mock_run_command_async(command, **kwargs):
+                executed_commands.append(command)
+                return "installed successfully", 0
+
+            monkeypatch.setattr(
+                "reincheck.commands.run_command_async", mock_run_command_async
+            )
+
+            result = runner.invoke(cli, ["install", "test-agent"])
+
+            assert result.exit_code == 0
+            assert "✅ test-agent installed successfully" in result.output
+            # Should use config's install_command
+            assert len(executed_commands) == 1
+            assert executed_commands[0] == "echo legacy-install"
+
+    def test_install_skips_when_already_installed(self, runner, monkeypatch):
+        """Test that install skips when agent is already installed."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "Test Agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return installed version
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["install", "test-agent"])
+
+            assert result.exit_code == 0
+            assert "already installed" in result.output
+            assert "Use --force to reinstall" in result.output
+
+    def test_install_force_reinstalls(self, runner, monkeypatch):
+        """Test that --force reinstalls even when already installed."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "Test Agent",
+                        "install_command": "echo reinstall",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return installed version
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            executed_commands = []
+
+            async def mock_run_command_async(command, **kwargs):
+                executed_commands.append(command)
+                return "reinstalled successfully", 0
+
+            monkeypatch.setattr(
+                "reincheck.commands.run_command_async", mock_run_command_async
+            )
+
+            result = runner.invoke(cli, ["install", "test-agent", "--force"])
+
+            assert result.exit_code == 0
+            assert "✅ test-agent installed successfully" in result.output
+            assert len(executed_commands) == 1
+            assert executed_commands[0] == "echo reinstall"
+
+    def test_install_reports_failure(self, runner, monkeypatch):
+        """Test that install reports failure correctly."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "failing-agent",
+                        "description": "Failing Agent",
+                        "install_command": "exit 1",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            async def mock_get_current_version(agent_config):
+                return None, "not_installed"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["install", "failing-agent"])
+
+            assert result.exit_code == 1
+            assert "❌ failing-agent installation failed" in result.output
+
+    def test_install_agent_not_found(self, runner, monkeypatch):
+        """Test error when agent not found in configuration."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {"agents": []}
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            result = runner.invoke(cli, ["install", "nonexistent"])
+
+            assert result.exit_code == 1
+            assert "Agent 'nonexistent' not found" in result.output

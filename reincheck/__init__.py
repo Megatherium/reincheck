@@ -165,6 +165,10 @@ def save_config(config: Config, config_path: Path | None = None) -> None:
             agents_data.append(agent_dict)
 
         data = {"agents": agents_data}
+        
+        # Include preset if set
+        if config.preset is not None:
+            data["preset"] = config.preset
 
         # Write to temp file first
         temp_path = config_path.with_suffix(".tmp")

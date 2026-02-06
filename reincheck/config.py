@@ -79,6 +79,7 @@ class Config:
     """Root configuration containing all agents."""
 
     agents: list[AgentConfig] = field(default_factory=list)
+    preset: str | None = None  # Active preset used for method resolution
 
     def __post_init__(self):
         if not isinstance(self.agents, list):
@@ -86,6 +87,8 @@ class Config:
         for i, agent in enumerate(self.agents):
             if not isinstance(agent, AgentConfig):
                 raise ValueError(f"agents[{i}] must be an AgentConfig instance")
+        if self.preset is not None and not isinstance(self.preset, str):
+            raise ValueError("preset must be a string or None")
 
 
 def validate_config(data: dict) -> Config:
@@ -162,7 +165,12 @@ def validate_config(data: dict) -> Config:
         except ValueError as e:
             raise ConfigError(f"agents[{i}]: {e}")
 
-    return Config(agents=agents)
+    # Validate preset field if present
+    preset = data.get("preset")
+    if preset is not None and not isinstance(preset, str):
+        raise ConfigError(f"preset must be a string or null, got {type(preset).__name__}")
+
+    return Config(agents=agents, preset=preset)
 
 
 def preprocess_jsonish(text: str) -> str:

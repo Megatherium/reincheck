@@ -62,6 +62,15 @@ from .updates import (
     check_agent_updates,
 )
 
+# Adapter layer
+from .adapter import (
+    EffectiveMethod,
+    agent_config_to_method,
+    get_effective_method,
+    get_effective_method_from_config,
+    list_available_methods,
+)
+
 # Timeouts
 from .execution import DEFAULT_TIMEOUT, UPGRADE_TIMEOUT, INSTALL_TIMEOUT
 
@@ -200,4 +209,9 @@ __all__ = [
     "get_pypi_release_info",
     "fetch_url_content",
     "check_agent_updates",
+    "EffectiveMethod",
+    "agent_config_to_method",
+    "get_effective_method",
+    "get_effective_method_from_config",
+    "list_available_methods",
 ]

@@ -1,7 +1,14 @@
 import pytest
 from click.testing import CliRunner
 from pathlib import Path
+import os
 from reincheck.commands import validate_pager, cli
+
+
+@pytest.fixture
+def runner():
+    """Create a CliRunner for testing."""
+    return CliRunner()
 
 
 class TestValidatePager:
@@ -55,10 +62,8 @@ class TestValidatePager:
 class TestConfigFmt:
     """Test config fmt command."""
 
-    def test_fmt_stdout_with_comments_and_trailing_commas(self):
+    def test_fmt_stdout_with_comments_and_trailing_commas(self, runner):
         """Test that fmt outputs strict JSON, stripping comments and trailing commas."""
-        runner = CliRunner()
-        
         # Create a file with comments and trailing commas
         json_with_comments = '''{
             // This is a comment
@@ -203,3 +208,54 @@ class TestConfigFmt:
             
             assert result.exit_code == 0
             assert '"agents": []' in result.output
+
+
+class TestConfigInit:
+    """Test config init command."""
+
+    def test_init_creates_config_from_defaults(self, runner, monkeypatch):
+        """Test that init creates config from defaults."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            # Mock Path.home() to return tmpdir
+            monkeypatch.setattr(Path, "home", lambda: tmpdir_path)
+
+            result = runner.invoke(cli, ["config", "init"])
+            assert result.exit_code == 0
+            assert "initialized successfully" in result.output.lower()
+            assert (tmpdir_path / ".config" / "reincheck" / "agents.json").exists()
+
+    def test_init_force_overwrites_existing(self, runner, monkeypatch):
+        """Test that --force overwrites existing config with backup."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+            config_file.write_text('{"agents": []}')
+
+            # Mock Path.home() to return tmpdir
+            monkeypatch.setattr(Path, "home", lambda: tmpdir_path)
+
+            result = runner.invoke(cli, ["config", "init", "--force"])
+            assert result.exit_code == 0
+            assert "backup created" in result.output.lower()
+            assert (config_dir / "agents.json.bak").exists()
+            assert config_file.exists()
+
+    def test_init_existing_without_force(self, runner, monkeypatch):
+        """Test that init without --force fails if config exists."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+            config_file.write_text('{"agents": []}')
+
+            # Mock Path.home() to return tmpdir
+            monkeypatch.setattr(Path, "home", lambda: tmpdir_path)
+
+            result = runner.invoke(cli, ["config", "init"])
+            assert result.exit_code == 1
+            assert "already exists" in result.output.lower()
+            assert "--force" in result.output

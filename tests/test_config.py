@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 import pytest
+import tempfile
 
 from reincheck.config import (
     ConfigError,
@@ -12,6 +13,14 @@ from reincheck.config import (
     preprocess_jsonish,
     load_config,
     _format_syntax_error,
+)
+
+from reincheck import (
+    get_config_dir,
+    get_packaged_config_path,
+    get_config_path,
+    ensure_user_config,
+    migrate_yaml_to_json,
 )
 
 
@@ -529,3 +538,152 @@ class TestConfig:
         with pytest.raises(ValueError) as exc:
             Config(agents=[{"name": "not an AgentConfig"}])  # type: ignore
         assert "agents[0] must be an AgentConfig instance" in str(exc.value)
+
+
+class TestConfigPathHelpers:
+    """Tests for config path helper functions."""
+
+    def test_get_config_dir(self):
+        """Test that config dir returns XDG-compliant path."""
+        config_dir = get_config_dir()
+        assert config_dir == Path.home() / ".config" / "reincheck"
+
+    def test_get_packaged_config_path(self):
+        """Test that packaged config path points to package directory."""
+        packaged = get_packaged_config_path()
+        assert packaged.name == "agents.json"
+        assert packaged.parent.name == "reincheck"
+
+    def test_get_config_path_default(self):
+        """Test get_config_path with no override."""
+        config_path = get_config_path(create=False)
+        assert config_path == Path.home() / ".config" / "reincheck" / "agents.json"
+
+    def test_get_config_path_with_env_override(self, monkeypatch):
+        """Test that REINCHECK_CONFIG env var overrides default path."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            custom_path = Path(tmpdir) / "custom" / "config.json"
+            monkeypatch.setenv("REINCHECK_CONFIG", str(custom_path))
+
+            config_path = get_config_path(create=False)
+            assert config_path == custom_path
+
+
+class TestEnsureUserConfig:
+    """Tests for ensure_user_config function."""
+
+    def test_existing_config_noop(self, tmp_path):
+        """If config already exists, do nothing."""
+        existing_config = tmp_path / "agents.json"
+        existing_config.write_text('{"agents": []}')
+
+        ensure_user_config(existing_config)
+
+        # Config unchanged
+        assert existing_config.read_text() == '{"agents": []}'
+
+    def test_creates_from_packaged_default(self, tmp_path, monkeypatch):
+        """Create config from packaged default if no legacy YAML exists."""
+        user_config = tmp_path / "agents.json"
+
+        # Mock packaged path to a temp file
+        packaged = tmp_path / "packaged" / "agents.json"
+        packaged.parent.mkdir(parents=True)
+        packaged.write_text('{"agents": [{"name": "test"}]}')
+        monkeypatch.setattr("reincheck.get_packaged_config_path", lambda: packaged)
+
+        ensure_user_config(user_config)
+
+        assert user_config.exists()
+        data = json.loads(user_config.read_text())
+        assert len(data["agents"]) == 1
+        assert data["agents"][0]["name"] == "test"
+
+    def test_migrates_yaml_to_json(self, tmp_path, monkeypatch):
+        """Migrate existing YAML config to JSON."""
+        user_config = tmp_path / "agents.json"
+        yaml_config = tmp_path / "agents.yaml"
+
+        yaml_config.write_text('''
+agents:
+  - name: test-agent
+    description: A test agent
+    install_command: echo install
+    version_command: echo 1.0.0
+    check_latest_command: echo 1.0.0
+    upgrade_command: echo upgrade
+''')
+
+        # Monkeypatch get_config_dir to return tmp_path
+        monkeypatch.setattr("reincheck.get_config_dir", lambda: tmp_path)
+
+        ensure_user_config(user_config)
+
+        assert user_config.exists()
+        # YAML should be backed up
+        assert yaml_config.with_suffix(".yaml.bak").exists()
+
+        data = json.loads(user_config.read_text())
+        assert len(data["agents"]) == 1
+        assert data["agents"][0]["name"] == "test-agent"
+
+
+class TestMigrateYamlToJson:
+    """Tests for YAML to JSON migration."""
+
+    def test_successful_migration(self, tmp_path):
+        """Successfully migrate valid YAML to JSON."""
+        yaml_path = tmp_path / "config.yaml"
+        json_path = tmp_path / "config.json"
+
+        yaml_path.write_text('''
+agents:
+  - name: test
+    description: Test agent
+    install_command: echo install
+    version_command: echo 1.0.0
+    check_latest_command: echo 1.0.0
+    upgrade_command: echo upgrade
+''')
+
+        migrate_yaml_to_json(yaml_path, json_path)
+
+        assert json_path.exists()
+        data = json.loads(json_path.read_text())
+        assert data["agents"][0]["name"] == "test"
+        # YAML backed up
+        assert yaml_path.with_suffix(".yaml.bak").exists()
+
+    def test_migrate_without_pyyaml(self, tmp_path, monkeypatch):
+        """Raise ConfigError when pyyaml not installed."""
+        yaml_path = tmp_path / "config.yaml"
+        json_path = tmp_path / "config.json"
+        yaml_path.write_text("agents: []")
+
+        # Mock yaml import to raise ImportError
+        import builtins
+        real_import = builtins.__import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == "yaml":
+                raise ImportError("No module named 'yaml'")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", mock_import)
+
+        with pytest.raises(ConfigError) as exc:
+            migrate_yaml_to_json(yaml_path, json_path)
+
+        assert "pyyaml not installed" in str(exc.value)
+
+    def test_invalid_yaml_structure(self, tmp_path):
+        """Raise error for invalid YAML structure."""
+        yaml_path = tmp_path / "config.yaml"
+        json_path = tmp_path / "config.json"
+
+        yaml_path.write_text("not_agents: []")
+
+        with pytest.raises(ConfigError) as exc:
+            migrate_yaml_to_json(yaml_path, json_path)
+
+        assert "Invalid YAML config structure" in str(exc.value)

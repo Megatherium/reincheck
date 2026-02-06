@@ -1,0 +1,178 @@
+{
+  "agents": [
+    {
+      "name": "crush",
+      "description": "Powerful terminal-based AI assistant for software development",
+      "install_command": "mise use -g npm:@charmland/crush",
+      "version_command": "crush -v",
+      "check_latest_command": "curl -s https://api.github.com/repos/charmbracelet/crush/releases/latest | grep 'tag_name' | cut -d'\"' -f4",
+      "upgrade_command": "mise use -g npm:@charmland/crush@latest",
+      "latest_version": "v0.39.3",
+      "github_repo": "charmbracelet/crush"
+    },
+    {
+      "name": "kilocode",
+      "description": "AI-powered coding assistant with TUI",
+      "install_command": "mise use -g npm:@kilocode/cli",
+      "version_command": "kilocode --version",
+      "check_latest_command": "npm info @kilocode/cli version",
+      "upgrade_command": "mise use -g npm:@kilocode/cli@latest",
+      "latest_version": "1.0.16"
+    },
+    {
+      "name": "opencode",
+      "description": "AI coding agent built for the terminal",
+      "install_command": "mise use -g npm:opencode-ai",
+      "version_command": "opencode --version",
+      "check_latest_command": "npm info opencode-ai version",
+      "upgrade_command": "mise use -g npm:opencode-ai@latest",
+      "latest_version": "1.1.53",
+      "github_repo": "opencode-ai/opencode"
+    },
+    {
+      "name": "claude",
+      "description": "Claude Code - Anthropic's AI coding assistant",
+      "install_command": "mise use -g npm:@anthropic-ai/claude-code",
+      "version_command": "claude --version",
+      "check_latest_command": "npm info @anthropic-ai/claude-code version",
+      "upgrade_command": "mise use -g npm:@anthropic-ai/claude-code@latest",
+      "latest_version": "2.1.32"
+    },
+    {
+      "name": "grok",
+      "description": "Conversational AI CLI tool powered by Grok",
+      "install_command": "mise use -g npm:grok-cli",
+      "version_command": "npm list -g grok-cli | grep grok-cli || echo 'Unknown'",
+      "check_latest_command": "npm info grok-cli version",
+      "upgrade_command": "mise use -g npm:grok-cli@latest",
+      "latest_version": "1.0.5"
+    },
+    {
+      "name": "gemini",
+      "description": "Open-source AI agent that brings Gemini to terminal",
+      "install_command": "mise use -g npm:@google/gemini-cli",
+      "version_command": "gemini --version",
+      "check_latest_command": "npm info @google/gemini-cli version",
+      "upgrade_command": "mise use -g npm:@google/gemini-cli@latest",
+      "latest_version": "0.27.2"
+    },
+    {
+      "name": "cline",
+      "description": "Autonomous coding agent for VS Code with CLI capabilities",
+      "install_command": "mise use -g npm:cline",
+      "version_command": "npm list -g cline | grep cline || echo 'Unknown'",
+      "check_latest_command": "npm info cline version",
+      "upgrade_command": "mise use -g npm:cline@latest",
+      "latest_version": "2.0.5",
+      "github_repo": "cline/cline"
+    },
+    {
+      "name": "continue",
+      "description": "Continue CLI - AI coding assistant for development workflows",
+      "install_command": "mise use -g npm:@continuedev/cli",
+      "version_command": "cn --version",
+      "check_latest_command": "npm info @continuedev/cli version",
+      "upgrade_command": "mise use -g npm:@continuedev/cli@latest",
+      "latest_version": "1.5.43",
+      "github_repo": "continuedev/continue"
+    },
+    {
+      "name": "interpreter",
+      "description": "Open Interpreter - Natural language interface for computers",
+      "install_command": "uv tool install open-interpreter",
+      "version_command": "interpreter --version",
+      "check_latest_command": "curl https://pypi.org/pypi/open-interpreter/json | jq -r '.releases | keys | last'",
+      "upgrade_command": "uv tool upgrade open-interpreter",
+      "latest_version": "0.4.3",
+      "github_repo": "OpenInterpreter/open-interpreter"
+    },
+    {
+      "name": "droid",
+      "description": "Factory Droid - AI coding agent",
+      "install_command": "curl -fsSL https://app.factory.ai/cli | sh",
+      "version_command": "droid --version",
+      "check_latest_command": "curl -fsSL https://app.factory.ai/cli | grep 'VER=' | head -n 1 | cut -d'\"' -f2",
+      "upgrade_command": "curl -fsSL https://app.factory.ai/cli | sh",
+      "latest_version": "0.57.5",
+      "release_notes_url": "https://docs.factory.ai/changelog/cli-updates"
+    },
+    {
+      "name": "openhands",
+      "description": "OpenHands - Platform for autonomous AI agents (formerly OpenDevin)",
+      "install_command": "uv tool install openhands --python 3.12",
+      "version_command": "openhands --version",
+      "check_latest_command": "curl https://pypi.org/pypi/openhands/json | jq -r '.releases | keys | last'",
+      "upgrade_command": "uv tool upgrade openhands",
+      "latest_version": "1.9.1",
+      "github_repo": "All-Hands-AI/OpenHands"
+    },
+    {
+      "name": "mistral",
+      "description": "Mistral Vibe - Command-line coding assistant powered by Mistral",
+      "install_command": "mise use --global pipx:mistral-vibe",
+      "version_command": "vibe --version",
+      "check_latest_command": "curl https://pypi.org/pypi/mistral-vibe/json | jq -r '.releases | keys | last'",
+      "upgrade_command": "mise use --global pipx:mistral-vibe",
+      "latest_version": "2.0.2",
+      "github_repo": "mistralai/mistral-vibe"
+    },
+    {
+      "name": "codex",
+      "description": "OpenAI Codex CLI - Lightweight coding agent",
+      "install_command": "mise use -g codex",
+      "version_command": "codex --version",
+      "check_latest_command": "npm info @openai/codex version",
+      "upgrade_command": "mise upgrade codex@latest",
+      "latest_version": "0.98.0",
+      "github_repo": "openai/codex"
+    },
+    {
+      "name": "goose",
+      "description": "Goose - AI agent from Block for engineering tasks",
+      "install_command": "curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | bash",
+      "version_command": "goose --version",
+      "check_latest_command": "curl -s https://api.github.com/repos/block/goose/releases/latest | grep \"tag_name\" | cut -d\"\\\"\" -f4",
+      "upgrade_command": "curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | bash",
+      "latest_version": "v1.23.0",
+      "github_repo": "block/goose"
+    },
+    {
+      "name": "roo",
+      "description": "Roo Code - Autonomous coding agent (Cline fork)",
+      "install_command": "curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh",
+      "version_command": "roo --version",
+      "check_latest_command": "curl -s https://api.github.com/repos/RooCodeInc/Roo-Code/releases/latest | grep \"tag_name\" | cut -d\"\\\"\" -f4",
+      "upgrade_command": "curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh",
+      "latest_version": "v3.47.1",
+      "github_repo": "RooCodeInc/Roo-Code"
+    },
+    {
+      "name": "aider",
+      "description": "Aider - AI pair programming in your terminal",
+      "install_command": "uv tool install aider-chat",
+      "version_command": "aider --version",
+      "check_latest_command": "curl https://pypi.org/pypi/aider-chat/json | jq -r '.releases | keys | last'",
+      "upgrade_command": "uv tool upgrade aider-chat",
+      "latest_version": "0.9.0",
+      "github_repo": "Aider-AI/aider"
+    },
+    {
+      "name": "kimi",
+      "description": "Kimi Code CLI - AI agent that runs in the terminal, helping you complete software development tasks",
+      "install_command": "mise use --global pipx:kimi-cli@latest",
+      "version_command": "kimi --version",
+      "check_latest_command": "curl https://pypi.org/pypi/kimi-cli/json | jq -r '.releases | keys | last'",
+      "upgrade_command": "mise use --global pipx:kimi-cli@latest",
+      "latest_version": "1.8.0"
+    },
+    {
+      "name": "amp",
+      "description": "Sourcegraph Amp - Agentic CLI tool",
+      "install_command": "mise use --global npm:@sourcegraph/amp",
+      "version_command": "amp --version",
+      "check_latest_command": "npm info @sourcegraph/amp version",
+      "upgrade_command": "mise use --global npm:@sourcegraph/amp@latest",
+      "latest_version": "0.0.1770336135-g27c0ec"
+    }
+  ]
+}

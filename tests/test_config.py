@@ -22,8 +22,6 @@ from reincheck import (
     ensure_user_config,
     migrate_yaml_to_json,
 )
-from reincheck.paths import get_config_dir as get_config_dir_paths
-from reincheck.paths import get_packaged_config_path as get_packaged_config_path_paths
 
 
 class TestPreprocessJsonish:
@@ -67,7 +65,7 @@ class TestPreprocessJsonish:
         # Total: 8 chars for {"a": 1} + 1 space + 20 spaces = 29 chars
         assert len(result) == 29
         assert result.startswith('{"a": 1} ')
-        assert result[9:] == ' ' * 20
+        assert result[9:] == " " * 20
         assert json.loads(result) == {"a": 1}
 
     def test_comment_at_end_of_line(self):
@@ -76,7 +74,7 @@ class TestPreprocessJsonish:
         result = preprocess_jsonish(input_text)
         # First line: {"a": 1,        (8 spaces for "// note")
         # Second line: "b": 2}
-        lines = result.split('\n')
+        lines = result.split("\n")
         assert lines[0] == '{"a": 1,        '
         assert lines[1] == '"b": 2}'
         assert json.loads(result) == {"a": 1, "b": 2}
@@ -191,12 +189,12 @@ class TestLoadConfig:
         bad_json = '{\n  "a": 1,\n  "b": ,\n}'
         with pytest.raises(ConfigError) as exc:
             load_config(bad_json)
-        
+
         error_msg = str(exc.value)
         # Error is on line 4 (the closing brace) since line 3 has incomplete value
         assert "line 4" in error_msg
-        assert '}' in error_msg
-        assert '^' in error_msg
+        assert "}" in error_msg
+        assert "^" in error_msg
 
     def test_error_shows_correct_column(self):
         """Error message should show correct column with caret."""
@@ -356,9 +354,9 @@ class TestValidateConfig:
             "agents": [
                 {
                     "name": "test-agent",
-                    # missing description
+                    "description": "A test agent",
                     "install_command": "npm install -g test",
-                    "version_command": "test --version",
+                    # missing command "version_command": "test --version",
                     "check_latest_command": "npm info test version",
                     "upgrade_command": "npm update -g test",
                 }
@@ -366,7 +364,7 @@ class TestValidateConfig:
         }
         with pytest.raises(ConfigError) as exc:
             validate_config(data)
-        assert "agents[0].description is required" in str(exc.value)
+        assert "agents[0].version_command is required" in str(exc.value)
 
     def test_wrong_type_for_required_field(self):
         """Raise error when required field has wrong type."""
@@ -430,7 +428,7 @@ class TestValidateConfig:
                     "version_command": "agent2 --version",
                     "check_latest_command": "npm info agent2 version",
                     "upgrade_command": "npm update -g agent2",
-                }
+                },
             ]
         }
         config = validate_config(data)
@@ -452,17 +450,17 @@ class TestValidateConfig:
                 },
                 {
                     "name": "agent-2",
-                    # missing description
+                    "description": "First agent",
                     "install_command": "npm install -g agent2",
-                    "version_command": "agent2 --version",
+                    # missing "version_command": "agent2 --version",
                     "check_latest_command": "npm info agent2 version",
                     "upgrade_command": "npm update -g agent2",
-                }
+                },
             ]
         }
         with pytest.raises(ConfigError) as exc:
             validate_config(data)
-        assert "agents[1].description is required" in str(exc.value)
+        assert "agents[1].version_command is required" in str(exc.value)
 
 
 class TestAgentConfig:
@@ -610,7 +608,7 @@ class TestEnsureUserConfig:
         user_config = tmp_path / "agents.json"
         yaml_config = tmp_path / "agents.yaml"
 
-        yaml_config.write_text('''
+        yaml_config.write_text("""
 agents:
   - name: test-agent
     description: A test agent
@@ -618,7 +616,7 @@ agents:
     version_command: echo 1.0.0
     check_latest_command: echo 1.0.0
     upgrade_command: echo upgrade
-''')
+""")
 
         # Monkeypatch get_config_dir to return tmp_path
         monkeypatch.setattr(migration, "get_config_dir", lambda: tmp_path)
@@ -642,7 +640,7 @@ class TestMigrateYamlToJson:
         yaml_path = tmp_path / "config.yaml"
         json_path = tmp_path / "config.json"
 
-        yaml_path.write_text('''
+        yaml_path.write_text("""
 agents:
   - name: test
     description: Test agent
@@ -650,7 +648,7 @@ agents:
     version_command: echo 1.0.0
     check_latest_command: echo 1.0.0
     upgrade_command: echo upgrade
-''')
+""")
 
         migrate_yaml_to_json(yaml_path, json_path)
 
@@ -668,6 +666,7 @@ agents:
 
         # Mock yaml import to raise ImportError
         import builtins
+
         real_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):

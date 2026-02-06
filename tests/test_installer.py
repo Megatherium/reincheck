@@ -322,6 +322,91 @@ def test_resolve_method_dict_override_missing_commands():
     assert method.method_name == "npm"
 
 
+def test_resolve_method_fallback_when_preset_method_unavailable():
+    """Test fallback_strategy is used when preset method not in methods."""
+    preset = Preset(
+        name="test_preset",
+        strategy="language",
+        description="Test preset",
+        methods={"crush": "nonexistent_method"},
+        fallback_strategy="npm",
+    )
+
+    methods = {
+        "crush.npm": InstallMethod(
+            harness="crush",
+            method_name="npm",
+            install="npm install -g @crush/agent",
+            upgrade="npm update -g @crush/agent",
+            version="crush --version",
+            check_latest="npm info @crush/agent version",
+            dependencies=["npm"],
+            risk_level=RiskLevel.SAFE,
+        )
+    }
+
+    method = resolve_method(preset, "crush", methods)
+    assert method.method_name == "npm"
+    assert method.harness == "crush"
+
+
+def test_resolve_method_fallback_ignores_harness_not_in_preset():
+    """Test fallback works even if harness not in preset.methods."""
+    preset = Preset(
+        name="test_preset",
+        strategy="language",
+        description="Test preset",
+        methods={"other": "npm"},
+        fallback_strategy="npm",
+    )
+
+    methods = {
+        "crush.npm": InstallMethod(
+            harness="crush",
+            method_name="npm",
+            install="npm install -g @crush/agent",
+            upgrade="npm update -g @crush/agent",
+            version="crush --version",
+            check_latest="npm info @crush/agent version",
+            dependencies=["npm"],
+            risk_level=RiskLevel.SAFE,
+        )
+    }
+
+    method = resolve_method(preset, "crush", methods)
+    assert method.method_name == "npm"
+
+
+def test_resolve_method_raises_error_when_no_valid_method():
+    """Test ValueError raised when no method can be resolved."""
+    preset = Preset(
+        name="test_preset",
+        strategy="language",
+        description="Test preset",
+        methods={"crush": "nonexistent"},
+    )
+
+    methods = {
+        "other.npm": InstallMethod(
+            harness="other",
+            method_name="npm",
+            install="npm install -g @crush/agent",
+            upgrade="npm update -g @crush/agent",
+            version="crush --version",
+            check_latest="npm info @crush/agent version",
+            dependencies=["npm"],
+            risk_level=RiskLevel.SAFE,
+        )
+    }
+
+    try:
+        resolve_method(preset, "crush", methods)
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "crush" in str(e)
+        assert "test_preset" in str(e)
+
+
 def test_infer_risk_level_pipe_patterns():
     """Test pipe detection catches various patterns."""
     from reincheck.installer import _infer_risk_level

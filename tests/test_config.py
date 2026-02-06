@@ -22,6 +22,8 @@ from reincheck import (
     ensure_user_config,
     migrate_yaml_to_json,
 )
+from reincheck.paths import get_config_dir as get_config_dir_paths
+from reincheck.paths import get_packaged_config_path as get_packaged_config_path_paths
 
 
 class TestPreprocessJsonish:
@@ -584,13 +586,15 @@ class TestEnsureUserConfig:
 
     def test_creates_from_packaged_default(self, tmp_path, monkeypatch):
         """Create config from packaged default if no legacy YAML exists."""
+        from reincheck import migration
+
         user_config = tmp_path / "agents.json"
 
         # Mock packaged path to a temp file
         packaged = tmp_path / "packaged" / "agents.json"
         packaged.parent.mkdir(parents=True)
         packaged.write_text('{"agents": [{"name": "test"}]}')
-        monkeypatch.setattr("reincheck.get_packaged_config_path", lambda: packaged)
+        monkeypatch.setattr(migration, "get_packaged_config_path", lambda: packaged)
 
         ensure_user_config(user_config)
 
@@ -601,6 +605,8 @@ class TestEnsureUserConfig:
 
     def test_migrates_yaml_to_json(self, tmp_path, monkeypatch):
         """Migrate existing YAML config to JSON."""
+        from reincheck import migration
+
         user_config = tmp_path / "agents.json"
         yaml_config = tmp_path / "agents.yaml"
 
@@ -615,7 +621,7 @@ agents:
 ''')
 
         # Monkeypatch get_config_dir to return tmp_path
-        monkeypatch.setattr("reincheck.get_config_dir", lambda: tmp_path)
+        monkeypatch.setattr(migration, "get_config_dir", lambda: tmp_path)
 
         ensure_user_config(user_config)
 

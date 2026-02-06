@@ -8,7 +8,7 @@ import uuid
 import logging
 from pathlib import Path
 
-from . import (
+from reincheck import (
     load_config,
     get_current_version,
     fetch_release_notes,
@@ -21,15 +21,17 @@ from . import (
 )
 
 # Import path helpers
-from . import (
+from reincheck.paths import (
     get_config_dir,
     get_config_path,
     get_packaged_config_path,
-    ensure_user_config,
 )
 
+# Import migration helpers
+from reincheck.migration import ensure_user_config
+
 # Import load_config from config module directly for the fmt command
-from .config import load_config as load_config_raw
+from reincheck.config import load_config as load_config_raw
 
 _logging = logging.getLogger(__name__)
 

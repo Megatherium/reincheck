@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Harness metadata - installation commands live in methods.json",
+  "harnesses": {
+    "crush": {
+      "name": "crush",
+      "display_name": "Crush",
+      "description": "Charm's AI coding assistant",
+      "github_repo": "charmbracelet/crush",
+      "release_notes_url": null,
+      "binary": "crush"
+    },
+    "kilocode": {
+      "name": "kilocode",
+      "display_name": "Kilocode",
+      "description": "Kilocode CLI - AI coding assistant",
+      "github_repo": null,
+      "release_notes_url": null,
+      "binary": "kilocode"
+    },
+    "opencode": {
+      "name": "opencode",
+      "display_name": "OpenCode",
+      "description": "OpenCode AI coding assistant",
+      "github_repo": "opencode-ai/opencode",
+      "release_notes_url": null,
+      "binary": "opencode"
+    },
+    "claude": {
+      "name": "claude",
+      "display_name": "Claude Code",
+      "description": "Anthropic's AI coding assistant",
+      "github_repo": "anthropics/claude-code",
+      "release_notes_url": "https://docs.anthropic.com/en/docs/claude-code/changelog",
+      "binary": "claude"
+    },
+    "grok": {
+      "name": "grok",
+      "display_name": "Grok CLI",
+      "description": "xAI's Grok AI coding assistant",
+      "github_repo": null,
+      "release_notes_url": null,
+      "binary": "grok"
+    },
+    "gemini": {
+      "name": "gemini",
+      "display_name": "Gemini CLI",
+      "description": "Google's Gemini AI coding assistant",
+      "github_repo": "google/gemini-cli",
+      "release_notes_url": null,
+      "binary": "gemini"
+    },
+    "cline": {
+      "name": "cline",
+      "display_name": "Cline",
+      "description": "Cline CLI - AI coding assistant",
+      "github_repo": "cline/cline",
+      "release_notes_url": null,
+      "binary": "cline"
+    },
+    "continue": {
+      "name": "continue",
+      "display_name": "Continue",
+      "description": "Continue.dev AI coding assistant",
+      "github_repo": "continuedev/continue",
+      "release_notes_url": null,
+      "binary": "cn"
+    },
+    "codex": {
+      "name": "codex",
+      "display_name": "Codex CLI",
+      "description": "OpenAI Codex CLI",
+      "github_repo": "openai/codex",
+      "release_notes_url": null,
+      "binary": "codex"
+    },
+    "amp": {
+      "name": "amp",
+      "display_name": "Amp",
+      "description": "Sourcegraph's Amp AI coding assistant",
+      "github_repo": "sourcegraph/amp",
+      "release_notes_url": null,
+      "binary": "amp"
+    },
+    "interpreter": {
+      "name": "interpreter",
+      "display_name": "Open Interpreter",
+      "description": "Open Interpreter - natural language interface",
+      "github_repo": "OpenInterpreter/open-interpreter",
+      "release_notes_url": null,
+      "binary": "interpreter",
+      "python_version": "3.10+"
+    },
+    "openhands": {
+      "name": "openhands",
+      "display_name": "OpenHands",
+      "description": "OpenHands AI coding agent",
+      "github_repo": "All-Hands-AI/OpenHands",
+      "release_notes_url": null,
+      "binary": "openhands",
+      "python_version": "3.12+"
+    },
+    "aider": {
+      "name": "aider",
+      "display_name": "Aider",
+      "description": "Aider - AI pair programming in terminal",
+      "github_repo": "Aider-AI/aider",
+      "release_notes_url": null,
+      "binary": "aider",
+      "python_version": "3.8-3.13"
+    },
+    "mistral": {
+      "name": "mistral",
+      "display_name": "Mistral Vibe",
+      "description": "Mistral AI's vibe coding assistant",
+      "github_repo": null,
+      "release_notes_url": null,
+      "binary": "vibe",
+      "python_version": "3.12+"
+    },
+    "kimi": {
+      "name": "kimi",
+      "display_name": "Kimi CLI",
+      "description": "Moonshot AI's Kimi coding assistant",
+      "github_repo": null,
+      "release_notes_url": null,
+      "binary": "kimi",
+      "python_version": "3.12-3.14"
+    },
+    "droid": {
+      "name": "droid",
+      "display_name": "Droid",
+      "description": "Factory.ai's agentic coding tool",
+      "github_repo": null,
+      "release_notes_url": "https://docs.factory.ai/changelog/cli-updates",
+      "binary": "droid"
+    },
+    "goose": {
+      "name": "goose",
+      "display_name": "Goose",
+      "description": "Block's open-source developer agent",
+      "github_repo": "block/goose",
+      "release_notes_url": null,
+      "binary": "goose"
+    },
+    "roo": {
+      "name": "roo",
+      "display_name": "Roo Code",
+      "description": "Roo Code CLI - AI coding assistant",
+      "github_repo": "RooCodeInc/Roo-Code",
+      "release_notes_url": null,
+      "binary": "roo"
+    }
+  }
+}

@@ -1,0 +1,530 @@
+{
+  "$comment": "Install methods - keyed by {harness}.{method_name}. Missing keys indicate method unavailable for that harness.",
+  "methods": {
+    "claude.mise_binary": {
+      "install": "mise use -g claude-code@latest",
+      "upgrade": "mise use -g claude-code@latest",
+      "version": "claude --version",
+      "check_latest": "mise ls-remote claude-code | tail -n 1",
+      "dependencies": ["mise"],
+      "risk_level": "safe"
+    },
+    "goose.mise_binary": {
+      "install": "mise use -g github:block/goose",
+      "upgrade": "mise upgrade github:block/goose",
+      "version": "goose --version",
+      "check_latest": "mise ls-remote github:block/goose | tail -n 1",
+      "dependencies": ["mise"],
+      "risk_level": "safe"
+    },
+    "roo.mise_binary": {
+      "install": "mise use -g github:RooCodeInc/Roo-Code",
+      "upgrade": "mise upgrade github:RooCodeInc/Roo-Code",
+      "version": "roo --version",
+      "check_latest": "mise ls-remote github:RooCodeInc/Roo-Code | tail -n 1",
+      "dependencies": ["mise"],
+      "risk_level": "safe"
+    },
+
+    "crush.mise_language": {
+      "install": "mise use -g npm:@charmland/crush@latest",
+      "upgrade": "mise use -g npm:@charmland/crush@latest",
+      "version": "crush --version",
+      "check_latest": "npm info @charmland/crush version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "kilocode.mise_language": {
+      "install": "mise use -g npm:@kilocode/cli@latest",
+      "upgrade": "mise use -g npm:@kilocode/cli@latest",
+      "version": "kilocode --version",
+      "check_latest": "npm info @kilocode/cli version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "opencode.mise_language": {
+      "install": "mise use -g npm:opencode-ai@latest",
+      "upgrade": "mise use -g npm:opencode-ai@latest",
+      "version": "opencode --version",
+      "check_latest": "npm info opencode-ai version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "claude.mise_language": {
+      "install": "mise use -g npm:@anthropic-ai/claude-code@latest",
+      "upgrade": "mise use -g npm:@anthropic-ai/claude-code@latest",
+      "version": "claude --version",
+      "check_latest": "npm info @anthropic-ai/claude-code version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "grok.mise_language": {
+      "install": "mise use -g npm:@vibe-kit/grok-cli@latest",
+      "upgrade": "mise use -g npm:@vibe-kit/grok-cli@latest",
+      "version": "grok --version",
+      "check_latest": "npm info @vibe-kit/grok-cli version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "gemini.mise_language": {
+      "install": "mise use -g npm:@google/gemini-cli@latest",
+      "upgrade": "mise use -g npm:@google/gemini-cli@latest",
+      "version": "gemini --version",
+      "check_latest": "npm info @google/gemini-cli version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "cline.mise_language": {
+      "install": "mise use -g npm:cline@latest",
+      "upgrade": "mise use -g npm:cline@latest",
+      "version": "cline --version",
+      "check_latest": "npm info cline version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "continue.mise_language": {
+      "install": "mise use -g npm:@continuedev/cli@latest",
+      "upgrade": "mise use -g npm:@continuedev/cli@latest",
+      "version": "cn --version",
+      "check_latest": "npm info @continuedev/cli version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "codex.mise_language": {
+      "install": "mise use -g npm:@openai/codex@latest",
+      "upgrade": "mise use -g npm:@openai/codex@latest",
+      "version": "codex --version",
+      "check_latest": "npm info @openai/codex version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "amp.mise_language": {
+      "install": "mise use -g npm:@sourcegraph/amp@latest",
+      "upgrade": "mise use -g npm:@sourcegraph/amp@latest",
+      "version": "amp --version",
+      "check_latest": "npm info @sourcegraph/amp version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "droid.mise_language": {
+      "install": "mise use -g npm:@factory/cli",
+      "upgrade": "mise upgrade npm:@factory/cli",
+      "version": "droid --version",
+      "check_latest": "npm info @factory/cli version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "kimi.mise_language": {
+      "install": "mise use -g npm:@jacksontian/kimi-cli@latest",
+      "upgrade": "mise use -g npm:@jacksontian/kimi-cli@latest",
+      "version": "kimi --version",
+      "check_latest": "npm info @jacksontian/kimi-cli version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+
+    "opencode.homebrew": {
+      "install": "brew install opencode",
+      "upgrade": "brew upgrade opencode",
+      "version": "opencode --version",
+      "check_latest": "brew info opencode --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "claude.homebrew": {
+      "install": "brew install --cask claude-code",
+      "upgrade": "brew upgrade --cask claude-code",
+      "version": "claude --version",
+      "check_latest": "brew info --cask claude-code --json | python3 -c \"import sys,json; print(json.load(sys.stdin)[0]['version'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "gemini.homebrew": {
+      "install": "brew install gemini-cli",
+      "upgrade": "brew upgrade gemini-cli",
+      "version": "gemini --version",
+      "check_latest": "brew info gemini-cli --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "codex.homebrew": {
+      "install": "brew install --cask codex",
+      "upgrade": "brew upgrade --cask codex",
+      "version": "codex --version",
+      "check_latest": "brew info --cask codex --json | python3 -c \"import sys,json; print(json.load(sys.stdin)[0]['version'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "droid.homebrew": {
+      "install": "brew install --cask droid",
+      "upgrade": "brew upgrade --cask droid",
+      "version": "droid --version",
+      "check_latest": "brew info --cask droid --json | python3 -c \"import sys,json; print(json.load(sys.stdin)[0]['version'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "goose.homebrew": {
+      "install": "brew install block-goose-cli",
+      "upgrade": "brew upgrade block-goose-cli",
+      "version": "goose --version",
+      "check_latest": "brew info block-goose-cli --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "aider.homebrew": {
+      "install": "brew install aider",
+      "upgrade": "brew upgrade aider",
+      "version": "aider --version",
+      "check_latest": "brew info aider --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "mistral.homebrew": {
+      "install": "brew install mistral-vibe",
+      "upgrade": "brew upgrade mistral-vibe",
+      "version": "vibe --version",
+      "check_latest": "brew info mistral-vibe --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "kimi.homebrew": {
+      "install": "brew install kimi-cli",
+      "upgrade": "brew upgrade kimi-cli",
+      "version": "kimi --version",
+      "check_latest": "brew info kimi-cli --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+
+    "crush.language_native": {
+      "install": "npm install -g @charmland/crush@latest",
+      "upgrade": "npm install -g @charmland/crush@latest",
+      "version": "crush --version",
+      "check_latest": "npm info @charmland/crush version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "kilocode.language_native": {
+      "install": "npm install -g @kilocode/cli@latest",
+      "upgrade": "npm install -g @kilocode/cli@latest",
+      "version": "kilocode --version",
+      "check_latest": "npm info @kilocode/cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "opencode.language_native": {
+      "install": "npm install -g opencode-ai@latest",
+      "upgrade": "npm install -g opencode-ai@latest",
+      "version": "opencode --version",
+      "check_latest": "npm info opencode-ai version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "claude.language_native": {
+      "install": "npm install -g @anthropic-ai/claude-code@latest",
+      "upgrade": "npm install -g @anthropic-ai/claude-code@latest",
+      "version": "claude --version",
+      "check_latest": "npm info @anthropic-ai/claude-code version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "grok.language_native": {
+      "install": "npm install -g @vibe-kit/grok-cli@latest",
+      "upgrade": "npm install -g @vibe-kit/grok-cli@latest",
+      "version": "grok --version",
+      "check_latest": "npm info @vibe-kit/grok-cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "gemini.language_native": {
+      "install": "npm install -g @google/gemini-cli@latest",
+      "upgrade": "npm install -g @google/gemini-cli@latest",
+      "version": "gemini --version",
+      "check_latest": "npm info @google/gemini-cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "cline.language_native": {
+      "install": "npm install -g cline@latest",
+      "upgrade": "npm install -g cline@latest",
+      "version": "cline --version",
+      "check_latest": "npm info cline version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "continue.language_native": {
+      "install": "npm install -g @continuedev/cli@latest",
+      "upgrade": "npm install -g @continuedev/cli@latest",
+      "version": "cn --version",
+      "check_latest": "npm info @continuedev/cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "codex.language_native": {
+      "install": "npm install -g @openai/codex@latest",
+      "upgrade": "npm install -g @openai/codex@latest",
+      "version": "codex --version",
+      "check_latest": "npm info @openai/codex version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "amp.language_native": {
+      "install": "npm install -g @sourcegraph/amp@latest",
+      "upgrade": "npm install -g @sourcegraph/amp@latest",
+      "version": "amp --version",
+      "check_latest": "npm info @sourcegraph/amp version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "droid.language_native": {
+      "install": "npm install -g @factory/cli",
+      "upgrade": "npm update -g @factory/cli",
+      "version": "droid --version",
+      "check_latest": "npm info @factory/cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "interpreter.language_native": {
+      "install": "uv tool install open-interpreter",
+      "upgrade": "uv tool upgrade open-interpreter",
+      "version": "interpreter --version",
+      "check_latest": "python3 -c \"import json,urllib.request as u; print(json.load(u.urlopen('https://pypi.org/pypi/open-interpreter/json'))['info']['version'])\"",
+      "dependencies": ["uv"],
+      "risk_level": "safe"
+    },
+    "openhands.language_native": {
+      "install": "uv tool install openhands --python 3.12",
+      "upgrade": "uv tool upgrade openhands",
+      "version": "openhands --version",
+      "check_latest": "python3 -c \"import json,urllib.request as u; print(json.load(u.urlopen('https://pypi.org/pypi/openhands/json'))['info']['version'])\"",
+      "dependencies": ["uv"],
+      "risk_level": "safe"
+    },
+    "aider.language_native": {
+      "install": "uv tool install aider-chat",
+      "upgrade": "uv tool upgrade aider-chat",
+      "version": "aider --version",
+      "check_latest": "python3 -c \"import json,urllib.request as u; print(json.load(u.urlopen('https://pypi.org/pypi/aider-chat/json'))['info']['version'])\"",
+      "dependencies": ["uv"],
+      "risk_level": "safe"
+    },
+    "mistral.language_native": {
+      "install": "uv tool install mistral-vibe",
+      "upgrade": "uv tool upgrade mistral-vibe",
+      "version": "vibe --version",
+      "check_latest": "python3 -c \"import json,urllib.request as u; print(json.load(u.urlopen('https://pypi.org/pypi/mistral-vibe/json'))['info']['version'])\"",
+      "dependencies": ["uv"],
+      "risk_level": "safe"
+    },
+    "kimi.language_native": {
+      "install": "uv tool install kimi-cli",
+      "upgrade": "uv tool upgrade kimi-cli",
+      "version": "kimi --version",
+      "check_latest": "python3 -c \"import json,urllib.request as u; print(json.load(u.urlopen('https://pypi.org/pypi/kimi-cli/json'))['info']['version'])\"",
+      "dependencies": ["uv"],
+      "risk_level": "safe"
+    },
+    "goose.language_native": {
+      "install": "pipx install goose-ai",
+      "upgrade": "pipx upgrade goose-ai",
+      "version": "goose --version",
+      "check_latest": "python3 -c \"import json,urllib.request as u; print(json.load(u.urlopen('https://pypi.org/pypi/goose-ai/json'))['info']['version'])\"",
+      "dependencies": ["pipx"],
+      "risk_level": "safe"
+    },
+
+    "crush.vendor_recommended": {
+      "install": "npm install -g @charmland/crush@latest",
+      "upgrade": "npm install -g @charmland/crush@latest",
+      "version": "crush --version",
+      "check_latest": "npm info @charmland/crush version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "kilocode.vendor_recommended": {
+      "install": "npm install -g @kilocode/cli@latest",
+      "upgrade": "npm install -g @kilocode/cli@latest",
+      "version": "kilocode --version",
+      "check_latest": "npm info @kilocode/cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "opencode.vendor_recommended": {
+      "install": "brew install opencode",
+      "upgrade": "brew upgrade opencode",
+      "version": "opencode --version",
+      "check_latest": "brew info opencode --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "claude.vendor_recommended": {
+      "install": "curl -fsSL https://claude.ai/install.sh | bash",
+      "upgrade": "claude update",
+      "version": "claude --version",
+      "check_latest": "npm info @anthropic-ai/claude-code version",
+      "dependencies": ["curl", "npm"],
+      "risk_level": "dangerous"
+    },
+    "grok.vendor_recommended": {
+      "install": "npm install -g @vibe-kit/grok-cli@latest",
+      "upgrade": "npm install -g @vibe-kit/grok-cli@latest",
+      "version": "grok --version",
+      "check_latest": "npm info @vibe-kit/grok-cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "gemini.vendor_recommended": {
+      "install": "brew install gemini-cli",
+      "upgrade": "brew upgrade gemini-cli",
+      "version": "gemini --version",
+      "check_latest": "brew info gemini-cli --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "cline.vendor_recommended": {
+      "install": "npm install -g cline@latest",
+      "upgrade": "npm install -g cline@latest",
+      "version": "cline --version",
+      "check_latest": "npm info cline version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "continue.vendor_recommended": {
+      "install": "npm install -g @continuedev/cli@latest",
+      "upgrade": "npm install -g @continuedev/cli@latest",
+      "version": "cn --version",
+      "check_latest": "npm info @continuedev/cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "codex.vendor_recommended": {
+      "install": "brew install --cask codex",
+      "upgrade": "brew upgrade --cask codex",
+      "version": "codex --version",
+      "check_latest": "brew info --cask codex --json | python3 -c \"import sys,json; print(json.load(sys.stdin)[0]['version'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "amp.vendor_recommended": {
+      "install": "npm install -g @sourcegraph/amp@latest",
+      "upgrade": "npm install -g @sourcegraph/amp@latest",
+      "version": "amp --version",
+      "check_latest": "npm info @sourcegraph/amp version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "interpreter.vendor_recommended": {
+      "install": "uv tool install open-interpreter",
+      "upgrade": "uv tool upgrade open-interpreter",
+      "version": "interpreter --version",
+      "check_latest": "python3 -c \"import json,urllib.request as u; print(json.load(u.urlopen('https://pypi.org/pypi/open-interpreter/json'))['info']['version'])\"",
+      "dependencies": ["uv"],
+      "risk_level": "safe"
+    },
+    "openhands.vendor_recommended": {
+      "install": "uv tool install openhands --python 3.12",
+      "upgrade": "uv tool upgrade openhands",
+      "version": "openhands --version",
+      "check_latest": "python3 -c \"import json,urllib.request as u; print(json.load(u.urlopen('https://pypi.org/pypi/openhands/json'))['info']['version'])\"",
+      "dependencies": ["uv"],
+      "risk_level": "safe"
+    },
+    "aider.vendor_recommended": {
+      "install": "uv tool install aider-chat",
+      "upgrade": "uv tool upgrade aider-chat",
+      "version": "aider --version",
+      "check_latest": "python3 -c \"import json,urllib.request as u; print(json.load(u.urlopen('https://pypi.org/pypi/aider-chat/json'))['info']['version'])\"",
+      "dependencies": ["uv"],
+      "risk_level": "safe"
+    },
+    "mistral.vendor_recommended": {
+      "install": "brew install mistral-vibe",
+      "upgrade": "brew upgrade mistral-vibe",
+      "version": "vibe --version",
+      "check_latest": "brew info mistral-vibe --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "kimi.vendor_recommended": {
+      "install": "brew install kimi-cli",
+      "upgrade": "brew upgrade kimi-cli",
+      "version": "kimi --version",
+      "check_latest": "brew info kimi-cli --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "droid.vendor_recommended": {
+      "install": "brew install --cask droid",
+      "upgrade": "brew upgrade --cask droid",
+      "version": "droid --version",
+      "check_latest": "brew info --cask droid --json | python3 -c \"import sys,json; print(json.load(sys.stdin)[0]['version'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "goose.vendor_recommended": {
+      "install": "brew install block-goose-cli",
+      "upgrade": "brew upgrade block-goose-cli",
+      "version": "goose --version",
+      "check_latest": "brew info block-goose-cli --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "roo.vendor_recommended": {
+      "install": "curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh",
+      "upgrade": "curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh",
+      "version": "roo --version",
+      "check_latest": "curl -s https://api.github.com/repos/RooCodeInc/Roo-Code/releases/latest | python3 -c \"import sys,json; print(json.load(sys.stdin)['tag_name'])\"",
+      "dependencies": ["curl"],
+      "risk_level": "dangerous"
+    },
+
+    "droid.curl": {
+      "install": "curl -fsSL https://app.factory.ai/cli | sh",
+      "upgrade": "curl -fsSL https://app.factory.ai/cli | sh",
+      "version": "droid --version",
+      "check_latest": "curl -fsSL https://app.factory.ai/cli | grep 'VER=' | head -n 1 | cut -d'\"' -f2",
+      "dependencies": ["curl"],
+      "risk_level": "dangerous"
+    },
+    "goose.curl": {
+      "install": "curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | bash",
+      "upgrade": "goose update",
+      "version": "goose --version",
+      "check_latest": "curl -s https://api.github.com/repos/block/goose/releases/latest | python3 -c \"import sys,json; print(json.load(sys.stdin)['tag_name'])\"",
+      "dependencies": ["curl"],
+      "risk_level": "dangerous"
+    },
+    "claude.curl": {
+      "install": "curl -fsSL https://claude.ai/install.sh | bash",
+      "upgrade": "claude update",
+      "version": "claude --version",
+      "check_latest": "npm info @anthropic-ai/claude-code version",
+      "dependencies": ["curl", "npm"],
+      "risk_level": "dangerous"
+    },
+    "amp.curl": {
+      "install": "curl -fsSL https://ampcode.com/install.sh | bash",
+      "upgrade": "curl -fsSL https://ampcode.com/install.sh | bash",
+      "version": "amp --version",
+      "check_latest": "npm info @sourcegraph/amp version",
+      "dependencies": ["curl", "npm"],
+      "risk_level": "dangerous"
+    },
+    "opencode.curl": {
+      "install": "curl -fsSL https://opencode.ai/install | bash",
+      "upgrade": "curl -fsSL https://opencode.ai/install | bash",
+      "version": "opencode --version",
+      "check_latest": "npm info opencode-ai version",
+      "dependencies": ["curl", "npm"],
+      "risk_level": "dangerous"
+    },
+    "roo.curl": {
+      "install": "curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh",
+      "upgrade": "curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh",
+      "version": "roo --version",
+      "check_latest": "curl -s https://api.github.com/repos/RooCodeInc/Roo-Code/releases/latest | python3 -c \"import sys,json; print(json.load(sys.stdin)['tag_name'])\"",
+      "dependencies": ["curl"],
+      "risk_level": "dangerous"
+    }
+  }
+}

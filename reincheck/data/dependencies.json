@@ -1,0 +1,45 @@
+{
+  "$comment": "Built-in dependency definitions for install methods",
+  "dependencies": {
+    "mise": {
+      "name": "mise",
+      "check_command": "which mise",
+      "install_hint": "Install from https://mise.jdx.dev"
+    },
+    "npm": {
+      "name": "npm",
+      "check_command": "which npm",
+      "install_hint": "Install Node.js from https://nodejs.org"
+    },
+    "curl": {
+      "name": "curl",
+      "check_command": "which curl",
+      "install_hint": "Install via system package manager"
+    },
+    "jq": {
+      "name": "jq",
+      "check_command": "which jq",
+      "install_hint": "Install via system package manager"
+    },
+    "uv": {
+      "name": "uv",
+      "check_command": "which uv",
+      "install_hint": "Install from https://docs.astral.sh/uv/"
+    },
+    "brew": {
+      "name": "brew",
+      "check_command": "which brew",
+      "install_hint": "Install from https://brew.sh"
+    },
+    "pipx": {
+      "name": "pipx",
+      "check_command": "which pipx",
+      "install_hint": "Install with: pip install pipx"
+    },
+    "python": {
+      "name": "python",
+      "check_command": "which python3",
+      "install_hint": "Install Python 3.10+ from https://python.org"
+    }
+  }
+}

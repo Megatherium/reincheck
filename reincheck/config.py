@@ -8,10 +8,11 @@ from pathlib import Path
 
 class ConfigError(Exception):
     """Raised when config loading or parsing fails.
-    
+
     Provides detailed error messages including line numbers,
     column positions, and caret indicators for syntax errors.
     """
+
     pass
 
 
@@ -32,6 +33,7 @@ def is_command_safe(command: str) -> bool:
 @dataclass
 class AgentConfig:
     """Configuration for a single AI agent."""
+
     name: str
     description: str
     install_command: str
@@ -52,7 +54,9 @@ class AgentConfig:
             raise ValueError("install_command must be a non-empty string")
         if not self.version_command or not isinstance(self.version_command, str):
             raise ValueError("version_command must be a non-empty string")
-        if not self.check_latest_command or not isinstance(self.check_latest_command, str):
+        if not self.check_latest_command or not isinstance(
+            self.check_latest_command, str
+        ):
             raise ValueError("check_latest_command must be a non-empty string")
         if not self.upgrade_command or not isinstance(self.upgrade_command, str):
             raise ValueError("upgrade_command must be a non-empty string")
@@ -73,6 +77,7 @@ class AgentConfig:
 @dataclass
 class Config:
     """Root configuration containing all agents."""
+
     agents: list[AgentConfig] = field(default_factory=list)
 
     def __post_init__(self):
@@ -85,37 +90,42 @@ class Config:
 
 def validate_config(data: dict) -> Config:
     """Validate and convert raw dict to Config dataclass.
-    
+
     Args:
         data: Raw dict from json.loads() containing config data
-        
+
     Returns:
         Config object with validated AgentConfig instances
-        
+
     Raises:
         ConfigError: If validation fails with clear field path errors
     """
     if not isinstance(data, dict):
         raise ConfigError(f"Config must be a JSON object, got {type(data).__name__}")
-    
+
     if "agents" not in data:
         raise ConfigError("Missing required field: agents")
-    
+
     agents_data = data["agents"]
     if not isinstance(agents_data, list):
         raise ConfigError(f"agents must be a list, got {type(agents_data).__name__}")
-    
+
     agents = []
     for i, agent_data in enumerate(agents_data):
         if not isinstance(agent_data, dict):
-            raise ConfigError(f"agents[{i}] must be an object, got {type(agent_data).__name__}")
-        
+            raise ConfigError(
+                f"agents[{i}] must be an object, got {type(agent_data).__name__}"
+            )
+
         # Required fields
         required_fields = [
-            "name", "description", "install_command",
-            "version_command", "check_latest_command", "upgrade_command"
+            "name",
+            "install_command",
+            "version_command",
+            "check_latest_command",
+            "upgrade_command",
         ]
-        
+
         for field_name in required_fields:
             if field_name not in agent_data:
                 raise ConfigError(f"agents[{i}].{field_name} is required")
@@ -124,7 +134,7 @@ def validate_config(data: dict) -> Config:
                     f"agents[{i}].{field_name} must be a string, "
                     f"got {type(agent_data[field_name]).__name__}"
                 )
-        
+
         # Optional fields - must be string or None
         optional_fields = ["latest_version", "github_repo", "release_notes_url"]
         for field_name in optional_fields:
@@ -134,12 +144,12 @@ def validate_config(data: dict) -> Config:
                     f"agents[{i}].{field_name} must be a string or null, "
                     f"got {type(value).__name__}"
                 )
-        
+
         # Create AgentConfig with validation
         try:
             agent = AgentConfig(
                 name=agent_data["name"],
-                description=agent_data["description"],
+                description=agent_data.get("description", "AI Agent"),
                 install_command=agent_data["install_command"],
                 version_command=agent_data["version_command"],
                 check_latest_command=agent_data["check_latest_command"],
@@ -151,7 +161,7 @@ def validate_config(data: dict) -> Config:
             agents.append(agent)
         except ValueError as e:
             raise ConfigError(f"agents[{i}]: {e}")
-    
+
     return Config(agents=agents)
 
 
@@ -278,49 +288,47 @@ def preprocess_jsonish(text: str) -> str:
 
 def _format_syntax_error(original_text: str, error: json.JSONDecodeError) -> str:
     """Format a JSON syntax error with line, caret, and context.
-    
+
     Args:
         original_text: The original text before preprocessing
         error: The JSONDecodeError raised by json.loads()
-        
+
     Returns:
         A formatted error message string
     """
-    lines = original_text.split('\n')
+    lines = original_text.split("\n")
     line_num = error.lineno
     col_num = error.colno
-    
+
     # Build the message
-    msg_parts = [
-        f"Config syntax error at line {line_num}, col {col_num}: {error.msg}"
-    ]
-    
+    msg_parts = [f"Config syntax error at line {line_num}, col {col_num}: {error.msg}"]
+
     # Add the offending line if it exists
     if 1 <= line_num <= len(lines):
         offending_line = lines[line_num - 1]
         msg_parts.append(offending_line)
-        
+
         # Build caret (handle tabs by counting them as single chars)
         caret_pos = col_num - 1  # Convert to 0-indexed
-        caret = ' ' * caret_pos + '^'
+        caret = " " * caret_pos + "^"
         msg_parts.append(caret)
-    
-    return '\n'.join(msg_parts)
+
+    return "\n".join(msg_parts)
 
 
 def load_config(path_or_text: Path | str) -> dict:
     """Load and parse a JSON config file.
-    
+
     Accepts either a file path or raw text. The input can be 'JSON-ish':
     trailing commas and // line comments are tolerated.
-    
+
     Args:
         path_or_text: Either a Path to a JSON file, or a string containing
             JSON or JSON-ish text
-            
+
     Returns:
         A dict containing the parsed config data
-        
+
     Raises:
         ConfigError: If the file cannot be read or contains syntax errors.
         TypeError: If path_or_text is neither Path nor str.
@@ -329,7 +337,7 @@ def load_config(path_or_text: Path | str) -> dict:
     if isinstance(path_or_text, Path):
         file_path = path_or_text
         try:
-            original_text = file_path.read_text(encoding='utf-8')
+            original_text = file_path.read_text(encoding="utf-8")
         except FileNotFoundError:
             raise ConfigError(f"Config file not found: {file_path}")
         except PermissionError:
@@ -341,11 +349,13 @@ def load_config(path_or_text: Path | str) -> dict:
     elif isinstance(path_or_text, str):
         original_text = path_or_text
     else:
-        raise TypeError(f"path_or_text must be Path or str, got {type(path_or_text).__name__}")
-    
+        raise TypeError(
+            f"path_or_text must be Path or str, got {type(path_or_text).__name__}"
+        )
+
     # Preprocess to handle trailing commas and comments
     preprocessed = preprocess_jsonish(original_text)
-    
+
     # Parse the JSON
     try:
         result = json.loads(preprocessed)
@@ -353,20 +363,20 @@ def load_config(path_or_text: Path | str) -> dict:
         # Re-raise with friendly error message
         error_msg = _format_syntax_error(original_text, e)
         raise ConfigError(error_msg) from e
-    
+
     # Validate that we got a dict (not a list, string, etc.)
     if not isinstance(result, dict):
         raise ConfigError(f"Config must be a JSON object, got {type(result).__name__}")
-    
+
     return result
 
 
 __all__ = [
-    'ConfigError',
-    'AgentConfig',
-    'Config',
-    'validate_config',
-    'is_command_safe',
-    'preprocess_jsonish',
-    'load_config',
+    "ConfigError",
+    "AgentConfig",
+    "Config",
+    "validate_config",
+    "is_command_safe",
+    "preprocess_jsonish",
+    "load_config",
 ]

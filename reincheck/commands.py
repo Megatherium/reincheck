@@ -52,13 +52,13 @@ def filter_agent_by_name(agents: list[AgentConfig], name: str) -> list[AgentConf
 
 def validate_pager(pager_cmd: str) -> str:
     """Validate pager command against whitelist for security.
-    
+
     Args:
         pager_cmd: Pager command from environment variable or default
-        
+
     Returns:
         The validated pager command
-        
+
     Raises:
         ValueError: If pager command is not in the allowed list
     """
@@ -70,7 +70,7 @@ def validate_pager(pager_cmd: str) -> str:
         "most",
         "pager",
     }
-    
+
     # Handle absolute paths - extract base command
     if os.path.isabs(pager_cmd):
         base_cmd = os.path.basename(pager_cmd)
@@ -80,11 +80,11 @@ def validate_pager(pager_cmd: str) -> str:
             f"Unsafe pager: '{pager_cmd}'. "
             f"Allowed commands: {', '.join(sorted(SAFE_PAGERS))}"
         )
-    
+
     # Handle relative/bare commands
     if pager_cmd in SAFE_PAGERS:
         return pager_cmd
-    
+
     raise ValueError(
         f"Unsafe pager: '{pager_cmd}'. "
         f"Allowed commands: {', '.join(sorted(SAFE_PAGERS))}"
@@ -188,6 +188,7 @@ def update(ctx, agent: str | None, quiet: bool):
 
 async def run_update(agent: str | None, quiet: bool, debug: bool):
     from . import setup_logging, get_latest_version
+
     setup_logging(debug)
     config = load_config()
     agents = config.agents
@@ -207,7 +208,9 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
         effective = get_effective_method_from_config(agent_config)
 
         if debug:
-            _logging.debug(f"Checking {agent_config.name} with command: {effective.check_latest_command}")
+            _logging.debug(
+                f"Checking {agent_config.name} with command: {effective.check_latest_command}"
+            )
 
         check_config = effective.to_agent_config()
         check_config.latest_version = agent_config.latest_version
@@ -261,6 +264,7 @@ def upgrade(ctx, agent: str | None, dry_run: bool, timeout: int):
 async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: bool):
     from . import setup_logging
     from .adapter import get_effective_method_from_config
+
     setup_logging(debug)
     config = load_config()
     agents = config.agents
@@ -298,23 +302,24 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: boo
         for agent_config in upgradeable_agents:
             current, status = await get_current_version(agent_config)
             latest = agent_config.latest_version
-            click.echo(f"  {agent_config.name}: {current} → {latest}")
+            effective = get_effective_method_from_config(agent_config)
+            click.echo(f"  {effective.name}: {current} → {latest}")
         return
 
     click.echo(f"Upgrading {len(upgradeable_agents)} agents...")
 
     async def perform_upgrade(agent_config: AgentConfig) -> tuple[str, int, str]:
-        effective_method = get_effective_method_from_config(agent_config)
-        upgrade_command = effective_method.upgrade_command
+        effective = get_effective_method_from_config(agent_config)
+        upgrade_command = effective.upgrade_command
         if upgrade_command:
-            click.echo(f"Upgrading {effective_method.name}...")
+            click.echo(f"Upgrading {effective.name}...")
             if debug:
                 _logging.debug(f"  Running: {upgrade_command}")
             output, returncode = await run_command_async(
                 upgrade_command, timeout=timeout, debug=debug
             )
-            return effective_method.name, returncode, output
-        return agent_config.name, 1, "No upgrade command configured"
+            return effective.name, returncode, output
+        return effective.name, 1, "No upgrade command configured"
 
     upgrade_results = await asyncio.gather(
         *[perform_upgrade(a) for a in upgradeable_agents]
@@ -356,6 +361,7 @@ def install(ctx, agent_name: str, force: bool, timeout: int):
 
 async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
     from . import setup_logging
+
     setup_logging(debug)
     config = load_config()
     agents = config.agents
@@ -383,7 +389,9 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
     click.echo(f"Installing {agent_name}...")
     if debug:
         _logging.debug(f"  Running: {install_command}")
-    output, returncode = await run_command_async(install_command, timeout=timeout, debug=debug)
+    output, returncode = await run_command_async(
+        install_command, timeout=timeout, debug=debug
+    )
 
     if returncode == 0:
         click.echo(f"✅ {agent_name} installed successfully")
@@ -411,6 +419,7 @@ def list_agents(ctx):
 
 async def run_list_agents(debug: bool):
     from . import setup_logging
+
     setup_logging(debug)
     config = load_config()
     agents = config.agents
@@ -431,6 +440,7 @@ async def run_list_agents(debug: bool):
 
 async def run_release_notes(agent: str | None, debug: bool):
     from . import setup_logging
+
     setup_logging(debug)
     config = load_config()
     agents = config.agents
@@ -460,7 +470,7 @@ async def run_release_notes(agent: str | None, debug: bool):
     results = await asyncio.gather(*tasks)
 
     raw_pager = os.environ.get("REINCHECK_RN_PAGER", "cat")
-    
+
     try:
         pager_cmd = validate_pager(raw_pager)
     except ValueError as e:
@@ -543,7 +553,9 @@ def _validate_setup_options(
     # --list-presets is standalone
     if list_presets:
         if any([preset, override, harness, dry_run, apply]):
-            raise click.BadArgumentUsage("--list-presets cannot be used with other options")
+            raise click.BadArgumentUsage(
+                "--list-presets cannot be used with other options"
+            )
         return
 
     if preset is None:
@@ -572,8 +584,7 @@ def _validate_setup_options(
         if h != "ALL" and h not in available:
             available_names = ", ".join(sorted(available.keys()))
             raise click.BadOptionUsage(
-                "--harness",
-                f"Unknown harness '{h}'. Available: {available_names}"
+                "--harness", f"Unknown harness '{h}'. Available: {available_names}"
             )
 
 
@@ -593,8 +604,7 @@ def _parse_overrides(override_options: tuple[str, ...]) -> dict[str, str]:
     for opt in override_options:
         if "=" not in opt:
             raise click.BadOptionUsage(
-                "--override",
-                f"Invalid override format: '{opt}'. Use harness=method"
+                "--override", f"Invalid override format: '{opt}'. Use harness=method"
             )
         harness, method = opt.split("=", 1)
         harness = harness.strip()
@@ -602,7 +612,7 @@ def _parse_overrides(override_options: tuple[str, ...]) -> dict[str, str]:
         if not harness or not method:
             raise click.BadOptionUsage(
                 "--override",
-                f"Invalid override format: '{opt}'. Both harness and method must be non-empty"
+                f"Invalid override format: '{opt}'. Both harness and method must be non-empty",
             )
         overrides[harness] = method
     return overrides
@@ -618,6 +628,7 @@ def _list_presets_with_status(debug: bool = False) -> None:
     from reincheck.installer import get_dependency_report
 
     from reincheck import setup_logging
+
     setup_logging(debug)
 
     presets = get_presets()
@@ -628,19 +639,14 @@ def _list_presets_with_status(debug: bool = False) -> None:
     click.echo("")
 
     # Sort presets by priority field if available, otherwise by name
-    sorted_presets = sorted(
-        presets.values(),
-        key=lambda p: (p.priority, p.name)
-    )
+    sorted_presets = sorted(presets.values(), key=lambda p: (p.priority, p.name))
 
     for preset in sorted_presets:
         status = report.preset_statuses.get(preset.name)
         if status:
-            status_icon = {
-                "green": "✅",
-                "partial": "⚠️ ",
-                "red": "❌"
-            }.get(status.value, "❓")
+            status_icon = {"green": "✅", "partial": "⚠️ ", "red": "❌"}.get(
+                status.value, "❓"
+            )
             click.echo(f"{status_icon} {preset.name:12s} - {preset.description}")
 
     click.echo("")
@@ -648,6 +654,7 @@ def _list_presets_with_status(debug: bool = False) -> None:
         click.echo("Missing dependencies:")
         for dep in report.missing_deps:
             from reincheck.installer import get_dependency
+
             dep_obj = get_dependency(dep)
             hint = dep_obj.install_hint if dep_obj else "Unknown"
             click.echo(f"  • {dep}: {hint}")
@@ -683,6 +690,7 @@ def _resolve_all_methods(
             if harness_name in available_harnesses:
                 # Build a minimal preset for resolution
                 from reincheck.installer import Preset as InstallerPreset
+
                 temp_preset = InstallerPreset(
                     name="custom",
                     strategy="custom",
@@ -694,7 +702,10 @@ def _resolve_all_methods(
                         temp_preset, harness_name, methods, overrides
                     )
                 except ValueError as e:
-                    click.echo(f"Warning: Could not resolve method for {harness_name}: {e}", err=True)
+                    click.echo(
+                        f"Warning: Could not resolve method for {harness_name}: {e}",
+                        err=True,
+                    )
     else:
         # For named presets, include all harnesses in preset plus overrides
         for harness_name in preset.methods.keys():
@@ -704,7 +715,10 @@ def _resolve_all_methods(
                         preset, harness_name, methods, overrides
                     )
                 except ValueError as e:
-                    click.echo(f"Warning: Could not resolve method for {harness_name}: {e}", err=True)
+                    click.echo(
+                        f"Warning: Could not resolve method for {harness_name}: {e}",
+                        err=True,
+                    )
 
     return resolved
 
@@ -764,9 +778,7 @@ def _write_agent_config(agent_configs: list[dict], config_path: Path) -> None:
         # Atomic rename
         temp_path.replace(config_path)
     except (IOError, OSError) as e:
-        raise ConfigError(
-            f"Failed to write config to {config_path}: {e}"
-        )
+        raise ConfigError(f"Failed to write config to {config_path}: {e}")
 
 
 def _get_harnesses_to_install(
@@ -839,7 +851,9 @@ async def _execute_installation_with_progress(
     if len(harness_names) <= 5:
         harness_list = ", ".join(harness_names)
     else:
-        harness_list = ", ".join(harness_names[:5]) + f", ... ({len(harness_names)} total)"
+        harness_list = (
+            ", ".join(harness_names[:5]) + f", ... ({len(harness_names)} total)"
+        )
 
     click.echo("\nInstallation plan:")
     click.echo(f"  Installing {len(plan.steps)} harness(es)")
@@ -859,14 +873,16 @@ async def _execute_installation_with_progress(
         label="",
         show_pos=True,
         show_eta=True,
-        item_show_func=lambda item: f" {item.harness}" if item else ""
+        item_show_func=lambda item: f" {item.harness}" if item else "",
     ) as bar:
         for step in bar:
             # Dangerous command confirmation
             if step.risk_level == RiskLevel.DANGEROUS and not skip_confirmation:
                 click.echo(f"\n⚠️  DANGEROUS: About to run curl|sh for {step.harness}")
                 click.echo(f"   Command: {step.command}")
-                if not click.confirm("Execute this command? (review carefully)", default=False):
+                if not click.confirm(
+                    "Execute this command? (review carefully)", default=False
+                ):
                     results.append(StepResult(step.harness, "skipped", "User declined"))
                     continue
 
@@ -895,12 +911,17 @@ async def _execute_installation_with_progress(
 @cli.command()
 @click.option("--list-presets", is_flag=True, help="List available presets")
 @click.option("--preset", type=str, help="Preset to generate config from")
-@click.option("--override", type=str, multiple=True, help="Override install method: harness=method (e.g., cline=language_native)")
+@click.option(
+    "--override",
+    type=str,
+    multiple=True,
+    help="Override install method: harness=method (e.g., cline=language_native)",
+)
 @click.option(
     "--harness",
     type=str,
     multiple=True,
-    help="Harness to install (repeatable, use ALL for all)"
+    help="Harness to install (repeatable, use ALL for all)",
 )
 @click.option("--dry-run", is_flag=True, help="Preview changes")
 @click.option("--apply", is_flag=True, help="Execute installation")
@@ -927,7 +948,9 @@ def setup(
     setup_logging(debug)
 
     # Validate options
-    _validate_setup_options(list_presets, preset, override, harness, dry_run, apply, yes)
+    _validate_setup_options(
+        list_presets, preset, override, harness, dry_run, apply, yes
+    )
 
     # List presets
     if list_presets:
@@ -970,6 +993,7 @@ def setup(
     # For custom preset, create a temporary preset object for resolution
     if preset == "custom":
         from reincheck.installer import Preset as InstallerPreset
+
         selected_preset = InstallerPreset(
             name="custom",
             strategy="custom",
@@ -1009,7 +1033,11 @@ def setup(
         # Show installation plan if harnesses specified
         if harness:
             harnesses_to_install = _get_harnesses_to_install(
-                selected_preset, harness, overrides, available_harnesses, resolved_methods
+                selected_preset,
+                harness,
+                overrides,
+                available_harnesses,
+                resolved_methods,
             )
 
             if harnesses_to_install:
@@ -1043,7 +1071,9 @@ def setup(
         if len(harness_list) <= 60:
             click.echo(f"  {harness_list}")
         else:
-            click.echo(f"  {', '.join(c['name'] for c in agent_configs[:5])}, ... ({len(agent_configs)} total)")
+            click.echo(
+                f"  {', '.join(c['name'] for c in agent_configs[:5])}, ... ({len(agent_configs)} total)"
+            )
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(EXIT_CONFIG_ERROR)
@@ -1056,12 +1086,16 @@ def setup(
 
         if not harnesses_to_install:
             click.echo("")
-            click.echo("No harnesses selected for installation (use --harness and --apply to install)")
+            click.echo(
+                "No harnesses selected for installation (use --harness and --apply to install)"
+            )
             return
 
         # Generate installation plan
         try:
-            plan = plan_install(selected_preset, harnesses_to_install, all_methods, overrides)
+            plan = plan_install(
+                selected_preset, harnesses_to_install, all_methods, overrides
+            )
         except Exception as e:
             click.echo(f"Error generating installation plan: {e}", err=True)
             sys.exit(EXIT_CONFIG_ERROR)
@@ -1071,18 +1105,23 @@ def setup(
             click.echo("")
             click.echo("⚠️  Missing dependencies:")
             from reincheck.installer import get_dependency
+
             for dep in plan.unsatisfied_deps:
                 dep_obj = get_dependency(dep)
                 hint = dep_obj.install_hint if dep_obj else "Unknown"
                 click.echo(f"  • {dep}: {hint}")
             click.echo("")
-            if not click.confirm("Dependencies missing. Continue anyway?", default=False):
+            if not click.confirm(
+                "Dependencies missing. Continue anyway?", default=False
+            ):
                 click.echo("Installation cancelled.")
                 sys.exit(EXIT_SUCCESS)
 
         # Execute installation
         try:
-            results = asyncio.run(_execute_installation_with_progress(plan, yes, verbose, debug))
+            results = asyncio.run(
+                _execute_installation_with_progress(plan, yes, verbose, debug)
+            )
         except Exception as e:
             click.echo(f"\nError during installation: {e}", err=True)
             sys.exit(EXIT_INSTALL_FAILED)
@@ -1101,12 +1140,15 @@ def setup(
             click.echo(f"✅ Installation complete ({len(successful)}/{len(results)})")
     else:
         click.echo("")
-        click.echo("No harnesses selected for installation (use --harness and --apply to install)")
+        click.echo(
+            "No harnesses selected for installation (use --harness and --apply to install)"
+        )
 
 
 # ============================================================================
 # Config commands
 # ============================================================================
+
 
 @cli.group()
 def config():
@@ -1117,19 +1159,20 @@ def config():
 @config.command(name="fmt")
 @click.argument("file", required=False, type=click.Path())
 @click.option(
-    "--write", "-w",
+    "--write",
+    "-w",
     is_flag=True,
-    help="Overwrite the file instead of printing to stdout"
+    help="Overwrite the file instead of printing to stdout",
 )
 @click.pass_context
 def config_fmt(ctx, file: str | None, write: bool):
     """Format a config file (accepts trailing commas and // comments).
-    
+
     Reads a JSON config file, parses it with tolerant parsing (accepting
     trailing commas and // comments), and outputs strict JSON.
-    
+
     Note: Comments are accepted on input but not preserved after formatting.
-    
+
     FILE: Path to config file (default: ~/.config/reincheck/agents.json)
     """
     # Determine the file path
@@ -1137,12 +1180,12 @@ def config_fmt(ctx, file: str | None, write: bool):
         file_path = get_config_path(create=False)
     else:
         file_path = Path(file)
-    
+
     # Check if file exists
     if not file_path.exists():
         click.echo(f"Error: File not found: {file_path}", err=True)
         sys.exit(1)
-    
+
     try:
         # Load with tolerant parser (accepts trailing commas, // comments)
         data = load_config_raw(file_path)
@@ -1152,10 +1195,10 @@ def config_fmt(ctx, file: str | None, write: bool):
     except Exception as e:
         click.echo(f"Error reading config: {e}", err=True)
         sys.exit(1)
-    
+
     # Output strict JSON
     formatted = json.dumps(data, indent=2, sort_keys=False)
-    
+
     if write:
         # Create parent directories if needed
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1179,9 +1222,10 @@ def config_fmt(ctx, file: str | None, write: bool):
 
 @config.command(name="init")
 @click.option(
-    "--force", "-f",
+    "--force",
+    "-f",
     is_flag=True,
-    help="Force re-initialization, overwriting existing config"
+    help="Force re-initialization, overwriting existing config",
 )
 @click.pass_context
 def config_init(ctx, force: bool):
@@ -1211,7 +1255,12 @@ def config_init(ctx, force: bool):
         # If force mode, directly create from defaults or migrate
         # If normal mode (config doesn't exist), let ensure_user_config handle it
         if force:
-            from reincheck import get_config_dir, get_packaged_config_path, migrate_yaml_to_json
+            from reincheck import (
+                get_config_dir,
+                get_packaged_config_path,
+                migrate_yaml_to_json,
+            )
+
             config_dir = get_config_dir()
             yaml_path = config_dir / "agents.yaml"
             project_yaml = Path(__file__).parent.parent / "reincheck" / "agents.yaml"
@@ -1235,6 +1284,7 @@ def config_init(ctx, force: bool):
                     config_path.write_text('{"agents": []}\n')
         else:
             from reincheck import ensure_user_config
+
             ensure_user_config(config_path)
 
         click.echo("✅ Config initialized successfully")

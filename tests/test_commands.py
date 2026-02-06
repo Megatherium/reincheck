@@ -1,12 +1,8 @@
 import pytest
 from click.testing import CliRunner
 from pathlib import Path
-import os
 import json
 from reincheck.commands import validate_pager, cli
-from reincheck.config import AgentConfig, Config
-from reincheck.adapter import EffectiveMethod
-from reincheck.installer import Harness, InstallMethod, RiskLevel
 
 
 @pytest.fixture
@@ -69,7 +65,7 @@ class TestConfigFmt:
     def test_fmt_stdout_with_comments_and_trailing_commas(self, runner):
         """Test that fmt outputs strict JSON, stripping comments and trailing commas."""
         # Create a file with comments and trailing commas
-        json_with_comments = '''{
+        json_with_comments = """{
             // This is a comment
             "agents": [
                 {
@@ -82,14 +78,14 @@ class TestConfigFmt:
                     "latest_version": "1.0.0", // trailing comma
                 },
             ],
-        }'''
-        
+        }"""
+
         with runner.isolated_filesystem() as tmpdir:
             config_file = Path(tmpdir) / "test.json"
             config_file.write_text(json_with_comments)
-            
+
             result = runner.invoke(cli, ["config", "fmt", str(config_file)])
-            
+
             assert result.exit_code == 0
             # Comments should be stripped
             assert "//" not in result.output
@@ -103,21 +99,21 @@ class TestConfigFmt:
     def test_fmt_write_flag(self):
         """Test that --write flag overwrites the file."""
         runner = CliRunner()
-        
-        json_with_comments = '''{
+
+        json_with_comments = """{
             // Comment to be removed
             "agents": [],
-        }'''
-        
+        }"""
+
         with runner.isolated_filesystem() as tmpdir:
             config_file = Path(tmpdir) / "test.json"
             config_file.write_text(json_with_comments)
-            
+
             result = runner.invoke(cli, ["config", "fmt", str(config_file), "--write"])
-            
+
             assert result.exit_code == 0
             assert "Formatted" in result.output
-            
+
             # File should now contain strict JSON
             content = config_file.read_text()
             assert "//" not in content
@@ -126,41 +122,43 @@ class TestConfigFmt:
     def test_fmt_file_not_found(self):
         """Test error handling when file doesn't exist."""
         runner = CliRunner()
-        
-        result = runner.invoke(cli, ["config", "fmt", "/nonexistent/path/config.json"])
-        
+
+        result = runner.invoke(
+            cli, ["config", "fmt", "/nonexistent/path/config.json"]
+        )
+
         assert result.exit_code == 1
         assert "File not found" in result.output
 
     def test_fmt_invalid_json(self):
         """Test error handling for invalid JSON."""
         runner = CliRunner()
-        
+
         with runner.isolated_filesystem() as tmpdir:
             config_file = Path(tmpdir) / "bad.json"
             config_file.write_text('{"invalid json')
-            
+
             result = runner.invoke(cli, ["config", "fmt", str(config_file)])
-            
+
             assert result.exit_code == 1
             assert "Config syntax error" in result.output or "Error" in result.output
 
     def test_fmt_preserves_key_order(self):
         """Test that fmt preserves key order (sort_keys=False)."""
         runner = CliRunner()
-        
-        json_ordered = '''{
+
+        json_ordered = """{
             "z_last": 1,
             "a_first": 2,
             "m_middle": 3
-        }'''
-        
+        }"""
+
         with runner.isolated_filesystem() as tmpdir:
             config_file = Path(tmpdir) / "test.json"
             config_file.write_text(json_ordered)
-            
+
             result = runner.invoke(cli, ["config", "fmt", str(config_file)])
-            
+
             assert result.exit_code == 0
             # Check that z_last comes before a_first in output (preserves input order)
             z_pos = result.output.find('"z_last"')
@@ -170,46 +168,46 @@ class TestConfigFmt:
     def test_fmt_write_adds_trailing_newline(self):
         """Test that --write adds trailing newline."""
         runner = CliRunner()
-        
+
         json_content = '{"agents": []}'
-        
+
         with runner.isolated_filesystem() as tmpdir:
             config_file = Path(tmpdir) / "test.json"
             config_file.write_text(json_content)
-            
+
             result = runner.invoke(cli, ["config", "fmt", str(config_file), "--write"])
-            
+
             assert result.exit_code == 0
             content = config_file.read_text()
             # File should end with newline
-            assert content.endswith('\n'), "File should end with trailing newline"
+            assert content.endswith("\n"), "File should end with trailing newline"
 
     def test_fmt_default_path_not_found(self):
         """Test that default path shows error when file doesn't exist."""
         runner = CliRunner()
-        
+
         # Override HOME to a temp directory so default path doesn't exist
         with runner.isolated_filesystem() as tmpdir:
             env = {"HOME": str(tmpdir)}
             result = runner.invoke(cli, ["config", "fmt"], env=env)
-            
+
             assert result.exit_code == 1
             assert ".config/reincheck/agents.json" in result.output
 
     def test_fmt_default_path_success(self):
         """Test that default path works when file exists."""
         runner = CliRunner()
-        
+
         with runner.isolated_filesystem() as tmpdir:
             # Create the default config path
             config_dir = Path(tmpdir) / ".config" / "reincheck"
             config_dir.mkdir(parents=True)
             config_file = config_dir / "agents.json"
             config_file.write_text('{"agents": []}')
-            
+
             env = {"HOME": str(tmpdir)}
             result = runner.invoke(cli, ["config", "fmt"], env=env)
-            
+
             assert result.exit_code == 0
             assert '"agents": []' in result.output
 
@@ -278,7 +276,9 @@ class TestSetupCommand:
 
     def test_setup_list_presets_standalone(self, runner):
         """Test that --list-presets cannot be combined with other options."""
-        result = runner.invoke(cli, ["setup", "--list-presets", "--preset", "mise_binary"])
+        result = runner.invoke(
+            cli, ["setup", "--list-presets", "--preset", "mise_binary"]
+        )
         assert result.exit_code != 0
         assert "--list-presets cannot be used" in result.output
 
@@ -308,7 +308,9 @@ class TestSetupCommand:
 
     def test_setup_invalid_harness(self, runner):
         """Test error for invalid harness name."""
-        result = runner.invoke(cli, ["setup", "--preset", "mise_binary", "--harness", "nonexistent"])
+        result = runner.invoke(
+            cli, ["setup", "--preset", "mise_binary", "--harness", "nonexistent"]
+        )
         assert result.exit_code != 0
         assert "Unknown harness" in result.output
 
@@ -322,7 +324,19 @@ class TestSetupCommand:
 
     def test_setup_dry_run_with_harnesses(self, runner):
         """Test --dry-run with --harness shows installation plan."""
-        result = runner.invoke(cli, ["setup", "--preset", "mise_binary", "--harness", "claude", "--harness", "cline", "--dry-run"])
+        result = runner.invoke(
+            cli,
+            [
+                "setup",
+                "--preset",
+                "mise_binary",
+                "--harness",
+                "claude",
+                "--harness",
+                "cline",
+                "--dry-run",
+            ],
+        )
         assert result.exit_code == 0
         assert "[DRY-RUN]" in result.output
         assert "Would install harnesses:" in result.output
@@ -361,7 +375,17 @@ class TestSetupCommand:
             # Mock get_config_dir to return tmpdir
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
-            result = runner.invoke(cli, ["setup", "--preset", "custom", "--override", "claude=language_native", "--yes"])
+            result = runner.invoke(
+                cli,
+                [
+                    "setup",
+                    "--preset",
+                    "custom",
+                    "--override",
+                    "claude=language_native",
+                    "--yes",
+                ],
+            )
             assert result.exit_code == 0
             assert "Configured" in result.output
 
@@ -376,13 +400,376 @@ class TestSetupCommand:
 
     def test_setup_invalid_override_format(self, runner):
         """Test error for malformed --override argument."""
-        result = runner.invoke(cli, ["setup", "--preset", "custom", "--override", "invalid"])
+        result = runner.invoke(
+            cli, ["setup", "--preset", "custom", "--override", "invalid"]
+        )
         assert result.exit_code != 0
         assert "Invalid override format" in result.output
 
 
 class TestUpgradeCommand:
     """Tests for upgrade command behavior."""
+
+    def test_upgrade_uses_adapter_layer(self, runner, monkeypatch):
+        """Test that upgrade command uses adapter layer for upgrade command."""
+        import logging
+
+        # Reset logging
+        _logging = logging.getLogger("reincheck")
+        _logging.handlers.clear()
+        _logging.setLevel(logging.DEBUG)
+
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config with agent that needs upgrade
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "Test agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 2.0.0",
+                        "upgrade_command": "echo upgrade",
+                        "latest_version": "2.0.0",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+
+            # Mock get_config_dir to return tmpdir
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Import original adapter before patching
+            from reincheck.adapter import get_effective_method_from_config
+
+            original_adapter = get_effective_method_from_config
+
+            # Track if adapter was called
+            adapter_called = {"count": 0}
+
+            def mock_adapter(config):
+                adapter_called["count"] += 1
+                return original_adapter(config)
+
+            # Mock get_current_version to return lower version
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            # Mock run_command_async for upgrade
+            async def mock_run_command_async(command, **kwargs):
+                return "upgraded successfully", 0
+
+            monkeypatch.setattr(
+                "reincheck.commands.run_command_async", mock_run_command_async
+            )
+
+            # Patch the adapter at the source module
+            monkeypatch.setattr(
+                "reincheck.adapter.get_effective_method_from_config", mock_adapter
+            )
+
+            result = runner.invoke(cli, ["upgrade"])
+
+            assert result.exit_code == 0
+            assert adapter_called["count"] > 0, "Adapter should have been called"
+            assert "✅ test-agent upgraded successfully" in result.output
+
+    def test_upgrade_dry_run(self, runner, monkeypatch):
+        """Test that dry-run mode shows what would be upgraded without executing."""
+
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config with multiple agents
+            test_config = {
+                "agents": [
+                    {
+                        "name": "agent-a",
+                        "description": "Agent A",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 2.0.0",
+                        "upgrade_command": "echo upgrade-a",
+                        "latest_version": "2.0.0",
+                    },
+                    {
+                        "name": "agent-b",
+                        "description": "Agent B",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.5.0",
+                        "check_latest_command": "echo 3.0.0",
+                        "upgrade_command": "echo upgrade-b",
+                        "latest_version": "3.0.0",
+                    },
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+
+            # Mock get_config_dir to return tmpdir
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return lower versions
+            async def mock_get_current_version(agent_config):
+                if agent_config.name == "agent-a":
+                    return "1.0.0", "success"
+                return "1.5.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["upgrade", "--dry-run"])
+
+            assert result.exit_code == 0
+            assert "The following upgrades would be performed:" in result.output
+            assert "agent-a: 1.0.0 → 2.0.0" in result.output
+            assert "agent-b: 1.5.0 → 3.0.0" in result.output
+
+    def test_upgrade_specific_agent(self, runner, monkeypatch):
+        """Test that --agent flag upgrades only specified agent."""
+
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config with multiple agents
+            test_config = {
+                "agents": [
+                    {
+                        "name": "agent-a",
+                        "description": "Agent A",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 2.0.0",
+                        "upgrade_command": "echo upgrade-a",
+                        "latest_version": "2.0.0",
+                    },
+                    {
+                        "name": "agent-b",
+                        "description": "Agent B",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.5.0",
+                        "check_latest_command": "echo 3.0.0",
+                        "upgrade_command": "echo upgrade-b",
+                        "latest_version": "3.0.0",
+                    },
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+
+            # Mock get_config_dir to return tmpdir
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return lower versions
+            async def mock_get_current_version(agent_config):
+                if agent_config.name == "agent-a":
+                    return "1.0.0", "success"
+                return "1.5.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            # Track which upgrade commands were executed
+            executed_upgrades = []
+
+            async def mock_run_command_async(command, **kwargs):
+                executed_upgrades.append(command)
+                return "upgraded", 0
+
+            monkeypatch.setattr(
+                "reincheck.commands.run_command_async", mock_run_command_async
+            )
+
+            result = runner.invoke(cli, ["upgrade", "--agent", "agent-a"])
+
+            assert result.exit_code == 0
+            assert len(executed_upgrades) == 1
+            assert "echo upgrade-a" in executed_upgrades[0]
+            assert "✅ agent-a upgraded successfully" in result.output
+
+    def test_upgrade_no_updates_available(self, runner, monkeypatch):
+        """Test that upgrade reports no updates when all agents are current."""
+
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config with agents already at latest version
+            test_config = {
+                "agents": [
+                    {
+                        "name": "current-agent",
+                        "description": "Current agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 2.0.0",
+                        "check_latest_command": "echo 2.0.0",
+                        "upgrade_command": "echo upgrade",
+                        "latest_version": "2.0.0",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+
+            # Mock get_config_dir to return tmpdir
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return latest version
+            async def mock_get_current_version(agent_config):
+                return "2.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["upgrade"])
+
+            assert result.exit_code == 0
+            assert "No agents need updating" in result.output
+
+    def test_upgrade_failed(self, runner, monkeypatch):
+        """Test that failed upgrade is reported correctly."""
+
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config
+            test_config = {
+                "agents": [
+                    {
+                        "name": "failing-agent",
+                        "description": "Failing agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 2.0.0",
+                        "upgrade_command": "exit 1",  # This will fail
+                        "latest_version": "2.0.0",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+
+            # Mock get_config_dir to return tmpdir
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return lower version
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["upgrade"])
+
+            assert result.exit_code == 0
+            assert "❌ failing-agent upgrade failed" in result.output
+
+    def test_upgrade_debug_mode(self, runner, monkeypatch):
+        """Test that debug mode shows upgrade command from adapter."""
+        import logging
+
+        # Reset logging
+        _logging = logging.getLogger("reincheck")
+        _logging.handlers.clear()
+        _logging.setLevel(logging.DEBUG)
+
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "Test agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 2.0.0",
+                        "upgrade_command": "echo special-upgrade-command",
+                        "latest_version": "2.0.0",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+
+            # Mock get_config_dir to return tmpdir
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return lower version
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            async def mock_run_command_async(command, **kwargs):
+                return "upgraded", 0
+
+            monkeypatch.setattr(
+                "reincheck.commands.run_command_async", mock_run_command_async
+            )
+
+            result = runner.invoke(cli, ["--debug", "upgrade"])
+
+            assert result.exit_code == 0
+            assert "DEBUG:" in result.output
+            assert "echo special-upgrade-command" in result.output
+
+    def test_upgrade_agent_not_found(self, runner, monkeypatch):
+        """Test error when specified agent not found."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config
+            test_config = {
+                "agents": [
+                    {
+                        "name": "existing-agent",
+                        "description": "Existing agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 2.0.0",
+                        "upgrade_command": "echo upgrade",
+                        "latest_version": "2.0.0",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+
+            # Mock get_config_dir to return tmpdir
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            result = runner.invoke(cli, ["upgrade", "--agent", "nonexistent"])
+
+            assert result.exit_code == 1
+            assert "Agent 'nonexistent' not found in configuration" in result.output
 
 
 class TestUpdateCommand:
@@ -400,7 +787,9 @@ class TestUpdateCommand:
             adapter_called["count"] += 1
             return original_adapter(config)
 
-        monkeypatch.setattr("reincheck.commands.get_effective_method_from_config", mock_adapter)
+        monkeypatch.setattr(
+            "reincheck.commands.get_effective_method_from_config", mock_adapter
+        )
 
         with runner.isolated_filesystem() as tmpdir:
             tmpdir_path = Path(tmpdir)

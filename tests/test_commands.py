@@ -2,6 +2,7 @@ import pytest
 from click.testing import CliRunner
 from pathlib import Path
 import os
+import json
 from reincheck.commands import validate_pager, cli
 
 
@@ -259,3 +260,119 @@ class TestConfigInit:
             assert result.exit_code == 1
             assert "already exists" in result.output.lower()
             assert "--force" in result.output
+
+
+class TestSetupCommand:
+    """Test the setup command functionality."""
+
+    def test_setup_list_presets(self, runner):
+        """Test --list-presets flag."""
+        result = runner.invoke(cli, ["setup", "--list-presets"])
+        assert result.exit_code == 0
+        assert "Available presets" in result.output
+        assert "mise_binary" in result.output
+        assert "homebrew" in result.output or "language_native" in result.output
+
+    def test_setup_list_presets_standalone(self, runner):
+        """Test that --list-presets cannot be combined with other options."""
+        result = runner.invoke(cli, ["setup", "--list-presets", "--preset", "mise_binary"])
+        assert result.exit_code != 0
+        assert "--list-presets cannot be used" in result.output
+
+    def test_setup_requires_preset(self, runner):
+        """Test that --preset is required unless --list-presets."""
+        result = runner.invoke(cli, ["setup", "--harness", "claude"])
+        assert result.exit_code != 0
+        assert "--preset is required" in result.output
+
+    def test_setup_apply_requires_harness(self, runner):
+        """Test that --apply requires --harness."""
+        result = runner.invoke(cli, ["setup", "--preset", "mise_binary", "--apply"])
+        assert result.exit_code != 0
+        assert "--apply requires --harness" in result.output
+
+    def test_setup_custom_requires_override(self, runner):
+        """Test that preset 'custom' requires at least one --override."""
+        result = runner.invoke(cli, ["setup", "--preset", "custom"])
+        assert result.exit_code != 0
+        assert "preset 'custom' requires at least one --override" in result.output
+
+    def test_setup_invalid_preset(self, runner):
+        """Test error for invalid preset name."""
+        result = runner.invoke(cli, ["setup", "--preset", "nonexistent"])
+        assert result.exit_code == 3  # EXIT_PRESET_NOT_FOUND
+        assert "not found" in result.output
+
+    def test_setup_invalid_harness(self, runner):
+        """Test error for invalid harness name."""
+        result = runner.invoke(cli, ["setup", "--preset", "mise_binary", "--harness", "nonexistent"])
+        assert result.exit_code != 0
+        assert "Unknown harness" in result.output
+
+    def test_setup_dry_run(self, runner):
+        """Test --dry-run flag shows preview without changes."""
+        result = runner.invoke(cli, ["setup", "--preset", "mise_binary", "--dry-run"])
+        assert result.exit_code == 0
+        assert "[DRY-RUN]" in result.output
+        assert "Would generate config" in result.output
+        assert "No changes made" in result.output
+
+    def test_setup_dry_run_with_harnesses(self, runner):
+        """Test --dry-run with --harness shows installation plan."""
+        result = runner.invoke(cli, ["setup", "--preset", "mise_binary", "--harness", "claude", "--harness", "cline", "--dry-run"])
+        assert result.exit_code == 0
+        assert "[DRY-RUN]" in result.output
+        assert "Would install harnesses:" in result.output
+        assert "claude" in result.output
+        assert "cline" in result.output
+
+    def test_setup_config_only(self, runner, monkeypatch):
+        """Test generating config without installation."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+
+            # Mock get_config_dir to return tmpdir
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            result = runner.invoke(cli, ["setup", "--preset", "mise_binary", "--yes"])
+            assert result.exit_code == 0
+            assert "Configured" in result.output
+            assert "No harnesses selected for installation" in result.output
+
+            # Verify config was created
+            config_file = config_dir / "agents.json"
+            assert config_file.exists()
+            data = json.loads(config_file.read_text())
+            assert "agents" in data
+            assert len(data["agents"]) > 0
+
+    def test_setup_custom_preset(self, runner, monkeypatch):
+        """Test custom preset with overrides."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+
+            # Mock get_config_dir to return tmpdir
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            result = runner.invoke(cli, ["setup", "--preset", "custom", "--override", "claude=language_native", "--yes"])
+            assert result.exit_code == 0
+            assert "Configured" in result.output
+
+            # Verify config was created with only overridden harnesses
+            config_file = config_dir / "agents.json"
+            data = json.loads(config_file.read_text())
+            assert "agents" in data
+            agent_names = [a["name"] for a in data["agents"]]
+            assert "claude" in agent_names
+            # Should only have the overridden harness
+            assert len(agent_names) == 1
+
+    def test_setup_invalid_override_format(self, runner):
+        """Test error for malformed --override argument."""
+        result = runner.invoke(cli, ["setup", "--preset", "custom", "--override", "invalid"])
+        assert result.exit_code != 0
+        assert "Invalid override format" in result.output

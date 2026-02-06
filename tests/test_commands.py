@@ -1111,3 +1111,441 @@ class TestUpdateCommand:
             assert result.exit_code == 1
             assert "❌ failing-agent:" in result.output
             assert "1 agent(s) failed to update" in result.output
+
+
+class TestListCommand:
+    """Tests for list command behavior."""
+
+    def test_list_default_format_single_agent_installed(self, runner, monkeypatch):
+        """Test default output shows one line per agent with version."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "A test agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return installed version
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["list"])
+
+            assert result.exit_code == 0
+            assert "test-agent: 1.0.0" in result.output
+
+    def test_list_default_format_single_agent_not_installed(self, runner, monkeypatch):
+        """Test default output shows 'not installed' for uninstalled agents."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "A test agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version to return not installed
+            async def mock_get_current_version(agent_config):
+                return None, "not_installed"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["list"])
+
+            assert result.exit_code == 0
+            assert "test-agent: not installed" in result.output
+
+    def test_list_default_format_multiple_agents_mixed(self, runner, monkeypatch):
+        """Test default output with mix of installed and uninstalled agents."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "agent-a",
+                        "description": "Agent A",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    },
+                    {
+                        "name": "agent-b",
+                        "description": "Agent B",
+                        "install_command": "echo install",
+                        "version_command": "echo 2.0.0",
+                        "check_latest_command": "echo 2.0.0",
+                        "upgrade_command": "echo upgrade",
+                    },
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            # Mock get_current_version with mixed results
+            async def mock_get_current_version(agent_config):
+                if agent_config.name == "agent-a":
+                    return "1.0.0", "success"
+                return None, "not_installed"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["list"])
+
+            assert result.exit_code == 0
+            assert "agent-a: 1.0.0" in result.output
+            assert "agent-b: not installed" in result.output
+
+    def test_list_empty_agents(self, runner, monkeypatch):
+        """Test list with no configured agents."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {"agents": []}
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            result = runner.invoke(cli, ["list"])
+
+            assert result.exit_code == 0
+            assert "No agents configured" in result.output
+
+    def test_list_verbose_shows_description(self, runner, monkeypatch):
+        """Test verbose output includes agent description."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "My test agent description",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["list", "-v"])
+
+            assert result.exit_code == 0
+            assert "My test agent description" in result.output
+
+    def test_list_verbose_shows_version(self, runner, monkeypatch):
+        """Test verbose output shows current version."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "Test agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 2.5.0",
+                        "check_latest_command": "echo 2.5.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            async def mock_get_current_version(agent_config):
+                return "2.5.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["list", "--verbose"])
+
+            assert result.exit_code == 0
+            assert "Current version: 2.5.0" in result.output
+
+    def test_list_verbose_shows_not_installed(self, runner, monkeypatch):
+        """Test verbose output shows 'not installed' for uninstalled agents."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "Test agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            async def mock_get_current_version(agent_config):
+                return None, "not_installed"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["list", "-v"])
+
+            assert result.exit_code == 0
+            assert "Current version: not installed" in result.output
+
+    def test_list_verbose_shows_source(self, runner, monkeypatch):
+        """Test verbose output shows source/method information."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "Test agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["list", "-v"])
+
+            assert result.exit_code == 0
+            assert "Source:" in result.output
+
+    def test_list_verbose_shows_available_methods(self, runner, monkeypatch):
+        """Test verbose output shows available methods when they exist."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "claude",
+                        "description": "Claude agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["list", "-v"])
+
+            assert result.exit_code == 0
+            assert "Available methods:" in result.output
+
+    def test_list_verbose_formatting(self, runner, monkeypatch):
+        """Test verbose output has proper formatting with bullets and indentation."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "Test agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            result = runner.invoke(cli, ["list", "-v"])
+
+            assert result.exit_code == 0
+            # Check for bullet point and indentation
+            assert "• test-agent" in result.output
+            assert "  Description:" in result.output
+            assert "  Current version:" in result.output
+            assert "  Source:" in result.output
+
+    def test_list_verbose_vs_default_difference(self, runner, monkeypatch):
+        """Test that verbose and default outputs are distinctly different."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "Test agent description",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            # Get default output
+            default_result = runner.invoke(cli, ["list"])
+            # Get verbose output
+            verbose_result = runner.invoke(cli, ["list", "-v"])
+
+            assert default_result.exit_code == 0
+            assert verbose_result.exit_code == 0
+
+            # Default should be one line
+            default_lines = [line for line in default_result.output.split('\n') if line.strip()]
+            assert len(default_lines) == 1
+            assert "test-agent: 1.0.0" in default_result.output
+
+            # Verbose should have multiple lines with description
+            assert "Test agent description" in verbose_result.output
+            assert "Description:" in verbose_result.output
+
+    def test_list_both_flags_equivalent(self, runner, monkeypatch):
+        """Test that -v and --verbose produce same output."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            test_config = {
+                "agents": [
+                    {
+                        "name": "test-agent",
+                        "description": "Test agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 1.0.0",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            async def mock_get_current_version(agent_config):
+                return "1.0.0", "success"
+
+            monkeypatch.setattr(
+                "reincheck.commands.get_current_version", mock_get_current_version
+            )
+
+            short_flag_result = runner.invoke(cli, ["list", "-v"])
+            long_flag_result = runner.invoke(cli, ["list", "--verbose"])
+
+            assert short_flag_result.exit_code == 0
+            assert long_flag_result.exit_code == 0
+            assert short_flag_result.output == long_flag_result.output

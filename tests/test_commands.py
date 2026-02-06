@@ -406,6 +406,78 @@ class TestSetupCommand:
         assert result.exit_code != 0
         assert "Invalid override format" in result.output
 
+    def test_setup_dry_run_golden_output(self, runner):
+        """Golden test: verify --dry-run output is stable for known preset."""
+        result = runner.invoke(
+            cli, ["setup", "--preset", "mise_binary", "--dry-run"]
+        )
+        
+        assert result.exit_code == 0
+        
+        # Verify expected sections
+        assert "[DRY-RUN]" in result.output
+        assert "Would generate config" in result.output
+        assert "preset 'mise_binary'" in result.output
+        assert "No changes made" in result.output
+        
+        # Verify it mentions the number of harnesses
+        assert "Configuring" in result.output or "harness" in result.output.lower()
+        
+        # Verify determinism - run twice and compare
+        result2 = runner.invoke(
+            cli, ["setup", "--preset", "mise_binary", "--dry-run"]
+        )
+        assert result2.exit_code == 0
+        assert result.output == result2.output, "Dry-run output should be deterministic"
+
+    def test_setup_dry_run_with_harnesses_golden_output(self, runner):
+        """Golden test: verify --dry-run with --harness output stability."""
+        result = runner.invoke(
+            cli, ["setup", "--preset", "mise_binary", "--harness", "claude", "--harness", "cline", "--dry-run"]
+        )
+        
+        assert result.exit_code == 0
+        
+        # Verify expected sections
+        assert "[DRY-RUN]" in result.output
+        assert "Would generate config" in result.output
+        assert "Would install harnesses:" in result.output
+        assert "claude" in result.output
+        assert "cline" in result.output
+        assert "No changes made" in result.output
+        
+        # Verify determinism
+        result2 = runner.invoke(
+            cli, ["setup", "--preset", "mise_binary", "--harness", "claude", "--harness", "cline", "--dry-run"]
+        )
+        assert result2.exit_code == 0
+        assert result.output == result2.output, "Dry-run output should be deterministic"
+
+    def test_setup_dry_run_custom_preset_golden_output(self, runner):
+        """Golden test: verify --dry-run with custom preset is stable."""
+        result = runner.invoke(
+            cli, ["setup", "--preset", "custom", "--override", "claude=mise_binary", "--override", "cline=mise_binary", "--dry-run"]
+        )
+        
+        assert result.exit_code == 0
+        
+        # Verify expected sections
+        assert "[DRY-RUN]" in result.output
+        assert "Would generate config" in result.output
+        assert "preset 'custom'" in result.output
+        assert "No changes made" in result.output
+        
+        # Verify only overridden harnesses are shown
+        assert "claude" in result.output
+        assert "cline" in result.output
+        
+        # Verify determinism
+        result2 = runner.invoke(
+            cli, ["setup", "--preset", "custom", "--override", "claude=mise_binary", "--override", "cline=mise_binary", "--dry-run"]
+        )
+        assert result2.exit_code == 0
+        assert result.output == result2.output, "Dry-run output should be deterministic"
+
 
 class TestUpgradeCommand:
     """Tests for upgrade command behavior."""

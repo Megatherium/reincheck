@@ -557,6 +557,79 @@ def test_scan_dependencies_with_versions(mocker):
     assert mise_status.path == "/usr/bin/mise"
 
 
+def test_scan_dependencies_failure_scenarios(mocker):
+    """Test scan_dependencies handles various failure scenarios."""
+    
+    def mock_which(cmd):
+        # Only npm is available
+        return "/usr/bin/npm" if cmd == "npm" else None
+    
+    def mock_run(cmd, **kwargs):
+        result = mocker.Mock(returncode=1, stdout="", stderr="error")
+        # npm version command succeeds
+        if "npm --version" in cmd:
+            result.returncode = 0
+            result.stdout = "10.8.0"
+        return result
+    
+    mocker.patch("shutil.which", side_effect=mock_which)
+    mocker.patch("subprocess.run", side_effect=mock_run)
+    
+    result = scan_dependencies()
+    
+    npm_status = result.get("npm")
+    assert npm_status is not None
+    assert npm_status.available is True
+    assert npm_status.version == "10.8.0"
+    
+    # Other deps should not be available
+    assert result.get("mise") is None or result["mise"].available is False
+
+
+def test_scan_dependencies_timeout_handling(mocker):
+    """Test scan_dependencies handles command timeouts."""
+    
+    def mock_run(cmd, **kwargs):
+        if "mise --version" in cmd:
+            import subprocess
+            raise subprocess.TimeoutExpired(cmd, 5)
+        return mocker.Mock(returncode=0, stdout="1.0.0", stderr="")
+    
+    mocker.patch("shutil.which", return_value="/usr/bin/test")
+    mocker.patch("subprocess.run", side_effect=mock_run)
+    
+    result = scan_dependencies()
+    
+    # Should still return results even if one command times out
+    assert isinstance(result, dict)
+    assert len(result) > 0
+
+
+def test_scan_dependencies_mixed_availability(mocker):
+    """Test scan_dependencies with mixed available/unavailable dependencies."""
+    
+    def mock_which(cmd):
+        return f"/usr/bin/{cmd}" if cmd in ["npm", "uv"] else None
+    
+    def mock_run(cmd, **kwargs):
+        result = mocker.Mock(returncode=0, stdout="", stderr="")
+        if "npm --version" in cmd:
+            result.stdout = "10.8.0"
+        elif "uv --version" in cmd:
+            result.stdout = "0.5.0"
+        return result
+    
+    mocker.patch("shutil.which", side_effect=mock_which)
+    mocker.patch("subprocess.run", side_effect=mock_run)
+    
+    result = scan_dependencies()
+    
+    assert result["npm"].available is True
+    assert result["npm"].version == "10.8.0"
+    assert result["uv"].available is True
+    assert result["uv"].version == "0.5.0"
+
+
 def test_compute_preset_status_green(mocker):
     """Test preset status computation with all dependencies satisfied."""
     preset = Preset(
@@ -723,3 +796,158 @@ def test_get_dependency_report_scans_if_not_provided(mocker):
     assert isinstance(report, DependencyReport)
     assert len(report.all_deps) > 0  # Should have scanned all built-in deps
     assert report.total_count == len(get_all_dependencies())
+
+
+def test_render_plan_stability(mocker):
+    """Test render_plan produces stable, deterministic output."""
+    preset = Preset(
+        name="test",
+        strategy="test",
+        description="Test preset",
+        methods={"harness1": "safe", "harness2": "interactive"},
+    )
+
+    methods = {
+        "harness1.safe": InstallMethod(
+            harness="harness1",
+            method_name="safe",
+            install="mise use -g harness1",
+            upgrade="mise upgrade -g harness1",
+            version="harness1 --version",
+            check_latest="mise info harness1",
+            dependencies=["mise"],
+            risk_level=RiskLevel.SAFE,
+        ),
+        "harness2.interactive": InstallMethod(
+            harness="harness2",
+            method_name="interactive",
+            install="npm install -g @harness2/agent",
+            upgrade="npm update -g @harness2/agent",
+            version="harness2 --version",
+            check_latest="npm info @harness2/agent version",
+            dependencies=["npm"],
+            risk_level=RiskLevel.INTERACTIVE,
+        ),
+    }
+
+    plan = plan_install(preset, ["harness1", "harness2"], methods)
+
+    # Render multiple times and verify consistency
+    outputs = [render_plan(plan) for _ in range(3)]
+    
+    # All outputs should be identical
+    assert outputs[0] == outputs[1] == outputs[2]
+    
+    # Verify structure
+    assert "Installation Plan: test" in outputs[0]
+    assert "Steps:" in outputs[0]
+    assert "harness1" in outputs[0]
+    assert "harness2" in outputs[0]
+
+
+def test_render_plan_deterministic_order(mocker):
+    """Test render_plan output order follows input order consistently."""
+    preset = Preset(
+        name="test",
+        strategy="test",
+        description="Test preset",
+        methods={"a": "safe", "b": "safe", "c": "safe"},
+    )
+
+    methods = {
+        "a.safe": InstallMethod(
+            harness="a",
+            method_name="safe",
+            install="install a",
+            upgrade="upgrade a",
+            version="a --version",
+            check_latest="check a",
+            dependencies=[],
+            risk_level=RiskLevel.SAFE,
+        ),
+        "b.safe": InstallMethod(
+            harness="b",
+            method_name="safe",
+            install="install b",
+            upgrade="upgrade b",
+            version="b --version",
+            check_latest="check b",
+            dependencies=[],
+            risk_level=RiskLevel.SAFE,
+        ),
+        "c.safe": InstallMethod(
+            harness="c",
+            method_name="safe",
+            install="install c",
+            upgrade="upgrade c",
+            version="c --version",
+            check_latest="check c",
+            dependencies=[],
+            risk_level=RiskLevel.SAFE,
+        ),
+    }
+
+    # Render with same input order multiple times - should be identical
+    order = ["a", "b", "c"]
+    plan1 = plan_install(preset, order, methods)
+    plan2 = plan_install(preset, order, methods)
+    plan3 = plan_install(preset, order, methods)
+
+    output1 = render_plan(plan1)
+    output2 = render_plan(plan2)
+    output3 = render_plan(plan3)
+
+    # All outputs with same input should be identical (deterministic)
+    assert output1 == output2 == output3
+
+    # Different input orders produce different (but deterministic) outputs
+    order_cba = ["c", "b", "a"]
+    plan_cba = plan_install(preset, order_cba, methods)
+    output_cba = render_plan(plan_cba)
+    
+    # Different order should produce different output
+    assert output1 != output_cba
+    
+    # But each is deterministic when run again
+    plan_cba2 = plan_install(preset, order_cba, methods)
+    output_cba2 = render_plan(plan_cba2)
+    assert output_cba == output_cba2
+
+
+def test_render_plan_no_extra_whitespace(mocker):
+    """Test render_plan output doesn't have excessive whitespace."""
+    preset = Preset(
+        name="test",
+        strategy="test",
+        description="Test",
+        methods={"h1": "safe"},
+    )
+
+    methods = {
+        "h1.safe": InstallMethod(
+            harness="h1",
+            method_name="safe",
+            install="install h1",
+            upgrade="upgrade h1",
+            version="h1 --version",
+            check_latest="check h1",
+            dependencies=[],
+            risk_level=RiskLevel.SAFE,
+        )
+    }
+
+    plan = plan_install(preset, ["h1"], methods)
+    output = render_plan(plan)
+
+    # Check for no excessive blank lines
+    lines = output.split("\n")
+    blank_line_count = sum(1 for line in lines if line.strip() == "")
+    
+    # Should not have consecutive blank lines
+    consecutive_blanks = 0
+    for line in lines:
+        if line.strip() == "":
+            consecutive_blanks += 1
+        else:
+            consecutive_blanks = 0
+        assert consecutive_blanks <= 1, "Found consecutive blank lines"

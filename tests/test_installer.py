@@ -4,11 +4,17 @@ import asyncio
 
 from reincheck.installer import (
     RiskLevel,
+    PresetStatus,
     Dependency,
+    DependencyStatus,
+    DependencyReport,
     InstallMethod,
     Preset,
     get_all_dependencies,
     get_dependency,
+    scan_dependencies,
+    compute_preset_status,
+    get_dependency_report,
     resolve_method,
     plan_install,
     render_plan,
@@ -267,10 +273,7 @@ def test_plan_is_ready():
 
 def test_plan_not_ready_with_missing_deps():
     preset = Preset(
-        name="test",
-        strategy="test",
-        description="Test",
-        methods={"crush": "npm"}
+        name="test", strategy="test", description="Test", methods={"crush": "npm"}
     )
 
     methods = {
@@ -282,7 +285,7 @@ def test_plan_not_ready_with_missing_deps():
             version="crush --version",
             check_latest="npm info @crush/agent version",
             dependencies=["nonexistent_dep"],
-            risk_level=RiskLevel.SAFE
+            risk_level=RiskLevel.SAFE,
         )
     }
 
@@ -298,7 +301,7 @@ def test_resolve_method_dict_override_missing_commands():
         name="test_preset",
         strategy="language",
         description="Test preset",
-        methods={"crush": "npm"}
+        methods={"crush": "npm"},
     )
 
     methods = {
@@ -310,7 +313,7 @@ def test_resolve_method_dict_override_missing_commands():
             version="crush --version",
             check_latest="npm info @crush/agent version",
             dependencies=["npm"],
-            risk_level=RiskLevel.SAFE
+            risk_level=RiskLevel.SAFE,
         )
     }
 
@@ -323,8 +326,315 @@ def test_infer_risk_level_pipe_patterns():
     """Test pipe detection catches various patterns."""
     from reincheck.installer import _infer_risk_level
 
-    assert _infer_risk_level("curl -fsSL https://example.com | sh") == RiskLevel.DANGEROUS
+    assert (
+        _infer_risk_level("curl -fsSL https://example.com | sh") == RiskLevel.DANGEROUS
+    )
     assert _infer_risk_level("curl https://x |bash") == RiskLevel.DANGEROUS
     assert _infer_risk_level("curl|sh") == RiskLevel.DANGEROUS
     assert _infer_risk_level("curl ... |bash -s") == RiskLevel.DANGEROUS
     assert _infer_risk_level("mise use -g claude-code") == RiskLevel.SAFE
+
+
+def test_dependency_version_extraction(mocker):
+    """Test version extraction from various command outputs."""
+    dep = Dependency(
+        name="test",
+        check_command="which test",
+        install_hint="Install test",
+        version_command="test --version",
+    )
+
+    test_cases = [
+        ("mise 2024.12.1", "2024.12.1"),
+        ("Python 3.11.7", "3.11.7"),
+        ("npm 10.8.0", "10.8.0"),
+        ("0.0.1770300461", "0.0.1770300461"),
+        ("v1.2.3", "1.2.3"),
+        ("version 2.0.0", "2.0.0"),
+    ]
+
+    for output, expected_version in test_cases:
+        result = dep._extract_version(output)
+        assert result == expected_version, f"Failed for '{output}': got {result}"
+
+
+def test_dependency_get_version(mocker):
+    """Test get_version() with mocked subprocess."""
+    dep = Dependency(
+        name="test",
+        check_command="which test",
+        install_hint="Install test",
+        version_command="test --version",
+    )
+
+    # Mock subprocess.run for version command
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = mocker.Mock(returncode=0, stdout="test 1.2.3\n", stderr="")
+
+    version = dep.get_version()
+    assert version == "1.2.3"
+    mock_run.assert_called_once_with(
+        "test --version",
+        shell=True,
+        capture_output=True,
+        timeout=5,
+        text=True,
+    )
+
+
+def test_dependency_get_version_failure(mocker):
+    """Test get_version() handles command failure."""
+    dep = Dependency(
+        name="test",
+        check_command="which test",
+        install_hint="Install test",
+        version_command="test --version",
+    )
+
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = mocker.Mock(returncode=1, stdout="", stderr="error")
+
+    version = dep.get_version()
+    assert version is None
+
+
+def test_dependency_version_satisfied_no_constraints():
+    """Test version satisfaction when no min/max specified."""
+    dep = Dependency(
+        name="test",
+        check_command="which test",
+        install_hint="Install test",
+    )
+
+    assert dep.is_version_satisfied("1.2.3") is True
+    assert dep.is_version_satisfied(None) is False
+
+
+def test_dependency_version_satisfied_with_min(mocker):
+    """Test version satisfaction with min_version constraint."""
+    dep = Dependency(
+        name="test",
+        check_command="which test",
+        install_hint="Install test",
+        min_version="1.2.0",
+    )
+
+    assert dep.is_version_satisfied("1.2.0") is True
+    assert dep.is_version_satisfied("1.2.3") is True
+    assert dep.is_version_satisfied("2.0.0") is True
+    assert dep.is_version_satisfied("1.1.9") is False
+
+
+def test_dependency_status_icon():
+    """Test DependencyStatus status_icon property."""
+    assert DependencyStatus("test", True, "1.2.3").status_icon == "✅"
+    assert (
+        DependencyStatus("test", True, None, version_satisfied=False).status_icon == "⚠️"
+    )
+    assert DependencyStatus("test", False).status_icon == "❌"
+
+
+def test_scan_dependencies_all(mocker):
+    """Test scan_dependencies returns status for all dependencies."""
+    mocker.patch("shutil.which", return_value="/usr/bin/test")
+    mocker.patch("subprocess.run")
+
+    result = scan_dependencies()
+    assert isinstance(result, dict)
+    assert all(isinstance(status, DependencyStatus) for status in result.values())
+    assert "mise" in result
+    assert "npm" in result
+    assert "curl" in result
+    assert "python" in result
+
+
+def test_scan_dependencies_with_versions(mocker):
+    """Test scan_dependencies populates version information."""
+
+    def mock_which(cmd):
+        return f"/usr/bin/{cmd}" if cmd in ["test", "mise"] else None
+
+    def mock_run(cmd, **kwargs):
+        result = mocker.Mock(returncode=0, stdout="", stderr="")
+        if "mise --version" in cmd:
+            result.stdout = "mise 2024.12.1"
+        return result
+
+    mocker.patch("shutil.which", side_effect=mock_which)
+    mocker.patch("subprocess.run", side_effect=mock_run)
+
+    result = scan_dependencies()
+
+    mise_status = result.get("mise")
+    assert mise_status is not None
+    assert mise_status.available is True
+    assert mise_status.version == "2024.12.1"
+    assert mise_status.path == "/usr/bin/mise"
+
+
+def test_compute_preset_status_green(mocker):
+    """Test preset status computation with all dependencies satisfied."""
+    preset = Preset(
+        name="test",
+        strategy="test",
+        description="Test preset",
+        methods={"harness1": "npm", "harness2": "uv"},
+    )
+
+    methods = {
+        "harness1.npm": InstallMethod(
+            harness="harness1",
+            method_name="npm",
+            install="npm install -g foo",
+            upgrade="npm update -g foo",
+            version="foo --version",
+            check_latest="npm info foo version",
+            dependencies=["npm"],
+            risk_level=RiskLevel.SAFE,
+        ),
+        "harness2.uv": InstallMethod(
+            harness="harness2",
+            method_name="uv",
+            install="uv tool install foo",
+            upgrade="uv tool upgrade foo",
+            version="foo --version",
+            check_latest="uv tool show foo",
+            dependencies=["uv"],
+            risk_level=RiskLevel.SAFE,
+        ),
+    }
+
+    dep_map = {
+        "npm": DependencyStatus("npm", True, "10.8.0", "/usr/bin/npm"),
+        "uv": DependencyStatus("uv", True, "0.5.0", "/usr/bin/uv"),
+    }
+
+    status = compute_preset_status(preset, methods, dep_map)
+    assert status == PresetStatus.GREEN
+
+
+def test_compute_preset_status_partial(mocker):
+    """Test preset status computation with some dependencies satisfied."""
+    preset = Preset(
+        name="test",
+        strategy="test",
+        description="Test preset",
+        methods={"harness1": "npm", "harness2": "cargo"},
+    )
+
+    methods = {
+        "harness1.npm": InstallMethod(
+            harness="harness1",
+            method_name="npm",
+            install="npm install -g foo",
+            upgrade="npm update -g foo",
+            version="foo --version",
+            check_latest="npm info foo version",
+            dependencies=["npm"],
+            risk_level=RiskLevel.SAFE,
+        ),
+        "harness2.cargo": InstallMethod(
+            harness="harness2",
+            method_name="cargo",
+            install="cargo install foo",
+            upgrade="cargo update foo",
+            version="foo --version",
+            check_latest="cargo search foo",
+            dependencies=["cargo"],
+            risk_level=RiskLevel.SAFE,
+        ),
+    }
+
+    dep_map = {
+        "npm": DependencyStatus("npm", True, "10.8.0", "/usr/bin/npm"),
+        "cargo": DependencyStatus("cargo", False, None, None),
+    }
+
+    status = compute_preset_status(preset, methods, dep_map)
+    assert status == PresetStatus.PARTIAL
+
+
+def test_compute_preset_status_red(mocker):
+    """Test preset status computation with no dependencies satisfied."""
+    preset = Preset(
+        name="test",
+        strategy="test",
+        description="Test preset",
+        methods={"harness1": "npm"},
+    )
+
+    methods = {
+        "harness1.npm": InstallMethod(
+            harness="harness1",
+            method_name="npm",
+            install="npm install -g foo",
+            upgrade="npm update -g foo",
+            version="foo --version",
+            check_latest="npm info foo version",
+            dependencies=["npm"],
+            risk_level=RiskLevel.SAFE,
+        ),
+    }
+
+    dep_map = {
+        "npm": DependencyStatus("npm", False, None, None),
+    }
+
+    status = compute_preset_status(preset, methods, dep_map)
+    assert status == PresetStatus.RED
+
+
+def test_get_dependency_report(mocker):
+    """Test dependency report generation."""
+    presets = {
+        "test_preset": Preset(
+            name="test_preset",
+            strategy="test",
+            description="Test preset",
+            methods={"harness1": "npm"},
+        )
+    }
+
+    methods = {
+        "harness1.npm": InstallMethod(
+            harness="harness1",
+            method_name="npm",
+            install="npm install -g foo",
+            upgrade="npm update -g foo",
+            version="foo --version",
+            check_latest="npm info foo version",
+            dependencies=["npm"],
+            risk_level=RiskLevel.SAFE,
+        ),
+    }
+
+    dep_map = {
+        "npm": DependencyStatus("npm", True, "10.8.0", "/usr/bin/npm"),
+        "cargo": DependencyStatus("cargo", False, None, None),
+    }
+
+    report = get_dependency_report(presets, methods, dep_map)
+
+    assert isinstance(report, DependencyReport)
+    assert report.all_deps == dep_map
+    assert len(report.preset_statuses) == 1
+    assert report.preset_statuses["test_preset"] == PresetStatus.GREEN
+    assert "cargo" in report.missing_deps
+    assert report.available_count == 1
+    assert report.total_count == 2
+
+
+def test_get_dependency_report_scans_if_not_provided(mocker):
+    """Test get_dependency_report scans if dep_map not provided."""
+    presets = {}
+
+    methods = {}
+
+    mocker.patch("shutil.which", return_value="/usr/bin/test")
+    mocker.patch("subprocess.run")
+
+    report = get_dependency_report(presets, methods)
+
+    assert isinstance(report, DependencyReport)
+    assert len(report.all_deps) > 0  # Should have scanned all built-in deps
+    assert report.total_count == len(get_all_dependencies())

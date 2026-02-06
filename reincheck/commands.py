@@ -258,6 +258,7 @@ def upgrade(ctx, agent: str | None, dry_run: bool, timeout: int):
 
 async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: bool):
     from . import setup_logging
+    from .adapter import get_effective_method_from_config
     setup_logging(debug)
     config = load_config()
     agents = config.agents
@@ -301,15 +302,16 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: boo
     click.echo(f"Upgrading {len(upgradeable_agents)} agents...")
 
     async def perform_upgrade(agent_config: AgentConfig) -> tuple[str, int, str]:
-        upgrade_command = agent_config.upgrade_command
+        effective_method = get_effective_method_from_config(agent_config)
+        upgrade_command = effective_method.upgrade_command
         if upgrade_command:
-            click.echo(f"Upgrading {agent_config.name}...")
+            click.echo(f"Upgrading {effective_method.name}...")
             if debug:
                 _logging.debug(f"  Running: {upgrade_command}")
             output, returncode = await run_command_async(
                 upgrade_command, timeout=timeout, debug=debug
             )
-            return agent_config.name, returncode, output
+            return effective_method.name, returncode, output
         return agent_config.name, 1, "No upgrade command configured"
 
     upgrade_results = await asyncio.gather(

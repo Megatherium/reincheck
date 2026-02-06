@@ -206,6 +206,12 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
 
     for agent_config in agents:
         effective = get_effective_method_from_config(agent_config)
+        
+        if debug:
+            _logging.debug(
+                f"Checking {agent_config.name} with command: {effective.check_latest_command}"
+            )
+
         latest_version, status = await get_latest_version(
             check_command=effective.check_latest_command
         )
@@ -355,7 +361,7 @@ def install(ctx, agent_name: str, force: bool, timeout: int):
 
 async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
     from . import setup_logging
-    from .adapter import get_effective_method, get_effective_method_from_config
+    from .adapter import get_effective_method
 
     setup_logging(debug)
     config = load_config()
@@ -1119,6 +1125,13 @@ def setup(
     try:
         _write_agent_config(agent_configs, config_path, preset_name=preset)
         click.echo(f"✅ Configured {len(agent_configs)} harnesses")
+        harness_list = ", ".join(c["name"] for c in agent_configs)
+        if len(harness_list) <= 60:
+            click.echo(f"  {harness_list}")
+        else:
+            click.echo(
+                f"  {', '.join(c['name'] for c in agent_configs[:5])}, ... ({len(agent_configs)} total)"
+            )
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(EXIT_CONFIG_ERROR)

@@ -212,9 +212,9 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
                 f"Checking {agent_config.name} with command: {effective.check_latest_command}"
             )
 
-        check_config = effective.to_agent_config()
-        check_config.latest_version = agent_config.latest_version
-        latest_version, status = await get_latest_version(check_config)
+        latest_version, status = await get_latest_version(
+            check_command=effective.check_latest_command
+        )
 
         if status == "success" and latest_version:
             agent_config.latest_version = latest_version

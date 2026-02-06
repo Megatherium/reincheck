@@ -88,9 +88,31 @@ async def get_current_version(agent: AgentConfig) -> Tuple[str | None, str]:
         return None, output or "Command failed"
 
 
-async def get_latest_version(agent: AgentConfig) -> Tuple[str | None, str]:
-    """Get the latest version of an agent."""
-    check_latest_command = agent.check_latest_command
+async def get_latest_version(
+    agent: AgentConfig | None = None, check_command: str | None = None
+) -> Tuple[str | None, str]:
+    """Get the latest version of an agent.
+
+    Args:
+        agent: Optional AgentConfig instance (for backward compatibility)
+        check_command: Optional command string to check latest version
+
+    Returns:
+        Tuple of (version_string or None, status_message)
+
+    Raises:
+        ValueError: If neither agent nor check_command is provided
+    """
+    check_latest_command: str
+
+    # Determine which command to use
+    if check_command:
+        check_latest_command = check_command
+    elif agent:
+        check_latest_command = agent.check_latest_command
+    else:
+        raise ValueError("Either agent or check_command must be provided")
+
     if not check_latest_command:
         return None, "No version check command configured"
 

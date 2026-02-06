@@ -1045,3 +1045,69 @@ class TestUpdateCommand:
 
             assert result.exit_code == 2
             assert "Agent 'nonexistent' not found in configuration" in result.output
+
+    def test_update_efficient_command_passing(self, runner, monkeypatch):
+        """Test that update works efficiently without round-trip conversions."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config
+            test_config = {
+                "agents": [
+                    {
+                        "name": "efficient-agent",
+                        "description": "Test efficient update",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "echo 2.0.0",
+                        "upgrade_command": "echo upgrade",
+                        "latest_version": "1.0.0",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+
+            # Mock get_config_dir to return tmpdir
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            result = runner.invoke(cli, ["update", "--quiet"])
+
+            assert result.exit_code == 0
+            # Verify config was updated
+            updated_config = json.loads(config_file.read_text())
+            assert updated_config["agents"][0]["latest_version"] == "2.0.0"
+
+    def test_update_failing_check_command(self, runner, monkeypatch):
+        """Test that failing check command reports error correctly."""
+        with runner.isolated_filesystem() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
+            config_dir.mkdir(parents=True)
+            config_file = config_dir / "agents.json"
+
+            # Create test config
+            test_config = {
+                "agents": [
+                    {
+                        "name": "failing-agent",
+                        "description": "Failing agent",
+                        "install_command": "echo install",
+                        "version_command": "echo 1.0.0",
+                        "check_latest_command": "exit 1",
+                        "upgrade_command": "echo upgrade",
+                    }
+                ]
+            }
+            config_file.write_text(json.dumps(test_config))
+
+            # Mock get_config_dir to return tmpdir
+            monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
+
+            result = runner.invoke(cli, ["update"])
+
+            assert result.exit_code == 1
+            assert "❌ failing-agent:" in result.output
+            assert "1 agent(s) failed to update" in result.output

@@ -187,7 +187,7 @@ def update(ctx, agent: str | None, quiet: bool):
 
 
 async def run_update(agent: str | None, quiet: bool, debug: bool):
-    from . import setup_logging
+    from . import setup_logging, get_latest_version
     setup_logging(debug)
     config = load_config()
     agents = config.agents
@@ -204,12 +204,14 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
     failed_agents = []
 
     for agent_config in agents:
-        from . import get_latest_version
+        effective = get_effective_method_from_config(agent_config)
 
         if debug:
-            _logging.debug(f"Checking {agent_config.name} with command: {agent_config.check_latest_command}")
+            _logging.debug(f"Checking {agent_config.name} with command: {effective.check_latest_command}")
 
-        latest_version, status = await get_latest_version(agent_config)
+        check_config = effective.to_agent_config()
+        check_config.latest_version = agent_config.latest_version
+        latest_version, status = await get_latest_version(check_config)
 
         if status == "success" and latest_version:
             agent_config.latest_version = latest_version
@@ -221,7 +223,7 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
                 error_msg = status if status != "success" else "Unknown error"
                 click.echo(f"❌ {agent_config.name}: {error_msg}")
             if debug:
-                _logging.debug(f"Command: {agent_config.check_latest_command}")
+                _logging.debug(f"Command: {effective.check_latest_command}")
                 _logging.debug(f"Status: {status}")
 
     save_config(config)

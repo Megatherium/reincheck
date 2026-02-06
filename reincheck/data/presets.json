@@ -56,6 +56,7 @@
     "homebrew": {
       "strategy": "homebrew",
       "description": "Use Homebrew formulae/casks where available",
+      "hint_linux": "Homebrew cask support on Linux is limited; expect fallbacks",
       "priority": 3,
       "methods": {
         "crush": "homebrew",

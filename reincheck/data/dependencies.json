@@ -31,11 +31,7 @@
       "check_command": "which brew",
       "install_hint": "Install from https://brew.sh"
     },
-    "pipx": {
-      "name": "pipx",
-      "check_command": "which pipx",
-      "install_hint": "Install with: pip install pipx"
-    },
+
     "python": {
       "name": "python",
       "check_command": "which python3",

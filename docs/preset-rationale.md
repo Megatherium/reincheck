@@ -39,11 +39,16 @@ Single-hop fallback only (per design doc). If both preset method AND fallback fa
 
 ## Method Availability Matrix
 
-### mise_binary (3 harnesses)
-Only harnesses with verified mise plugins or github: backend support:
-- claude (claude-code plugin)
-- goose (github:block/goose)
-- roo (github:RooCodeInc/Roo-Code)
+### mise_binary (6 harnesses)
+Harnesses with verified mise plugins:
+- crush
+- opencode
+- claude (claude-code)
+- gemini
+- codex
+- amp
+
+**Not available**: goose, roo (no mise plugin or github backend support)
 
 ### mise_language (14 harnesses)
 All NPM-based harnesses + droid + kimi:
@@ -69,10 +74,12 @@ Harnesses with verified Homebrew formulae/casks:
 
 **Warning**: Do NOT add `amp.homebrew` or `grok.homebrew` - the Homebrew packages with those names are DIFFERENT TOOLS.
 
-### language_native (17 harnesses)
-All harnesses except roo have a verified npm/uv/pipx path.
+### language_native (16 harnesses)
+All harnesses except goose and roo have a verified npm/uv path.
 
-**Gap**: roo (no npm/pypi distribution)
+**Gap**: 
+- goose (the PyPI package goose-ai is NOT Block's Goose - it's a different tool)
+- roo (no npm/pypi distribution)
 
 ### vendor_recommended (18 harnesses)
 Complete coverage - every harness has a method.

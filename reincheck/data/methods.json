@@ -1,6 +1,22 @@
 {
   "$comment": "Install methods - keyed by {harness}.{method_name}. Missing keys indicate method unavailable for that harness.",
   "methods": {
+    "crush.mise_binary": {
+      "install": "mise use -g crush@latest",
+      "upgrade": "mise use -g crush@latest",
+      "version": "crush --version",
+      "check_latest": "mise ls-remote crush | tail -n 1",
+      "dependencies": ["mise"],
+      "risk_level": "safe"
+    },
+    "opencode.mise_binary": {
+      "install": "mise use -g opencode@latest",
+      "upgrade": "mise use -g opencode@latest",
+      "version": "opencode --version",
+      "check_latest": "mise ls-remote opencode | tail -n 1",
+      "dependencies": ["mise"],
+      "risk_level": "safe"
+    },
     "claude.mise_binary": {
       "install": "mise use -g claude-code@latest",
       "upgrade": "mise use -g claude-code@latest",
@@ -9,19 +25,27 @@
       "dependencies": ["mise"],
       "risk_level": "safe"
     },
-    "goose.mise_binary": {
-      "install": "mise use -g github:block/goose",
-      "upgrade": "mise upgrade github:block/goose",
-      "version": "goose --version",
-      "check_latest": "mise ls-remote github:block/goose | tail -n 1",
+    "gemini.mise_binary": {
+      "install": "mise use -g gemini@latest",
+      "upgrade": "mise use -g gemini@latest",
+      "version": "gemini --version",
+      "check_latest": "mise ls-remote gemini | tail -n 1",
       "dependencies": ["mise"],
       "risk_level": "safe"
     },
-    "roo.mise_binary": {
-      "install": "mise use -g github:RooCodeInc/Roo-Code",
-      "upgrade": "mise upgrade github:RooCodeInc/Roo-Code",
-      "version": "roo --version",
-      "check_latest": "mise ls-remote github:RooCodeInc/Roo-Code | tail -n 1",
+    "codex.mise_binary": {
+      "install": "mise use -g codex@latest",
+      "upgrade": "mise use -g codex@latest",
+      "version": "codex --version",
+      "check_latest": "mise ls-remote codex | tail -n 1",
+      "dependencies": ["mise"],
+      "risk_level": "safe"
+    },
+    "amp.mise_binary": {
+      "install": "mise use -g amp@latest",
+      "upgrade": "mise use -g amp@latest",
+      "version": "amp --version",
+      "check_latest": "mise ls-remote amp | tail -n 1",
       "dependencies": ["mise"],
       "risk_level": "safe"
     },
@@ -324,14 +348,7 @@
       "dependencies": ["uv"],
       "risk_level": "safe"
     },
-    "goose.language_native": {
-      "install": "pipx install goose-ai",
-      "upgrade": "pipx upgrade goose-ai",
-      "version": "goose --version",
-      "check_latest": "python3 -c \"import json,urllib.request as u; print(json.load(u.urlopen('https://pypi.org/pypi/goose-ai/json'))['info']['version'])\"",
-      "dependencies": ["pipx"],
-      "risk_level": "safe"
-    },
+
 
     "crush.vendor_recommended": {
       "install": "npm install -g @charmland/crush@latest",

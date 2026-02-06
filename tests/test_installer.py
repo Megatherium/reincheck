@@ -267,7 +267,10 @@ def test_plan_is_ready():
 
 def test_plan_not_ready_with_missing_deps():
     preset = Preset(
-        name="test", strategy="test", description="Test", methods={"crush": "npm"}
+        name="test",
+        strategy="test",
+        description="Test",
+        methods={"crush": "npm"}
     )
 
     methods = {
@@ -279,7 +282,7 @@ def test_plan_not_ready_with_missing_deps():
             version="crush --version",
             check_latest="npm info @crush/agent version",
             dependencies=["nonexistent_dep"],
-            risk_level=RiskLevel.SAFE,
+            risk_level=RiskLevel.SAFE
         )
     }
 
@@ -287,3 +290,41 @@ def test_plan_not_ready_with_missing_deps():
 
     assert plan.is_ready() is False
     assert "nonexistent_dep" in plan.unsatisfied_deps
+
+
+def test_resolve_method_dict_override_missing_commands():
+    """Test dict override without 'commands' key uses preset default."""
+    preset = Preset(
+        name="test_preset",
+        strategy="language",
+        description="Test preset",
+        methods={"crush": "npm"}
+    )
+
+    methods = {
+        "crush.npm": InstallMethod(
+            harness="crush",
+            method_name="npm",
+            install="npm install -g @crush/agent",
+            upgrade="npm update -g @crush/agent",
+            version="crush --version",
+            check_latest="npm info @crush/agent version",
+            dependencies=["npm"],
+            risk_level=RiskLevel.SAFE
+        )
+    }
+
+    overrides = {"crush": {}}
+    method = resolve_method(preset, "crush", methods, overrides)
+    assert method.method_name == "npm"
+
+
+def test_infer_risk_level_pipe_patterns():
+    """Test pipe detection catches various patterns."""
+    from reincheck.installer import _infer_risk_level
+
+    assert _infer_risk_level("curl -fsSL https://example.com | sh") == RiskLevel.DANGEROUS
+    assert _infer_risk_level("curl https://x |bash") == RiskLevel.DANGEROUS
+    assert _infer_risk_level("curl|sh") == RiskLevel.DANGEROUS
+    assert _infer_risk_level("curl ... |bash -s") == RiskLevel.DANGEROUS
+    assert _infer_risk_level("mise use -g claude-code") == RiskLevel.SAFE

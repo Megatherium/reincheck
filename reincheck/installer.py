@@ -24,11 +24,9 @@ class Dependency:
 
         async def _check() -> bool:
             try:
-                _, returncode = await asyncio.wait_for(
-                    run_command_async(self.check_command, timeout=5), timeout=5
-                )
+                _, returncode = await run_command_async(self.check_command, timeout=5)
                 return returncode == 0
-            except (asyncio.TimeoutError, Exception):
+            except (asyncio.TimeoutError, OSError):
                 return False
 
         return asyncio.run(_check())
@@ -138,15 +136,12 @@ def scan_dependencies() -> dict[str, bool]:
 
 def _infer_risk_level(command: str) -> RiskLevel:
     """Infer risk level from command string."""
-    if "curl" in command and (
-        " | " in command or " |sh" in command or "| sh" in command
-    ):
+    import re
+
+    pipe_pattern = re.compile(r'\|.*\b(sh|bash)\b', re.IGNORECASE)
+    if pipe_pattern.search(command):
         return RiskLevel.DANGEROUS
-    if (
-        "npm install" in command
-        or "pip install" in command
-        or "uv tool install" in command
-    ):
+    if "npm install" in command or "pip install" in command or "uv tool install" in command:
         return RiskLevel.INTERACTIVE
     return RiskLevel.SAFE
 

@@ -19,17 +19,30 @@ class Dependency:
     install_hint: str
 
     def is_available(self) -> bool:
-        """Check if this dependency is available in PATH."""
-        from reincheck import run_command_async
-
-        async def _check() -> bool:
-            try:
-                _, returncode = await run_command_async(self.check_command, timeout=5)
-                return returncode == 0
-            except (asyncio.TimeoutError, OSError):
-                return False
-
-        return asyncio.run(_check())
+        """Check if this dependency is available in PATH.
+        
+        Uses subprocess directly to avoid asyncio.run() issues when
+        called from within an existing event loop.
+        """
+        import shutil
+        import subprocess
+        
+        # Fast path: if check_command is just "which <name>", use shutil.which
+        if self.check_command.startswith("which "):
+            binary = self.check_command.split(maxsplit=1)[1].strip()
+            return shutil.which(binary) is not None
+        
+        # Fallback: run the check command synchronously
+        try:
+            result = subprocess.run(
+                self.check_command,
+                shell=True,
+                capture_output=True,
+                timeout=5,
+            )
+            return result.returncode == 0
+        except (subprocess.TimeoutExpired, OSError):
+            return False
 
 
 @dataclass
@@ -165,26 +178,26 @@ def resolve_method(
 
     if isinstance(harness_override, dict):
         custom_override = harness_override
-        method_key = f"{harness_name}.custom"
-
-        method = methods.get(method_key)
-        if method:
-            if "commands" in custom_override:
-                return InstallMethod(
-                    harness=harness_name,
-                    method_name="custom",
-                    install=custom_override["commands"].get("install", method.install),
-                    upgrade=custom_override["commands"].get("upgrade", method.upgrade),
-                    version=custom_override["commands"].get("version", method.version),
-                    check_latest=custom_override["commands"].get(
-                        "check_latest", method.check_latest
-                    ),
-                    dependencies=method.dependencies,
-                    risk_level=_infer_risk_level(
-                        custom_override["commands"].get("install", method.install)
-                    ),
-                )
-            return method
+        
+        # Find base method to merge with (from override's "method" key or preset default)
+        base_method_name = custom_override.get("method") or preset.methods.get(harness_name)
+        base_method = methods.get(f"{harness_name}.{base_method_name}") if base_method_name else None
+        
+        if "commands" in custom_override:
+            cmds = custom_override["commands"]
+            # Build custom method, using base_method as fallback for missing commands
+            return InstallMethod(
+                harness=harness_name,
+                method_name="custom",
+                install=cmds.get("install") or (base_method.install if base_method else ""),
+                upgrade=cmds.get("upgrade") or (base_method.upgrade if base_method else ""),
+                version=cmds.get("version") or (base_method.version if base_method else ""),
+                check_latest=cmds.get("check_latest") or (base_method.check_latest if base_method else ""),
+                dependencies=base_method.dependencies if base_method else [],
+                risk_level=_infer_risk_level(cmds.get("install", "")),
+            )
+        elif base_method:
+            return base_method
 
     if harness_override and isinstance(harness_override, str):
         method_key = f"{harness_name}.{harness_override}"

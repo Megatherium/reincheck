@@ -976,28 +976,33 @@ async def _execute_installation_with_progress(
     Returns:
         List of step results
     """
-    from reincheck.installer import StepResult, RiskLevel
+    from reincheck.installer import StepResult, RiskLevel, render_plan
     from reincheck import run_command_async, setup_logging
 
     setup_logging(debug)
     results = []
 
-    # Show installation plan
-    harness_names = [step.harness for step in plan.steps]
-    if len(harness_names) <= 5:
-        harness_list = ", ".join(harness_names)
-    else:
-        harness_list = (
-            ", ".join(harness_names[:5]) + f", ... ({len(harness_names)} total)"
-        )
+    # Show full installation plan preview using render_plan()
+    click.echo("")
+    click.echo(render_plan(plan))
 
-    click.echo("\nInstallation plan:")
-    click.echo(f"  Installing {len(plan.steps)} harness(es)")
-    click.echo(f"  Harnesses: {harness_list}")
+    # Prominent curl|sh warning summary if any dangerous steps
+    dangerous_count = sum(1 for step in plan.steps if step.risk_level == RiskLevel.DANGEROUS)
+    if dangerous_count > 0:
+        click.echo("")
+        click.echo("=" * 60)
+        click.echo("⚠️  SECURITY WARNING")
+        click.echo("=" * 60)
+        click.echo(f"This installation plan contains {dangerous_count} harness(es)")
+        click.echo("that will execute remote scripts via curl|sh.")
+        click.echo("")
+        click.echo("These commands will download and execute code from the internet.")
+        click.echo("Please review each command carefully before confirming.")
+        click.echo("=" * 60)
 
     if not skip_confirmation:
         click.echo("")
-        if not click.confirm("Continue?", default=False):
+        if not click.confirm("Proceed with installation?", default=False):
             click.echo("Installation cancelled.")
             sys.exit(EXIT_SUCCESS)
 
@@ -1230,9 +1235,25 @@ def setup(
 
             if harnesses_to_install:
                 click.echo("")
-                click.echo("[DRY-RUN] Would install harnesses:")
-                harness_install_list = ", ".join(harnesses_to_install)
-                click.echo(f"  {harness_install_list}")
+                click.echo("=" * 60)
+                click.echo("INSTALLATION PLAN PREVIEW")
+                click.echo("=" * 60)
+                
+                # Generate and display the full installation plan
+                try:
+                    plan = plan_install(
+                        selected_preset, harnesses_to_install, all_methods, overrides
+                    )
+                    from reincheck.installer import render_plan
+                    click.echo(render_plan(plan))
+                except Exception as e:
+                    click.echo(f"  [DRY-RUN] Would install harnesses:")
+                    harness_install_list = ", ".join(harnesses_to_install)
+                    click.echo(f"    {harness_install_list}")
+                    if debug:
+                        click.echo(f"  Error generating plan: {e}")
+                
+                click.echo("=" * 60)
 
         click.echo("")
         click.echo("[DRY-RUN] No changes made.")

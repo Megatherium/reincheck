@@ -207,7 +207,7 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
 
     for agent_config in agents:
         effective = get_effective_method_from_config(agent_config)
-        
+
         if debug:
             _logging.debug(
                 f"Checking {agent_config.name} with command: {effective.check_latest_command}"
@@ -386,23 +386,31 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
     # Try to get effective method from preset first, fall back to config
     install_command = None
     effective_method = None
-    
+
     if config.preset:
         try:
-            effective_method = get_effective_method(agent_name, preset_name=config.preset)
+            effective_method = get_effective_method(
+                agent_name, preset_name=config.preset
+            )
             if effective_method:
                 install_command = effective_method.install_command
                 if debug:
-                    _logging.debug(f"Using install command from preset '{config.preset}': {install_command}")
+                    _logging.debug(
+                        f"Using install command from preset '{config.preset}': {install_command}"
+                    )
             else:
                 # Harness not in preset - will fall back to config
                 if debug:
-                    _logging.debug(f"Harness '{agent_name}' not found in preset '{config.preset}', falling back to config")
+                    _logging.debug(
+                        f"Harness '{agent_name}' not found in preset '{config.preset}', falling back to config"
+                    )
         except (ValueError, Exception) as e:
             # Resolution failed - fall back to config
             if debug:
-                _logging.debug(f"Failed to resolve method from preset: {e}, falling back to config")
-    
+                _logging.debug(
+                    f"Failed to resolve method from preset: {e}, falling back to config"
+                )
+
     # Fall back to config's install_command if preset method not available
     if install_command is None:
         install_command = agent_config.install_command
@@ -433,7 +441,9 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
 
 
 @cli.command(name="list")
-@click.option("--verbose", "-v", is_flag=True, help="Show detailed information including methods")
+@click.option(
+    "--verbose", "-v", is_flag=True, help="Show detailed information including methods"
+)
 @click.pass_context
 def list_agents(ctx, verbose: bool):
     """List all configured agents."""
@@ -464,7 +474,7 @@ async def run_list_agents(verbose: bool, debug: bool):
 
     for i, agent in enumerate(agents):
         current, status = results[i]
-        
+
         if verbose:
             # Verbose output: detailed information
             try:
@@ -472,12 +482,12 @@ async def run_list_agents(verbose: bool, debug: bool):
                 method_display = effective.method.method_name
             except Exception:
                 method_display = "unknown"
-            
+
             click.echo(f"• {agent.name}")
             click.echo(f"  Description: {agent.description}")
             click.echo(f"  Current version: {current or 'not installed'}")
             click.echo(f"  Source: {method_display}")
-            
+
             # Get available methods for this harness
             try:
                 available = list_available_methods(agent.name)
@@ -488,7 +498,9 @@ async def run_list_agents(verbose: bool, debug: bool):
             click.echo("")
         else:
             # Default: one line per agent
-            version_str = current if current and status == "success" else "not installed"
+            version_str = (
+                current if current and status == "success" else "not installed"
+            )
             click.echo(f"{agent.name}: {version_str}")
 
 
@@ -612,7 +624,9 @@ def _validate_setup_options(
             )
         return
 
-    if preset is None:
+    # Allow preset to be None for interactive mode (TTY available)
+    # Will be validated again after interactive selection
+    if preset is None and not sys.stdin.isatty():
         click.echo("Error: --preset is required.", err=True)
         sys.exit(EXIT_CONFIG_ERROR)
 
@@ -885,7 +899,9 @@ def _build_agent_config(
     return config
 
 
-def _write_agent_config(agent_configs: list[dict], config_path: Path, preset_name: str | None = None) -> None:
+def _write_agent_config(
+    agent_configs: list[dict], config_path: Path, preset_name: str | None = None
+) -> None:
     """Write agent configuration to file.
 
     Args:
@@ -901,7 +917,7 @@ def _write_agent_config(agent_configs: list[dict], config_path: Path, preset_nam
     try:
         config_path.parent.mkdir(parents=True, exist_ok=True)
         data: dict[str, object] = {"agents": agent_configs}
-        
+
         # Store active preset if provided
         if preset_name:
             data["preset"] = preset_name
@@ -995,12 +1011,6 @@ async def _execute_installation_with_progress(
     click.echo(f"  Installing {len(plan.steps)} harness(es)")
     click.echo(f"  Harnesses: {harness_list}")
 
-    if not skip_confirmation:
-        click.echo("")
-        if not click.confirm("Continue?", default=False):
-            click.echo("Installation cancelled.")
-            sys.exit(EXIT_SUCCESS)
-
     click.echo("")
     click.echo("Installing harnesses...")
 
@@ -1012,8 +1022,8 @@ async def _execute_installation_with_progress(
         item_show_func=lambda item: f" {item.harness}" if item else "",
     ) as bar:
         for step in bar:
-            # Dangerous command confirmation
-            if step.risk_level == RiskLevel.DANGEROUS and not skip_confirmation:
+            # Dangerous command confirmation - always required regardless of skip_confirmation
+            if step.risk_level == RiskLevel.DANGEROUS:
                 click.echo(f"\n⚠️  DANGEROUS: About to run curl|sh for {step.harness}")
                 click.echo(f"   Command: {step.command}")
                 if not click.confirm(
@@ -1098,6 +1108,9 @@ def setup(
         presets = get_presets()
         available_harnesses = get_harnesses()
         all_methods = get_all_methods()
+        from reincheck.installer import get_dependency_report
+
+        report = get_dependency_report(presets, all_methods)
     except Exception as e:
         click.echo(f"Error loading data: {e}", err=True)
         sys.exit(EXIT_CONFIG_ERROR)
@@ -1105,15 +1118,20 @@ def setup(
     # Interactive preset selection if not provided
     if preset is None:
         from reincheck.installer import get_dependency_report
-        
+
         report = get_dependency_report(presets, all_methods)
         selected = _select_preset_interactive_with_fallback(presets, report, debug)
-        
+
         if selected is None:
-            click.echo("Error: --preset is required (or use interactive mode).", err=True)
-            click.echo("Run 'reincheck setup --list-presets' to see available presets.", err=True)
+            click.echo(
+                "Error: --preset is required (or use interactive mode).", err=True
+            )
+            click.echo(
+                "Run 'reincheck setup --list-presets' to see available presets.",
+                err=True,
+            )
             sys.exit(EXIT_CONFIG_ERROR)
-        
+
         preset = selected
         click.echo(f"Selected preset: {preset}")
         click.echo("")
@@ -1160,12 +1178,7 @@ def setup(
 
     # Interactive harness selection (when no --harness flags and TTY available)
     interactive_harness_selection = None
-    if (
-        not harness
-        and not yes
-        and preset != "custom"
-        and sys.stdin.isatty()
-    ):
+    if not harness and not yes and preset != "custom" and sys.stdin.isatty():
         interactive_harness_selection = _select_harnesses_interactive_with_fallback(
             selected_preset, all_methods, available_harnesses, debug
         )
@@ -1289,21 +1302,14 @@ def setup(
             sys.exit(EXIT_CONFIG_ERROR)
 
         # Check for missing dependencies
-        if plan.unsatisfied_deps and not yes:
-            click.echo("")
-            click.echo("⚠️  Missing dependencies:")
-            from reincheck.installer import get_dependency
+        from reincheck.installer import confirm_installation, PresetStatus
 
-            for dep in plan.unsatisfied_deps:
-                dep_obj = get_dependency(dep)
-                hint = dep_obj.install_hint if dep_obj else "Unknown"
-                click.echo(f"  • {dep}: {hint}")
-            click.echo("")
-            if not click.confirm(
-                "Dependencies missing. Continue anyway?", default=False
-            ):
-                click.echo("Installation cancelled.")
-                sys.exit(EXIT_SUCCESS)
+        preset_status = report.preset_statuses.get(preset, PresetStatus.RED)
+
+        # Final confirmation with warnings for non-green status and dangerous commands
+        if not confirm_installation(plan, preset_status, skip_confirmation=yes):
+            click.echo("Installation cancelled.")
+            sys.exit(EXIT_SUCCESS)
 
         # Execute installation
         try:

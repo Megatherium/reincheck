@@ -10,6 +10,8 @@ from reincheck.installer import (
     DependencyReport,
     InstallMethod,
     Preset,
+    PlanStep,
+    Plan,
     get_all_dependencies,
     get_dependency,
     scan_dependencies,
@@ -559,11 +561,11 @@ def test_scan_dependencies_with_versions(mocker):
 
 def test_scan_dependencies_failure_scenarios(mocker):
     """Test scan_dependencies handles various failure scenarios."""
-    
+
     def mock_which(cmd):
         # Only npm is available
         return "/usr/bin/npm" if cmd == "npm" else None
-    
+
     def mock_run(cmd, **kwargs):
         result = mocker.Mock(returncode=1, stdout="", stderr="error")
         # npm version command succeeds
@@ -571,35 +573,36 @@ def test_scan_dependencies_failure_scenarios(mocker):
             result.returncode = 0
             result.stdout = "10.8.0"
         return result
-    
+
     mocker.patch("shutil.which", side_effect=mock_which)
     mocker.patch("subprocess.run", side_effect=mock_run)
-    
+
     result = scan_dependencies()
-    
+
     npm_status = result.get("npm")
     assert npm_status is not None
     assert npm_status.available is True
     assert npm_status.version == "10.8.0"
-    
+
     # Other deps should not be available
     assert result.get("mise") is None or result["mise"].available is False
 
 
 def test_scan_dependencies_timeout_handling(mocker):
     """Test scan_dependencies handles command timeouts."""
-    
+
     def mock_run(cmd, **kwargs):
         if "mise --version" in cmd:
             import subprocess
+
             raise subprocess.TimeoutExpired(cmd, 5)
         return mocker.Mock(returncode=0, stdout="1.0.0", stderr="")
-    
+
     mocker.patch("shutil.which", return_value="/usr/bin/test")
     mocker.patch("subprocess.run", side_effect=mock_run)
-    
+
     result = scan_dependencies()
-    
+
     # Should still return results even if one command times out
     assert isinstance(result, dict)
     assert len(result) > 0
@@ -607,10 +610,10 @@ def test_scan_dependencies_timeout_handling(mocker):
 
 def test_scan_dependencies_mixed_availability(mocker):
     """Test scan_dependencies with mixed available/unavailable dependencies."""
-    
+
     def mock_which(cmd):
         return f"/usr/bin/{cmd}" if cmd in ["npm", "uv"] else None
-    
+
     def mock_run(cmd, **kwargs):
         result = mocker.Mock(returncode=0, stdout="", stderr="")
         if "npm --version" in cmd:
@@ -618,12 +621,12 @@ def test_scan_dependencies_mixed_availability(mocker):
         elif "uv --version" in cmd:
             result.stdout = "0.5.0"
         return result
-    
+
     mocker.patch("shutil.which", side_effect=mock_which)
     mocker.patch("subprocess.run", side_effect=mock_run)
-    
+
     result = scan_dependencies()
-    
+
     assert result["npm"].available is True
     assert result["npm"].version == "10.8.0"
     assert result["uv"].available is True
@@ -834,10 +837,10 @@ def test_render_plan_stability(mocker):
 
     # Render multiple times and verify consistency
     outputs = [render_plan(plan) for _ in range(3)]
-    
+
     # All outputs should be identical
     assert outputs[0] == outputs[1] == outputs[2]
-    
+
     # Verify structure
     assert "Installation Plan: test" in outputs[0]
     assert "Steps:" in outputs[0]
@@ -904,10 +907,10 @@ def test_render_plan_deterministic_order(mocker):
     order_cba = ["c", "b", "a"]
     plan_cba = plan_install(preset, order_cba, methods)
     output_cba = render_plan(plan_cba)
-    
+
     # Different order should produce different output
     assert output1 != output_cba
-    
+
     # But each is deterministic when run again
     plan_cba2 = plan_install(preset, order_cba, methods)
     output_cba2 = render_plan(plan_cba2)
@@ -942,7 +945,7 @@ def test_render_plan_no_extra_whitespace(mocker):
     # Check for no excessive blank lines
     lines = output.split("\n")
     blank_line_count = sum(1 for line in lines if line.strip() == "")
-    
+
     # Should not have consecutive blank lines
     consecutive_blanks = 0
     for line in lines:
@@ -951,3 +954,171 @@ def test_render_plan_no_extra_whitespace(mocker):
         else:
             consecutive_blanks = 0
         assert consecutive_blanks <= 1, "Found consecutive blank lines"
+
+
+class TestConfirmInstallation:
+    """Tests for confirm_installation function."""
+
+    def _make_plan(
+        self,
+        unsatisfied_deps=None,
+        risky_steps=None,
+        harness_count=1,
+    ):
+        """Helper to create a plan for testing."""
+        steps = []
+        for i in range(harness_count):
+            steps.append(
+                PlanStep(
+                    harness=f"harness{i}",
+                    action="install",
+                    command=f"install {i}",
+                    timeout=300,
+                    risk_level=RiskLevel.SAFE,
+                    method_name="safe",
+                    dependencies=[],
+                )
+            )
+
+        return Plan(
+            preset_name="test_preset",
+            steps=steps,
+            unsatisfied_deps=unsatisfied_deps or [],
+            risky_steps=risky_steps or [],
+        )
+
+    def test_green_preset_no_dangerous_confirms_without_prompt(self, mocker, capsys):
+        """Green preset with no dangerous steps should confirm without prompt when skip_confirmation=True."""
+        from reincheck.installer import confirm_installation
+
+        plan = self._make_plan()
+
+        # Should return True without prompting
+        result = confirm_installation(plan, PresetStatus.GREEN, skip_confirmation=True)
+
+        assert result is True
+
+    def test_green_preset_shows_summary(self, mocker, capsys):
+        """Green preset should show installation summary."""
+        from reincheck.installer import confirm_installation
+
+        plan = self._make_plan(harness_count=3)
+
+        mocker.patch("click.confirm", return_value=True)
+
+        confirm_installation(plan, PresetStatus.GREEN, skip_confirmation=False)
+
+        captured = capsys.readouterr()
+        assert "Installation Summary: test_preset" in captured.out
+        assert "Harnesses to install: 3" in captured.out
+
+    def test_partial_preset_shows_warning(self, mocker, capsys):
+        """Partial preset status should show warning."""
+        from reincheck.installer import confirm_installation
+
+        plan = self._make_plan(unsatisfied_deps=["missing_dep"])
+
+        mocker.patch("click.confirm", return_value=True)
+
+        confirm_installation(plan, PresetStatus.PARTIAL, skip_confirmation=False)
+
+        captured = capsys.readouterr()
+        assert "WARNING: Partial dependencies" in captured.out
+
+    def test_red_preset_shows_warning(self, mocker, capsys):
+        """Red preset status should show warning."""
+        from reincheck.installer import confirm_installation
+
+        plan = self._make_plan(unsatisfied_deps=["dep1", "dep2"])
+
+        mocker.patch("click.confirm", return_value=True)
+
+        confirm_installation(plan, PresetStatus.RED, skip_confirmation=False)
+
+        captured = capsys.readouterr()
+        assert "WARNING: Missing dependencies" in captured.out
+
+    def test_dangerous_commands_show_warning(self, mocker, capsys):
+        """Dangerous commands should show warning regardless of preset status."""
+        from reincheck.installer import confirm_installation
+
+        plan = self._make_plan(risky_steps=["risky_harness"])
+
+        mocker.patch("click.confirm", return_value=True)
+
+        confirm_installation(plan, PresetStatus.GREEN, skip_confirmation=False)
+
+        captured = capsys.readouterr()
+        assert "DANGEROUS: curl|sh commands detected" in captured.out
+        assert "risky_harness" in captured.out
+
+    def test_dangerous_commands_require_confirmation_even_with_skip(self, mocker):
+        """Dangerous commands should require confirmation even when skip_confirmation=True."""
+        from reincheck.installer import confirm_installation
+
+        plan = self._make_plan(risky_steps=["risky_harness"])
+
+        # Even with skip_confirmation=True, should prompt for dangerous
+        mock_confirm = mocker.patch("click.confirm", return_value=True)
+
+        result = confirm_installation(plan, PresetStatus.GREEN, skip_confirmation=True)
+
+        assert result is True
+        mock_confirm.assert_called_once()
+        # Check that the dangerous warning is in the call
+        call_args = mock_confirm.call_args[0][0]
+        assert "DANGEROUS" in call_args
+
+    def test_user_cancels_returns_false(self, mocker):
+        """If user cancels, should return False."""
+        from reincheck.installer import confirm_installation
+
+        plan = self._make_plan()
+
+        mocker.patch("click.confirm", return_value=False)
+
+        result = confirm_installation(plan, PresetStatus.GREEN, skip_confirmation=False)
+
+        assert result is False
+
+    def test_non_green_with_skip_still_confirms(self, mocker):
+        """Non-green preset should still confirm even with skip_confirmation=True."""
+        from reincheck.installer import confirm_installation
+
+        plan = self._make_plan(unsatisfied_deps=["missing"])
+
+        mock_confirm = mocker.patch("click.confirm", return_value=True)
+
+        result = confirm_installation(
+            plan, PresetStatus.PARTIAL, skip_confirmation=True
+        )
+
+        assert result is True
+        mock_confirm.assert_called_once()
+
+    def test_shows_missing_dependencies_list(self, mocker, capsys):
+        """Should show list of missing dependencies."""
+        from reincheck.installer import confirm_installation
+
+        plan = self._make_plan(unsatisfied_deps=["npm", "uv"])
+
+        mocker.patch("click.confirm", return_value=True)
+
+        confirm_installation(plan, PresetStatus.RED, skip_confirmation=False)
+
+        captured = capsys.readouterr()
+        assert "Missing dependencies:" in captured.out
+        assert "npm" in captured.out
+        assert "uv" in captured.out
+
+    def test_empty_plan_handles_gracefully(self, mocker):
+        """Empty plan should still work."""
+        from reincheck.installer import confirm_installation
+
+        plan = self._make_plan(harness_count=0)
+
+        mocker.patch("click.confirm", return_value=True)
+
+        result = confirm_installation(plan, PresetStatus.GREEN, skip_confirmation=False)
+
+        assert result is True

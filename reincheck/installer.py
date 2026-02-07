@@ -624,6 +624,108 @@ def render_plan(plan: Plan) -> str:
     return "\n".join(lines)
 
 
+def confirm_installation(
+    plan: Plan,
+    preset_status: PresetStatus,
+    skip_confirmation: bool = False,
+) -> bool:
+    """Display final confirmation prompt with warnings for non-green status and dangerous commands.
+
+    Shows a summary of the installation plan, warnings for non-green preset status
+    (PARTIAL or RED), and warnings for dangerous commands (curl|sh). Requires
+    user confirmation before proceeding, even when skip_confirmation is True
+    if dangerous commands are present.
+
+    Args:
+        plan: Installation plan with steps and metadata
+        preset_status: Status of the preset (GREEN/PARTIAL/RED)
+        skip_confirmation: If True, skip confirmation for green presets without
+            dangerous commands. Dangerous commands always require confirmation.
+
+    Returns:
+        True if user confirms installation, False if user cancels
+
+    Example:
+        >>> plan = plan_install(preset, harnesses, methods)
+        >>> status = compute_preset_status(preset, methods, dep_map)
+        >>> if not confirm_installation(plan, status):
+        ...     print("Installation cancelled")
+        ...     return
+    """
+    import click
+
+    # Skip confirmation entirely for green presets without dangerous commands
+    # when skip_confirmation is True
+    has_dangerous = bool(plan.risky_steps)
+    if skip_confirmation and preset_status == PresetStatus.GREEN and not has_dangerous:
+        return True
+
+    click.echo("")
+    click.echo("=" * 60)
+    click.echo(f"Installation Summary: {plan.preset_name}")
+    click.echo("=" * 60)
+    click.echo("")
+    click.echo(f"  Harnesses to install: {len(plan.steps)}")
+    click.echo(f"  Commands to execute: {len([s for s in plan.steps])}")
+
+    # Show non-green warning
+    if preset_status != PresetStatus.GREEN:
+        click.echo("")
+        if preset_status == PresetStatus.PARTIAL:
+            click.secho("  ⚠️  WARNING: Partial dependencies", fg="yellow", bold=True)
+            click.secho(
+                "      Some dependencies are missing or have version issues.",
+                fg="yellow",
+            )
+        elif preset_status == PresetStatus.RED:
+            click.secho("  ❌ WARNING: Missing dependencies", fg="red", bold=True)
+            click.secho(
+                "      Critical dependencies are missing. Installation may fail.",
+                fg="red",
+            )
+
+        if plan.unsatisfied_deps:
+            click.echo("")
+            click.echo("  Missing dependencies:")
+            for dep in plan.unsatisfied_deps:
+                dep_obj = get_dependency(dep)
+                hint = dep_obj.install_hint if dep_obj else "Unknown"
+                click.echo(f"    • {dep}: {hint}")
+
+    # Show dangerous command warning
+    if has_dangerous:
+        click.echo("")
+        click.secho("  🔴 DANGEROUS: curl|sh commands detected", fg="red", bold=True)
+        click.secho(
+            "      The following will execute remote scripts via curl|sh:",
+            fg="red",
+        )
+        for harness in plan.risky_steps:
+            click.echo(f"      • {harness}")
+        click.echo("")
+        click.secho(
+            "      ⚠️  Review these commands carefully before proceeding!",
+            fg="yellow",
+        )
+
+    click.echo("")
+    click.echo("=" * 60)
+
+    # Always require confirmation for dangerous commands, even with --yes
+    if has_dangerous:
+        return click.confirm(
+            "\n⚠️  DANGEROUS commands detected. Continue anyway?",
+            default=False,
+        )
+
+    # Normal confirmation
+    # Skip only if: green preset AND no dangerous commands AND skip_confirmation=True
+    if skip_confirmation and preset_status == PresetStatus.GREEN and not has_dangerous:
+        return True
+
+    return click.confirm("\nContinue with installation?", default=False)
+
+
 @dataclass
 class StepResult:
     harness: str
@@ -693,5 +795,6 @@ __all__ = [
     "resolve_method",
     "plan_install",
     "render_plan",
+    "confirm_installation",
     "apply_plan",
 ]

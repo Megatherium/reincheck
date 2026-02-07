@@ -438,8 +438,8 @@ class TestSelectPresetInteractive:
         )
 
         with patch("sys.stdin.isatty", return_value=True):
-            with patch("questionary.select") as mock_select:
-                mock_select.return_value.ask.return_value = None
+            with patch("reincheck.tui.Application") as mock_app:
+                mock_app.return_value.run.return_value = None
                 result = select_preset_interactive({"test": preset}, report)
                 assert result is None
 
@@ -463,10 +463,82 @@ class TestSelectPresetInteractive:
         )
 
         with patch("sys.stdin.isatty", return_value=True):
-            with patch("questionary.select") as mock_select:
-                mock_select.return_value.ask.return_value = "mise_binary"
+            with patch("reincheck.tui.Application") as mock_app:
+                mock_app.return_value.run.return_value = "mise_binary"
                 result = select_preset_interactive({"mise_binary": preset}, report)
                 assert result == "mise_binary"
+
+    def test_get_preset_dependencies_info(self):
+        from reincheck.installer import Preset, DependencyStatus, DependencyReport, InstallMethod, RiskLevel, PresetStatus
+        from reincheck.tui import _get_preset_dependencies_info
+
+        preset = Preset(
+            name="test_preset",
+            strategy="test",
+            description="Test",
+            methods={"harness1": "method1", "harness2": "method2"},
+        )
+
+        methods = {
+            "harness1.method1": InstallMethod(
+                harness="harness1",
+                method_name="method1",
+                install="cmd1",
+                upgrade="upd1",
+                version="ver1",
+                check_latest="check1",
+                dependencies=["dep1", "dep2"],
+                risk_level=RiskLevel.SAFE,
+            ),
+            "harness2.method2": InstallMethod(
+                harness="harness2",
+                method_name="method2",
+                install="cmd2",
+                upgrade="upd2",
+                version="ver2",
+                check_latest="check2",
+                dependencies=["dep3"],
+                risk_level=RiskLevel.SAFE,
+            ),
+        }
+
+        report = DependencyReport(
+            all_deps={
+                "dep1": DependencyStatus(name="dep1", available=True, version="1.0.0"),
+                "dep2": DependencyStatus(name="dep2", available=False),
+                "dep3": DependencyStatus(name="dep3", available=True, version="0.9.0", version_satisfied=False),
+            },
+            preset_statuses={"test_preset": PresetStatus.PARTIAL},
+            missing_deps=["dep2"],
+            unsatisfied_versions=["dep3"],
+            available_count=1,
+            total_count=3,
+        )
+
+        info = _get_preset_dependencies_info(preset, report, methods)
+        
+        # Check that we have info for all 3 dependencies
+        assert len(info) == 3
+        
+        # Check specific formats (icons and content)
+        # Note: sorting is alphabetical by dep name
+        assert "✅ dep1" in info[0]
+        assert "v1.0.0" in info[0]
+        
+        assert "❌ dep2" in info[1]
+        assert "missing" in info[1]
+        
+        assert "⚠️ dep3" in info[2]
+        assert "v0.9.0" in info[2]
+
+    def test_get_preset_dependencies_info_empty(self):
+        from reincheck.installer import Preset, DependencyReport
+        from reincheck.tui import _get_preset_dependencies_info
+
+        preset = Preset(name="p", strategy="s", description="d", methods={})
+        report = DependencyReport({}, {}, [], [], 0, 0)
+        info = _get_preset_dependencies_info(preset, report, {})
+        assert info == []
 
 
 def _make_method(harness: str, method_name: str) -> InstallMethod:

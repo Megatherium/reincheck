@@ -9,9 +9,16 @@ This module provides terminal UI functions following ADR-004 patterns:
 import sys
 
 import click
+from prompt_toolkit.application import Application
+from prompt_toolkit.layout import Layout, FloatContainer, Float, Window, HSplit, ConditionalContainer, DynamicContainer
+from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.widgets import Dialog, Label, Button
+from prompt_toolkit.styles import Style
+from prompt_toolkit.filters import Condition
 
 from .installer import DependencyStatus, get_dependency, scan_dependencies
-from .installer import Preset, PresetStatus, DependencyReport
+from .installer import Preset, PresetStatus, DependencyReport, InstallMethod
 from .data_loader import get_all_methods
 
 
@@ -211,16 +218,60 @@ def format_preset_choice(
     return choice_text
 
 
+def _get_preset_dependencies_info(
+    preset: Preset, report: DependencyReport, methods: dict[str, InstallMethod]
+) -> list[str]:
+    """Get detailed dependency info for a preset.
+
+    Args:
+        preset: The preset to check
+        report: Dependency report
+        methods: Dict of install methods
+
+    Returns:
+        List of formatted dependency status strings
+    """
+    required_deps = set()
+    for harness_name, method_name in preset.methods.items():
+        method_key = f"{harness_name}.{method_name}"
+        method = methods.get(method_key)
+        if method:
+            required_deps.update(method.dependencies)
+
+    info = []
+    for dep_name in sorted(required_deps):
+        status = report.all_deps.get(dep_name)
+        if status:
+            icon = status.status_icon
+            desc = ""
+            if not status.available:
+                dep_obj = get_dependency(dep_name)
+                hint = f" ({dep_obj.install_hint})" if dep_obj else ""
+                desc = f"missing{hint}"
+            elif not status.version_satisfied:
+                dep_obj = get_dependency(dep_name)
+                constraint = (
+                    f" (requires >={dep_obj.min_version})"
+                    if dep_obj and dep_obj.min_version
+                    else ""
+                )
+                desc = f"v{status.version} {constraint}"
+            else:
+                desc = f"v{status.version}"
+            info.append(f"{icon} {dep_name:<10} {desc}")
+    return info
+
+
 def select_preset_interactive(
     presets: dict[str, Preset],
     report: DependencyReport,
     default: str | None = None,
     methods: dict | None = None,
 ) -> str | None:
-    """Display interactive preset selector with status colors.
+    """Display interactive preset selector with status colors and details modal.
 
-    Uses questionary to show an interactive list of presets with
-    color-coded status indicators (green/yellow/red).
+    Uses prompt_toolkit to show an interactive list of presets with
+    color-coded status indicators and a dependency details modal on 'u'.
 
     Args:
         presets: Dictionary of preset name to Preset objects
@@ -230,75 +281,157 @@ def select_preset_interactive(
 
     Returns:
         Selected preset name, or None if user cancelled
-
-    Raises:
-        RuntimeError: If not running in a TTY (use TTY guard before calling)
     """
     if not sys.stdin.isatty():
         raise RuntimeError("Interactive preset selector requires a TTY")
-    
-    # Handle empty presets
+
     if not presets:
         return None
-    
-    try:
-        import questionary
-    except ImportError:
-        click.secho("Warning: questionary not available, using fallback", fg="yellow")
-        return None
-    
-    # Load methods if not provided
+
     if methods is None:
         methods = get_all_methods()
-    
-    # Sort presets by priority (greens first, then by priority value)
+
+    # Sort presets: GREEN first, then PARTIAL, then RED
     def sort_key(item: tuple[str, Preset]) -> tuple[int, int, str]:
         name, preset = item
         status = report.preset_statuses.get(name, PresetStatus.RED)
-        # Sort: GREEN first (0), then PARTIAL (1), then RED (2)
         status_order = {
             PresetStatus.GREEN: 0,
             PresetStatus.PARTIAL: 1,
             PresetStatus.RED: 2,
         }.get(status, 2)
         return (status_order, preset.priority, name)
-    
-    sorted_presets = sorted(presets.items(), key=sort_key)
-    
-    # Build choices with formatted labels
-    choices = []
-    default_value = None
-    
-    for name, preset in sorted_presets:
-        status = report.preset_statuses.get(name, PresetStatus.RED)
-        label = format_preset_choice(preset, status, report, methods)
-        
-        # Create Choice object
-        choice = questionary.Choice(
-            title=label,
-            value=name,
-        )
-        choices.append(choice)
-        
-        # Track default value (string, not Choice object)
-        if name == default:
-            default_value = name
-    
-    # Add cancel option
-    choices.append(questionary.Separator())
-    choices.append(questionary.Choice("Cancel", value=None))
-    
-    try:
-        result = questionary.select(
-            "Select a preset for installation:",
-            choices=choices,
-            default=default_value,
-            instruction="Use ↑↓ to navigate, Enter to select",
-        ).ask()
-        
-        return result
-    except KeyboardInterrupt:
+
+    sorted_items = sorted(presets.items(), key=sort_key)
+    preset_names = [name for name, _ in sorted_items]
+
+    if not preset_names:
         return None
+
+    default_index = 0
+    if default in preset_names:
+        default_index = preset_names.index(default)
+
+    class SelectorState:
+        def __init__(self):
+            self.index = default_index
+            self.show_modal = False
+            self.empty_label = Label("")
+
+    state = SelectorState()
+
+    kb = KeyBindings()
+
+    def _close_modal():
+        state.show_modal = False
+
+    @kb.add("up")
+    def _(event):
+        if not state.show_modal and len(preset_names) > 1:
+            state.index = (state.index - 1) % len(preset_names)
+
+    @kb.add("down")
+    def _(event):
+        if not state.show_modal and len(preset_names) > 1:
+            state.index = (state.index + 1) % len(preset_names)
+
+    @kb.add("enter")
+    def _(event):
+        if state.show_modal:
+            _close_modal()
+        else:
+            event.app.exit(result=preset_names[state.index])
+
+    @kb.add("u")
+    def _(event):
+        state.show_modal = True
+
+    @kb.add("escape")
+    @kb.add("c")
+    def _(event):
+        if state.show_modal:
+            _close_modal()
+        else:
+            event.app.exit(result=None)
+
+    def get_list_text():
+        tokens = []
+        tokens.append(("", "\n"))
+        for i, (name, preset) in enumerate(sorted_items):
+            status = report.preset_statuses.get(name, PresetStatus.RED)
+            label = format_preset_choice(preset, status, report, methods)
+            if i == state.index:
+                tokens.append(("class:selected", f" > {label}\n"))
+            else:
+                tokens.append(("", f"   {label}\n"))
+
+        tokens.append(("", "\n"))
+        tokens.append(
+            ("class:help", " Use ↑↓ to navigate, Enter to select, 'u' for details, 'c' to cancel")
+        )
+        return tokens
+
+    def get_modal_content():
+        if not state.show_modal:
+            return state.empty_label
+
+        name, preset = sorted_items[state.index]
+        info = _get_preset_dependencies_info(preset, report, methods)
+
+        text = f"Dependencies for {name}:\n\n"
+        if not info:
+            text += "No dependencies defined."
+        else:
+            text += "\n".join(info)
+
+        return Label(text=text)
+
+    # Style matching questionary defaults
+    style = Style.from_dict(
+        {
+            "selected": "fg:#00ffff bold",  # Cyan
+            "help": "fg:#888888",  # Gray
+            "dialog": "bg:#333333",
+            "dialog.body": "bg:#222222 fg:#ffffff",
+            "dialog frame.label": "fg:#00ffff bold",
+        }
+    )
+
+    layout = FloatContainer(
+        content=HSplit(
+            [
+                Window(
+                    content=FormattedTextControl(
+                        [("class:header", "Select a preset for installation:")]
+                    ),
+                    height=1,
+                ),
+                Window(content=FormattedTextControl(get_list_text)),
+            ]
+        ),
+        floats=[
+            Float(
+                content=ConditionalContainer(
+                    content=Dialog(
+                        title="Dependency Details",
+                        body=DynamicContainer(get_modal_content),
+                        buttons=[
+                            Button(
+                                text="Close", handler=_close_modal
+                            )
+                        ],
+                    ),
+                    filter=Condition(lambda: state.show_modal),
+                )
+            )
+        ],
+    )
+
+    app = Application(
+        layout=Layout(layout), key_bindings=kb, style=style, full_screen=False
+    )
+
+    return app.run()
 
 
 def get_method_names_for_harness(

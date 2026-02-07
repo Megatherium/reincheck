@@ -123,9 +123,7 @@ class TestConfigFmt:
         """Test error handling when file doesn't exist."""
         runner = CliRunner()
 
-        result = runner.invoke(
-            cli, ["config", "fmt", "/nonexistent/path/config.json"]
-        )
+        result = runner.invoke(cli, ["config", "fmt", "/nonexistent/path/config.json"])
 
         assert result.exit_code == 1
         assert "File not found" in result.output
@@ -339,7 +337,9 @@ class TestSetupCommand:
         )
         assert result.exit_code == 0
         assert "[DRY-RUN]" in result.output
-        assert "Would install harnesses:" in result.output
+        assert "Would generate config" in result.output
+        assert "No changes made" in result.output
+        assert "INSTALLATION PLAN PREVIEW" in result.output
         assert "claude" in result.output
         assert "cline" in result.output
 
@@ -408,47 +408,62 @@ class TestSetupCommand:
 
     def test_setup_dry_run_golden_output(self, runner):
         """Golden test: verify --dry-run output is stable for known preset."""
-        result = runner.invoke(
-            cli, ["setup", "--preset", "mise_binary", "--dry-run"]
-        )
-        
+        result = runner.invoke(cli, ["setup", "--preset", "mise_binary", "--dry-run"])
+
         assert result.exit_code == 0
-        
+
         # Verify expected sections
         assert "[DRY-RUN]" in result.output
         assert "Would generate config" in result.output
         assert "preset 'mise_binary'" in result.output
         assert "No changes made" in result.output
-        
+
         # Verify it mentions the number of harnesses
         assert "Configuring" in result.output or "harness" in result.output.lower()
-        
+
         # Verify determinism - run twice and compare
-        result2 = runner.invoke(
-            cli, ["setup", "--preset", "mise_binary", "--dry-run"]
-        )
+        result2 = runner.invoke(cli, ["setup", "--preset", "mise_binary", "--dry-run"])
         assert result2.exit_code == 0
         assert result.output == result2.output, "Dry-run output should be deterministic"
 
     def test_setup_dry_run_with_harnesses_golden_output(self, runner):
         """Golden test: verify --dry-run with --harness output stability."""
         result = runner.invoke(
-            cli, ["setup", "--preset", "mise_binary", "--harness", "claude", "--harness", "cline", "--dry-run"]
+            cli,
+            [
+                "setup",
+                "--preset",
+                "mise_binary",
+                "--harness",
+                "claude",
+                "--harness",
+                "cline",
+                "--dry-run",
+            ],
         )
-        
+
         assert result.exit_code == 0
-        
+
         # Verify expected sections
         assert "[DRY-RUN]" in result.output
         assert "Would generate config" in result.output
-        assert "Would install harnesses:" in result.output
+        assert "INSTALLATION PLAN PREVIEW" in result.output
         assert "claude" in result.output
         assert "cline" in result.output
-        assert "No changes made" in result.output
-        
+
         # Verify determinism
         result2 = runner.invoke(
-            cli, ["setup", "--preset", "mise_binary", "--harness", "claude", "--harness", "cline", "--dry-run"]
+            cli,
+            [
+                "setup",
+                "--preset",
+                "mise_binary",
+                "--harness",
+                "claude",
+                "--harness",
+                "cline",
+                "--dry-run",
+            ],
         )
         assert result2.exit_code == 0
         assert result.output == result2.output, "Dry-run output should be deterministic"
@@ -456,24 +471,44 @@ class TestSetupCommand:
     def test_setup_dry_run_custom_preset_golden_output(self, runner):
         """Golden test: verify --dry-run with custom preset is stable."""
         result = runner.invoke(
-            cli, ["setup", "--preset", "custom", "--override", "claude=mise_binary", "--override", "cline=mise_binary", "--dry-run"]
+            cli,
+            [
+                "setup",
+                "--preset",
+                "custom",
+                "--override",
+                "claude=mise_binary",
+                "--override",
+                "cline=mise_binary",
+                "--dry-run",
+            ],
         )
-        
+
         assert result.exit_code == 0
-        
+
         # Verify expected sections
         assert "[DRY-RUN]" in result.output
         assert "Would generate config" in result.output
         assert "preset 'custom'" in result.output
         assert "No changes made" in result.output
-        
+
         # Verify only overridden harnesses are shown
         assert "claude" in result.output
         assert "cline" in result.output
-        
+
         # Verify determinism
         result2 = runner.invoke(
-            cli, ["setup", "--preset", "custom", "--override", "claude=mise_binary", "--override", "cline=mise_binary", "--dry-run"]
+            cli,
+            [
+                "setup",
+                "--preset",
+                "custom",
+                "--override",
+                "claude=mise_binary",
+                "--override",
+                "cline=mise_binary",
+                "--dry-run",
+            ],
         )
         assert result2.exit_code == 0
         assert result.output == result2.output, "Dry-run output should be deterministic"
@@ -1577,7 +1612,9 @@ class TestListCommand:
             assert verbose_result.exit_code == 0
 
             # Default should be one line
-            default_lines = [line for line in default_result.output.split('\n') if line.strip()]
+            default_lines = [
+                line for line in default_result.output.split("\n") if line.strip()
+            ]
             assert len(default_lines) == 1
             assert "test-agent: 1.0.0" in default_result.output
 
@@ -1646,7 +1683,7 @@ class TestInstallCommand:
                         "upgrade_command": "echo upgrade",
                     }
                 ],
-                "preset": "mise_binary"  # Active preset
+                "preset": "mise_binary",  # Active preset
             }
             config_file.write_text(json.dumps(test_config))
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
@@ -1679,7 +1716,9 @@ class TestInstallCommand:
             assert "mise" in executed_commands[0].lower()
             assert "config-install" not in executed_commands[0]
 
-    def test_install_falls_back_to_config_when_harness_not_in_preset(self, runner, monkeypatch):
+    def test_install_falls_back_to_config_when_harness_not_in_preset(
+        self, runner, monkeypatch
+    ):
         """Test that install falls back to config when harness not in preset."""
         with runner.isolated_filesystem() as tmpdir:
             tmpdir_path = Path(tmpdir)
@@ -1699,7 +1738,7 @@ class TestInstallCommand:
                         "upgrade_command": "echo upgrade",
                     }
                 ],
-                "preset": "mise_binary"  # Active preset (but custom-agent not in it)
+                "preset": "mise_binary",  # Active preset (but custom-agent not in it)
             }
             config_file.write_text(json.dumps(test_config))
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)

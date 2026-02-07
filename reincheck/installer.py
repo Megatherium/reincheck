@@ -1,8 +1,16 @@
 """Installer engine for harness setup and management."""
 
+import os
+import re
+import shutil
+import subprocess
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+# Constants
+SUBPROCESS_TIMEOUT = 5
+WHICH_PATTERN = r"^which \S+$"
 
 
 class RiskLevel(Enum):
@@ -32,13 +40,9 @@ class Dependency:
         Uses subprocess directly to avoid asyncio.run() issues when
         called from within an existing event loop.
         """
-        import re
-        import shutil
-        import subprocess
-
         # Fast path: if check_command is just "which <name>" (no shell operators), use shutil.which
-        if re.match(r"^which \S+$", self.check_command):
-            binary = self.check_command.split(maxsplit=1)[1].strip()
+        binary = _extract_binary_from_which(self.check_command)
+        if binary:
             return shutil.which(binary) is not None
 
         # Fallback: run the check command synchronously
@@ -47,7 +51,7 @@ class Dependency:
                 self.check_command,
                 shell=True,
                 capture_output=True,
-                timeout=5,
+                timeout=SUBPROCESS_TIMEOUT,
             )
             return result.returncode == 0
         except (subprocess.TimeoutExpired, OSError):
@@ -55,8 +59,6 @@ class Dependency:
 
     def get_version(self) -> str | None:
         """Get the installed version of this dependency."""
-        import subprocess
-
         if not self.version_command:
             return None
 
@@ -68,7 +70,7 @@ class Dependency:
                 self.version_command,
                 shell=True,
                 capture_output=True,
-                timeout=5,
+                timeout=SUBPROCESS_TIMEOUT,
                 text=True,
             )
             if result.returncode == 0:
@@ -89,8 +91,6 @@ class Dependency:
         - "npm 10.8.0" -> "10.8.0"
         - "0.0.1770300461" (amp style) -> "0.0.1770300461"
         """
-        import re
-
         # Try to find a version-like string (digits with dots)
         # Match patterns like: X.Y.Z, vX.Y.Z, version X.Y.Z
         patterns = [
@@ -324,43 +324,32 @@ def get_dependency(name: str) -> Dependency | None:
 
 def scan_dependencies() -> dict[str, DependencyStatus]:
     """Scan PATH for all known dependencies, return full status with versions."""
-    import shutil
-    import re
-
     deps = get_all_dependencies()
     result = {}
 
     for name, dep in deps.items():
-        available = dep.is_available()
         version = None
         path = None
         version_satisfied = True
 
-        if available:
-            # Get the binary path
-            if dep.check_command.startswith("which "):
-                import subprocess
-                # Simple case: just "which <binary>"
-                if re.match(r"^which \S+$", dep.check_command):
-                    binary = dep.check_command.split(maxsplit=1)[1].strip()
-                    path = shutil.which(binary)
-                else:
-                    # Complex case: run the command and capture stdout
-                    try:
-                        proc_result = subprocess.run(
-                            dep.check_command,
-                            shell=True,
-                            capture_output=True,
-                            timeout=5,
-                        )
-                        if proc_result.returncode == 0 and proc_result.stdout:
-                            if isinstance(proc_result.stdout, bytes):
-                                path = proc_result.stdout.decode().strip()
-                            else:
-                                path = proc_result.stdout.strip()
-                    except (subprocess.TimeoutExpired, OSError):
-                        path = None
+        # Get path from which-style commands
+        if dep.check_command.startswith("which "):
+            path = _get_binary_path(dep.check_command)
+            available = path is not None
+        else:
+            # Run the check command for availability
+            try:
+                result = subprocess.run(
+                    dep.check_command,
+                    shell=True,
+                    capture_output=True,
+                    timeout=SUBPROCESS_TIMEOUT,
+                )
+                available = result.returncode == 0
+            except (subprocess.TimeoutExpired, OSError):
+                available = False
 
+        if available:
             # Get version
             version = dep.get_version()
 
@@ -496,6 +485,66 @@ def _infer_risk_level(command: str) -> RiskLevel:
     ):
         return RiskLevel.INTERACTIVE
     return RiskLevel.SAFE
+
+
+def _is_simple_which_command(command: str) -> bool:
+    """Check if a command is a simple 'which <binary>' without shell operators."""
+    return re.match(WHICH_PATTERN, command) is not None
+
+
+def _extract_binary_from_which(command: str) -> str | None:
+    """Extract binary name from a simple which command.
+    
+    Args:
+        command: A which command (e.g., "which python")
+    
+    Returns:
+        Binary name if command is simple which, None otherwise
+    """
+    if _is_simple_which_command(command):
+        return command.split(maxsplit=1)[1].strip()
+    return None
+
+
+def _get_binary_path(command: str) -> str | None:
+    """Get the path of a binary from a which-style command.
+    
+    Handles both simple "which <binary>" and complex commands with shell operators.
+    
+    Args:
+        command: A which command (e.g., "which python" or "which python3 || which python")
+    
+    Returns:
+        Binary path if found, None otherwise
+    """
+    # Fast path for simple which commands
+    binary = _extract_binary_from_which(command)
+    if binary:
+        return shutil.which(binary)
+    
+    # Complex case: run the command and capture stdout
+    try:
+        proc_result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            timeout=SUBPROCESS_TIMEOUT,
+        )
+        if proc_result.returncode == 0 and proc_result.stdout:
+            if isinstance(proc_result.stdout, bytes):
+                path = proc_result.stdout.decode().strip()
+            else:
+                path = proc_result.stdout.strip()
+            # Take only the first line to handle multi-line output
+            if path:
+                first_line = path.splitlines()[0]
+                # Basic validation: path should not be empty
+                # Note: We trust the which command, so we don't check os.path.exists
+                # to allow for tests and edge cases (e.g., symlinks, special paths)
+                return first_line if first_line else None
+    except (subprocess.TimeoutExpired, OSError):
+        pass
+    return None
 
 
 def resolve_method(

@@ -1122,3 +1122,119 @@ class TestConfirmInstallation:
         result = confirm_installation(plan, PresetStatus.GREEN, skip_confirmation=False)
 
         assert result is True
+
+
+def test_complex_which_command_detection(mocker):
+    """Test detection with complex which commands using shell operators."""
+    from reincheck.installer import get_all_dependencies
+
+    def mock_which(cmd):
+        # Only python3 is in PATH (simulating mise scenario where python3 is available)
+        if cmd == "python3":
+            return "/home/user/.mise/shims/python3"
+        return None
+
+    def mock_run(cmd, **kwargs):
+        result = mocker.Mock(returncode=0, stdout="", stderr="")
+        # Complex which command returns path from python3
+        if "which python3 || which python" in cmd:
+            result.stdout = "/home/user/.mise/shims/python3"
+        # Python version command
+        elif "python3 --version" in cmd:
+            result.stdout = "Python 3.13.0"
+        elif "python --version" in cmd:
+            result.returncode = 1
+        return result
+
+    mocker.patch("shutil.which", side_effect=mock_which)
+    mocker.patch("subprocess.run", side_effect=mock_run)
+
+    result = scan_dependencies()
+
+    # Python should be detected via complex which command
+    assert result["python"].available is True
+    assert result["python"].version == "3.13.0"
+    assert result["python"].path == "/home/user/.mise/shims/python3"
+
+
+def test_simple_vs_complex_which_commands(mocker):
+    """Test that simple and complex which commands are handled correctly."""
+    from reincheck.installer import get_all_dependencies
+
+    def mock_which(cmd):
+        if cmd == "npm":
+            return "/usr/bin/npm"
+        elif cmd == "python3":
+            return None  # Not in PATH
+        return None
+
+    def mock_run(cmd, **kwargs):
+        result = mocker.Mock(returncode=0, stdout="", stderr="")
+        # Simple which: npm
+        if "npm --version" in cmd:
+            result.stdout = "10.8.0"
+        # Complex which: python
+        elif "which python3 || which python" in cmd:
+            result.stdout = "/home/user/.local/bin/python"
+        elif "python --version" in cmd:
+            result.stdout = "Python 3.11.0"
+        return result
+
+    mocker.patch("shutil.which", side_effect=mock_which)
+    mocker.patch("subprocess.run", side_effect=mock_run)
+
+    result = scan_dependencies()
+
+    # Simple which should use shutil.which
+    assert result["npm"].available is True
+    assert result["npm"].version == "10.8.0"
+    assert result["npm"].path == "/usr/bin/npm"
+
+    # Complex which should use subprocess
+    assert result["python"].available is True
+    assert result["python"].version == "3.11.0"
+    assert result["python"].path == "/home/user/.local/bin/python"
+
+
+def test_path_validation_with_multiline_output(mocker):
+    """Test that path extraction handles multi-line output correctly."""
+    from reincheck.installer import get_all_dependencies
+
+    def mock_run(cmd, **kwargs):
+        result = mocker.Mock(returncode=0, stdout="", stderr="")
+        # Simulate multi-line output (e.g., from which with verbose flags)
+        if "which python3 || which python" in cmd:
+            result.stdout = "/home/user/.mise/shims/python\n/home/user/.mise/shims/python3\n"
+        elif "python3 --version" in cmd:
+            result.stdout = "Python 3.13.0"
+        return result
+
+    mocker.patch("shutil.which", return_value=None)
+    mocker.patch("subprocess.run", side_effect=mock_run)
+
+    result = scan_dependencies()
+
+    # Should take only the first line
+    assert result["python"].available is True
+    assert result["python"].path == "/home/user/.mise/shims/python"
+
+
+def test_helper_functions():
+    """Test helper functions for which command handling."""
+    from reincheck.installer import (
+        _is_simple_which_command,
+        _extract_binary_from_which,
+    )
+
+    # Test _is_simple_which_command
+    assert _is_simple_which_command("which python") is True
+    assert _is_simple_which_command("which python3") is True
+    assert _is_simple_which_command("which python3 || which python") is False
+    assert _is_simple_which_command("which python 2>/dev/null") is False
+    assert _is_simple_which_command("not a which command") is False
+
+    # Test _extract_binary_from_which
+    assert _extract_binary_from_which("which python") == "python"
+    assert _extract_binary_from_which("which python3") == "python3"
+    assert _extract_binary_from_which("which python3 || which python") is None
+    assert _extract_binary_from_which("not a which command") is None

@@ -57,6 +57,7 @@ When a task is functionally complete:
 - Do NOT close the task yet.
 - Create a review ticket: `bd create --title="Review: <Task Name>" --type=task`
 - Link dependency: `bd dep add beads-<original_task_id> beads-<review_id>` (Original task blocks on Review)
+- STOP: An agent never works on a review ticket he himself created. You're on standby now awaiting the next command.
 
 **2. Performing Review (The Reviewer)**
 - **Criteria**: Assess quality, maintainability, smells, and patterns.

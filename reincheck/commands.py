@@ -759,6 +759,41 @@ def _select_preset_interactive_with_fallback(
         return None
 
 
+def _select_harnesses_interactive_with_fallback(
+    preset: "Preset",
+    methods: dict,
+    harnesses: dict,
+    debug: bool = False,
+) -> tuple[list[str], dict[str, str]] | None:
+    """Select harnesses interactively or return None if not possible.
+
+    Args:
+        preset: Selected preset
+        methods: All install methods
+        harnesses: All harness metadata
+        debug: Enable debug output
+
+    Returns:
+        Tuple of (selected_harnesses, overrides) or None if interactive
+        selection is not possible.
+    """
+    from reincheck.tui import select_harnesses_interactive
+
+    if not sys.stdin.isatty():
+        return None
+
+    try:
+        return select_harnesses_interactive(preset, methods, harnesses)
+    except RuntimeError:
+        return None
+    except ImportError:
+        return None
+    except OSError as e:
+        if debug:
+            _logging.debug(f"Terminal error in harness selection: {e}")
+        return None
+
+
 def _resolve_all_methods(
     preset: "Preset",
     overrides: dict[str, str],
@@ -865,7 +900,7 @@ def _write_agent_config(agent_configs: list[dict], config_path: Path, preset_nam
 
     try:
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        data = {"agents": agent_configs}
+        data: dict[str, object] = {"agents": agent_configs}
         
         # Store active preset if provided
         if preset_name:
@@ -1122,6 +1157,41 @@ def setup(
     if selected_preset is None:
         click.echo("Error: Preset resolution failed.", err=True)
         sys.exit(EXIT_CONFIG_ERROR)
+
+    # Interactive harness selection (when no --harness flags and TTY available)
+    interactive_harness_selection = None
+    if (
+        not harness
+        and not yes
+        and preset != "custom"
+        and sys.stdin.isatty()
+    ):
+        interactive_harness_selection = _select_harnesses_interactive_with_fallback(
+            selected_preset, all_methods, available_harnesses, debug
+        )
+
+        if interactive_harness_selection is not None:
+            selected_h, interactive_overrides = interactive_harness_selection
+            if not selected_h:
+                click.echo("No harnesses selected. Cancelled.")
+                sys.exit(EXIT_SUCCESS)
+            # Merge: CLI --override flags take precedence over interactive
+            for k, v in interactive_overrides.items():
+                if k not in overrides:
+                    overrides[k] = v
+            # Narrow preset methods to only selected harnesses
+            selected_preset = InstallerPreset(
+                name=selected_preset.name,
+                strategy=selected_preset.strategy,
+                description=selected_preset.description,
+                methods={
+                    h: selected_preset.methods[h]
+                    for h in selected_h
+                    if h in selected_preset.methods
+                },
+                fallback_strategy=selected_preset.fallback_strategy,
+                priority=selected_preset.priority,
+            )
 
     resolved_methods = _resolve_all_methods(
         selected_preset, overrides, available_harnesses, all_methods

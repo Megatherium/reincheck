@@ -33,6 +33,8 @@ For non-destructive exploration: you have podman rights. So `podman run docker.i
 
 **IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
 
+If you are not aware of the 'SESSION CLOSE PROTOCOL' at this point run `bd prime` to get the full beads instructions
+
 ### Why bd?
 
 - Dependency-aware: Track blockers and relationships between issues
@@ -121,8 +123,9 @@ For more details, see README.md and docs/QUICKSTART.md.
 
 1. **File issues for remaining work** - Create issues for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+3. **BUT WAIT:** Now is the time to engage the CODE REVIEW & REFINEMENT PROTOCOL to see if you can close up shop or have extra steps
+4. **Update issue status** - Close finished work, update in-progress items
+5. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
    bd sync

@@ -32,11 +32,12 @@ class Dependency:
         Uses subprocess directly to avoid asyncio.run() issues when
         called from within an existing event loop.
         """
+        import re
         import shutil
         import subprocess
 
-        # Fast path: if check_command is just "which <name>", use shutil.which
-        if self.check_command.startswith("which "):
+        # Fast path: if check_command is just "which <name>" (no shell operators), use shutil.which
+        if re.match(r"^which \S+$", self.check_command):
             binary = self.check_command.split(maxsplit=1)[1].strip()
             return shutil.which(binary) is not None
 
@@ -324,6 +325,7 @@ def get_dependency(name: str) -> Dependency | None:
 def scan_dependencies() -> dict[str, DependencyStatus]:
     """Scan PATH for all known dependencies, return full status with versions."""
     import shutil
+    import re
 
     deps = get_all_dependencies()
     result = {}
@@ -337,8 +339,27 @@ def scan_dependencies() -> dict[str, DependencyStatus]:
         if available:
             # Get the binary path
             if dep.check_command.startswith("which "):
-                binary = dep.check_command.split(maxsplit=1)[1].strip()
-                path = shutil.which(binary)
+                import subprocess
+                # Simple case: just "which <binary>"
+                if re.match(r"^which \S+$", dep.check_command):
+                    binary = dep.check_command.split(maxsplit=1)[1].strip()
+                    path = shutil.which(binary)
+                else:
+                    # Complex case: run the command and capture stdout
+                    try:
+                        proc_result = subprocess.run(
+                            dep.check_command,
+                            shell=True,
+                            capture_output=True,
+                            timeout=5,
+                        )
+                        if proc_result.returncode == 0 and proc_result.stdout:
+                            if isinstance(proc_result.stdout, bytes):
+                                path = proc_result.stdout.decode().strip()
+                            else:
+                                path = proc_result.stdout.strip()
+                    except (subprocess.TimeoutExpired, OSError):
+                        path = None
 
             # Get version
             version = dep.get_version()

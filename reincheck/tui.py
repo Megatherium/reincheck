@@ -352,14 +352,14 @@ def _format_harness_choice(
     return display
 
 
-HarnessSelection = tuple[list[str], dict[str, str]]
+HarnessSelection = tuple[list[str], dict[str, str]] | None
 
 
 def select_harnesses_interactive(
     preset: Preset,
     methods: dict,
     harnesses: dict,
-) -> HarnessSelection | None:
+) -> HarnessSelection:
     """Interactive harness selection with optional method overrides.
 
     Two-phase wizard:
@@ -443,7 +443,7 @@ def _prompt_method_overrides(
     try:
         import questionary
     except ImportError:
-        return {}
+        return None
 
     customizable = [
         h

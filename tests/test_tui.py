@@ -373,28 +373,6 @@ class TestFormatPresetChoice:
         assert "test_red" in result
 
 
-class TestGetPresetColor:
-    """Tests for get_preset_color function."""
-
-    def test_green_status(self):
-        from reincheck.installer import PresetStatus
-        from reincheck.tui import get_preset_color
-
-        assert get_preset_color(PresetStatus.GREEN) == "green"
-
-    def test_partial_status(self):
-        from reincheck.installer import PresetStatus
-        from reincheck.tui import get_preset_color
-
-        assert get_preset_color(PresetStatus.PARTIAL) == "yellow"
-
-    def test_red_status(self):
-        from reincheck.installer import PresetStatus
-        from reincheck.tui import get_preset_color
-
-        assert get_preset_color(PresetStatus.RED) == "red"
-
-
 class TestSelectPresetInteractive:
     """Tests for select_preset_interactive function."""
 
@@ -419,6 +397,23 @@ class TestSelectPresetInteractive:
 
         with pytest.raises(RuntimeError, match="requires a TTY"):
             select_preset_interactive({"test": preset}, report)
+
+    def test_returns_none_for_empty_presets(self):
+        from reincheck.installer import DependencyReport
+        from reincheck.tui import select_preset_interactive
+
+        report = DependencyReport(
+            all_deps={},
+            preset_statuses={},
+            missing_deps=[],
+            unsatisfied_versions=[],
+            available_count=0,
+            total_count=0,
+        )
+
+        with patch("sys.stdin.isatty", return_value=True):
+            result = select_preset_interactive({}, report)
+            assert result is None
 
     def test_returns_none_on_cancel(self):
         from reincheck.installer import Preset, PresetStatus, DependencyReport

@@ -12,6 +12,7 @@ import click
 
 from .installer import DependencyStatus, get_dependency, scan_dependencies
 from .installer import Preset, PresetStatus, DependencyReport
+from .data_loader import get_all_methods
 
 
 def format_dep_line(status: DependencyStatus, max_name_width: int = 10) -> str:
@@ -163,6 +164,7 @@ def format_preset_choice(
     preset: Preset,
     status: PresetStatus,
     report: DependencyReport | None = None,
+    methods: dict | None = None,
 ) -> str:
     """Format a preset choice for interactive selection.
 
@@ -173,6 +175,7 @@ def format_preset_choice(
         preset: The preset to format
         status: The computed preset status
         report: Optional dependency report for detailed info
+        methods: Optional dict of install methods (harness.method -> InstallMethod)
 
     Returns:
         Formatted string suitable for questionary.Choice()
@@ -188,12 +191,8 @@ def format_preset_choice(
     # Build the choice text
     choice_text = f"{icon} {preset.name:<15} - {preset.description}"
     
-    # Add dependency info if report available
-    if report and status != PresetStatus.GREEN:
-        # Count required deps for this preset
-        from .data_loader import get_all_methods
-        methods = get_all_methods()
-        
+    # Add dependency info if report available and not green
+    if report and status != PresetStatus.GREEN and methods:
         required_deps = set()
         for harness_name, method_name in preset.methods.items():
             method_key = f"{harness_name}.{method_name}"
@@ -212,26 +211,11 @@ def format_preset_choice(
     return choice_text
 
 
-def get_preset_color(status: PresetStatus) -> str:
-    """Get color name for preset status.
-
-    Args:
-        status: The preset status
-
-    Returns:
-        Color name for styling (green/yellow/red)
-    """
-    return {
-        PresetStatus.GREEN: "green",
-        PresetStatus.PARTIAL: "yellow",
-        PresetStatus.RED: "red",
-    }.get(status, "white")
-
-
 def select_preset_interactive(
     presets: dict[str, Preset],
     report: DependencyReport,
     default: str | None = None,
+    methods: dict | None = None,
 ) -> str | None:
     """Display interactive preset selector with status colors.
 
@@ -242,6 +226,7 @@ def select_preset_interactive(
         presets: Dictionary of preset name to Preset objects
         report: Dependency report with computed preset statuses
         default: Optional default preset to pre-select
+        methods: Optional dict of install methods (harness.method -> InstallMethod)
 
     Returns:
         Selected preset name, or None if user cancelled
@@ -252,11 +237,19 @@ def select_preset_interactive(
     if not sys.stdin.isatty():
         raise RuntimeError("Interactive preset selector requires a TTY")
     
+    # Handle empty presets
+    if not presets:
+        return None
+    
     try:
         import questionary
     except ImportError:
         click.secho("Warning: questionary not available, using fallback", fg="yellow")
         return None
+    
+    # Load methods if not provided
+    if methods is None:
+        methods = get_all_methods()
     
     # Sort presets by priority (greens first, then by priority value)
     def sort_key(item: tuple[str, Preset]) -> tuple[int, int, str]:
@@ -274,21 +267,22 @@ def select_preset_interactive(
     
     # Build choices with formatted labels
     choices = []
-    default_choice = None
+    default_value = None
     
     for name, preset in sorted_presets:
         status = report.preset_statuses.get(name, PresetStatus.RED)
-        label = format_preset_choice(preset, status, report)
+        label = format_preset_choice(preset, status, report, methods)
         
-        # Create Choice object with style
+        # Create Choice object
         choice = questionary.Choice(
             title=label,
             value=name,
         )
         choices.append(choice)
         
+        # Track default value (string, not Choice object)
         if name == default:
-            default_choice = choice
+            default_value = name
     
     # Add cancel option
     choices.append(questionary.Separator())
@@ -298,7 +292,7 @@ def select_preset_interactive(
         result = questionary.select(
             "Select a preset for installation:",
             choices=choices,
-            default=default_choice,
+            default=default_value,
             instruction="Use ↑↓ to navigate, Enter to select",
         ).ask()
         
@@ -315,6 +309,5 @@ __all__ = [
     "scan_dependencies",
     "DependencyStatus",
     "format_preset_choice",
-    "get_preset_color",
     "select_preset_interactive",
 ]

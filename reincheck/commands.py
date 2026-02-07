@@ -735,19 +735,27 @@ def _select_preset_interactive_with_fallback(
     import sys
 
     from reincheck.tui import select_preset_interactive
+    from reincheck.data_loader import get_all_methods
 
     # Check if we can do interactive selection
     if not sys.stdin.isatty():
         return None
 
+    # Load methods once and pass to selector
+    methods = get_all_methods()
+
     try:
-        return select_preset_interactive(presets, report)
+        return select_preset_interactive(presets, report, methods=methods)
     except RuntimeError:
         # TTY not available
         return None
-    except Exception as e:
+    except ImportError:
+        # questionary not installed
+        return None
+    except OSError as e:
+        # Terminal errors (e.g., TERM issues, encoding problems)
         if debug:
-            _logging.debug(f"Interactive preset selection failed: {e}")
+            _logging.debug(f"Terminal error in preset selection: {e}")
         return None
 
 

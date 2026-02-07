@@ -11,6 +11,7 @@ import sys
 import click
 
 from .installer import DependencyStatus, get_dependency, scan_dependencies
+from .installer import Preset, PresetStatus, DependencyReport
 
 
 def format_dep_line(status: DependencyStatus, max_name_width: int = 10) -> str:
@@ -158,6 +159,154 @@ def _scan_and_display_deps(
     return statuses
 
 
+def format_preset_choice(
+    preset: Preset,
+    status: PresetStatus,
+    report: DependencyReport | None = None,
+) -> str:
+    """Format a preset choice for interactive selection.
+
+    Creates a formatted string with status indicator, preset name,
+    description, and dependency summary.
+
+    Args:
+        preset: The preset to format
+        status: The computed preset status
+        report: Optional dependency report for detailed info
+
+    Returns:
+        Formatted string suitable for questionary.Choice()
+    """
+    status_icons = {
+        PresetStatus.GREEN: "✅",
+        PresetStatus.PARTIAL: "⚠️ ",
+        PresetStatus.RED: "❌",
+    }
+    
+    icon = status_icons.get(status, "❓")
+    
+    # Build the choice text
+    choice_text = f"{icon} {preset.name:<15} - {preset.description}"
+    
+    # Add dependency info if report available
+    if report and status != PresetStatus.GREEN:
+        # Count required deps for this preset
+        from .data_loader import get_all_methods
+        methods = get_all_methods()
+        
+        required_deps = set()
+        for harness_name, method_name in preset.methods.items():
+            method_key = f"{harness_name}.{method_name}"
+            method = methods.get(method_key)
+            if method:
+                required_deps.update(method.dependencies)
+        
+        if required_deps:
+            missing_for_preset = [
+                dep for dep in required_deps 
+                if dep in report.missing_deps or dep in report.unsatisfied_versions
+            ]
+            if missing_for_preset:
+                choice_text += f" [{len(missing_for_preset)} missing]"
+    
+    return choice_text
+
+
+def get_preset_color(status: PresetStatus) -> str:
+    """Get color name for preset status.
+
+    Args:
+        status: The preset status
+
+    Returns:
+        Color name for styling (green/yellow/red)
+    """
+    return {
+        PresetStatus.GREEN: "green",
+        PresetStatus.PARTIAL: "yellow",
+        PresetStatus.RED: "red",
+    }.get(status, "white")
+
+
+def select_preset_interactive(
+    presets: dict[str, Preset],
+    report: DependencyReport,
+    default: str | None = None,
+) -> str | None:
+    """Display interactive preset selector with status colors.
+
+    Uses questionary to show an interactive list of presets with
+    color-coded status indicators (green/yellow/red).
+
+    Args:
+        presets: Dictionary of preset name to Preset objects
+        report: Dependency report with computed preset statuses
+        default: Optional default preset to pre-select
+
+    Returns:
+        Selected preset name, or None if user cancelled
+
+    Raises:
+        RuntimeError: If not running in a TTY (use TTY guard before calling)
+    """
+    if not sys.stdin.isatty():
+        raise RuntimeError("Interactive preset selector requires a TTY")
+    
+    try:
+        import questionary
+    except ImportError:
+        click.secho("Warning: questionary not available, using fallback", fg="yellow")
+        return None
+    
+    # Sort presets by priority (greens first, then by priority value)
+    def sort_key(item: tuple[str, Preset]) -> tuple[int, int, str]:
+        name, preset = item
+        status = report.preset_statuses.get(name, PresetStatus.RED)
+        # Sort: GREEN first (0), then PARTIAL (1), then RED (2)
+        status_order = {
+            PresetStatus.GREEN: 0,
+            PresetStatus.PARTIAL: 1,
+            PresetStatus.RED: 2,
+        }.get(status, 2)
+        return (status_order, preset.priority, name)
+    
+    sorted_presets = sorted(presets.items(), key=sort_key)
+    
+    # Build choices with formatted labels
+    choices = []
+    default_choice = None
+    
+    for name, preset in sorted_presets:
+        status = report.preset_statuses.get(name, PresetStatus.RED)
+        label = format_preset_choice(preset, status, report)
+        
+        # Create Choice object with style
+        choice = questionary.Choice(
+            title=label,
+            value=name,
+        )
+        choices.append(choice)
+        
+        if name == default:
+            default_choice = choice
+    
+    # Add cancel option
+    choices.append(questionary.Separator())
+    choices.append(questionary.Choice("Cancel", value=None))
+    
+    try:
+        result = questionary.select(
+            "Select a preset for installation:",
+            choices=choices,
+            default=default_choice,
+            instruction="Use ↑↓ to navigate, Enter to select",
+        ).ask()
+        
+        return result
+    except KeyboardInterrupt:
+        return None
+
+
 __all__ = [
     "format_dep_line",
     "get_color_for_status",
@@ -165,4 +314,7 @@ __all__ = [
     "_scan_and_display_deps",
     "scan_dependencies",
     "DependencyStatus",
+    "format_preset_choice",
+    "get_preset_color",
+    "select_preset_interactive",
 ]

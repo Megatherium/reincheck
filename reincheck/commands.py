@@ -40,6 +40,7 @@ from reincheck.installer import (
     Preset,
     Plan,
     StepResult,
+    DependencyReport,
 )
 
 _logging = logging.getLogger(__name__)
@@ -716,6 +717,40 @@ def _list_presets_with_status(debug: bool = False) -> None:
     click.echo("Run 'reincheck setup --preset <name> --dry-run' to preview changes.")
 
 
+def _select_preset_interactive_with_fallback(
+    presets: dict[str, "Preset"],
+    report: "DependencyReport",
+    debug: bool = False,
+) -> str | None:
+    """Select preset interactively or return None if not possible.
+
+    Args:
+        presets: Available presets
+        report: Dependency report with statuses
+        debug: Enable debug output
+
+    Returns:
+        Selected preset name, or None if cannot select interactively
+    """
+    import sys
+
+    from reincheck.tui import select_preset_interactive
+
+    # Check if we can do interactive selection
+    if not sys.stdin.isatty():
+        return None
+
+    try:
+        return select_preset_interactive(presets, report)
+    except RuntimeError:
+        # TTY not available
+        return None
+    except Exception as e:
+        if debug:
+            _logging.debug(f"Interactive preset selection failed: {e}")
+        return None
+
+
 def _resolve_all_methods(
     preset: "Preset",
     overrides: dict[str, str],
@@ -1015,14 +1050,7 @@ def setup(
         _list_presets_with_status(debug)
         return
 
-    if preset is None:
-        click.echo("Error: --preset is required.", err=True)
-        sys.exit(EXIT_CONFIG_ERROR)
-
-    # Parse overrides
-    overrides = _parse_overrides(override)
-
-    # Load data
+    # Load data (needed for preset selection and validation)
     try:
         presets = get_presets()
         available_harnesses = get_harnesses()
@@ -1030,6 +1058,30 @@ def setup(
     except Exception as e:
         click.echo(f"Error loading data: {e}", err=True)
         sys.exit(EXIT_CONFIG_ERROR)
+
+    # Interactive preset selection if not provided
+    if preset is None:
+        from reincheck.installer import get_dependency_report
+        
+        report = get_dependency_report(presets, all_methods)
+        selected = _select_preset_interactive_with_fallback(presets, report, debug)
+        
+        if selected is None:
+            click.echo("Error: --preset is required (or use interactive mode).", err=True)
+            click.echo("Run 'reincheck setup --list-presets' to see available presets.", err=True)
+            sys.exit(EXIT_CONFIG_ERROR)
+        
+        preset = selected
+        click.echo(f"Selected preset: {preset}")
+        click.echo("")
+
+    # Validate options (now that we have preset)
+    _validate_setup_options(
+        list_presets, preset, override, harness, dry_run, apply, yes
+    )
+
+    # Parse overrides
+    overrides = _parse_overrides(override)
 
     # Get preset
     selected_preset = presets.get(preset)

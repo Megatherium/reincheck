@@ -1,7 +1,5 @@
 """Tests for TUI utilities."""
 
-import sys
-from io import StringIO
 from unittest.mock import patch
 
 import pytest
@@ -302,3 +300,172 @@ class TestScanAndDisplayDeps:
                     call_kwargs = mock_display.call_args[1]
                     assert call_kwargs["required_deps"] == ["npm"]
                     assert call_kwargs["show_all"] is True
+
+
+class TestFormatPresetChoice:
+    """Tests for format_preset_choice function."""
+
+    def test_green_status_formatting(self):
+        from reincheck.installer import Preset, PresetStatus, DependencyReport
+        from reincheck.tui import format_preset_choice
+
+        preset = Preset(
+            name="test_green",
+            strategy="test",
+            description="Test preset with all deps",
+            methods={},
+        )
+        report = DependencyReport(
+            all_deps={},
+            preset_statuses={"test_green": PresetStatus.GREEN},
+            missing_deps=[],
+            unsatisfied_versions=[],
+            available_count=5,
+            total_count=5,
+        )
+        result = format_preset_choice(preset, PresetStatus.GREEN, report)
+        assert "✅" in result
+        assert "test_green" in result
+        assert "all deps ready" not in result  # Green doesn't show status text in compact mode
+
+    def test_partial_status_formatting(self):
+        from reincheck.installer import Preset, PresetStatus, DependencyReport
+        from reincheck.tui import format_preset_choice
+
+        preset = Preset(
+            name="test_partial",
+            strategy="test",
+            description="Test preset with partial deps",
+            methods={"harness1": "method1"},
+        )
+        report = DependencyReport(
+            all_deps={},
+            preset_statuses={"test_partial": PresetStatus.PARTIAL},
+            missing_deps=["dep1"],
+            unsatisfied_versions=[],
+            available_count=3,
+            total_count=5,
+        )
+        result = format_preset_choice(preset, PresetStatus.PARTIAL, report)
+        assert "⚠️" in result
+        assert "test_partial" in result
+
+    def test_red_status_formatting(self):
+        from reincheck.installer import Preset, PresetStatus, DependencyReport
+        from reincheck.tui import format_preset_choice
+
+        preset = Preset(
+            name="test_red",
+            strategy="test",
+            description="Test preset with missing deps",
+            methods={},
+        )
+        report = DependencyReport(
+            all_deps={},
+            preset_statuses={"test_red": PresetStatus.RED},
+            missing_deps=["dep1", "dep2"],
+            unsatisfied_versions=[],
+            available_count=0,
+            total_count=5,
+        )
+        result = format_preset_choice(preset, PresetStatus.RED, report)
+        assert "❌" in result
+        assert "test_red" in result
+
+
+class TestGetPresetColor:
+    """Tests for get_preset_color function."""
+
+    def test_green_status(self):
+        from reincheck.installer import PresetStatus
+        from reincheck.tui import get_preset_color
+
+        assert get_preset_color(PresetStatus.GREEN) == "green"
+
+    def test_partial_status(self):
+        from reincheck.installer import PresetStatus
+        from reincheck.tui import get_preset_color
+
+        assert get_preset_color(PresetStatus.PARTIAL) == "yellow"
+
+    def test_red_status(self):
+        from reincheck.installer import PresetStatus
+        from reincheck.tui import get_preset_color
+
+        assert get_preset_color(PresetStatus.RED) == "red"
+
+
+class TestSelectPresetInteractive:
+    """Tests for select_preset_interactive function."""
+
+    def test_raises_error_without_tty(self):
+        from reincheck.installer import Preset, PresetStatus, DependencyReport
+        from reincheck.tui import select_preset_interactive
+
+        preset = Preset(
+            name="test",
+            strategy="test",
+            description="Test",
+            methods={},
+        )
+        report = DependencyReport(
+            all_deps={},
+            preset_statuses={"test": PresetStatus.GREEN},
+            missing_deps=[],
+            unsatisfied_versions=[],
+            available_count=1,
+            total_count=1,
+        )
+
+        with pytest.raises(RuntimeError, match="requires a TTY"):
+            select_preset_interactive({"test": preset}, report)
+
+    def test_returns_none_on_cancel(self):
+        from reincheck.installer import Preset, PresetStatus, DependencyReport
+        from reincheck.tui import select_preset_interactive
+
+        preset = Preset(
+            name="test",
+            strategy="test",
+            description="Test",
+            methods={},
+        )
+        report = DependencyReport(
+            all_deps={},
+            preset_statuses={"test": PresetStatus.GREEN},
+            missing_deps=[],
+            unsatisfied_versions=[],
+            available_count=1,
+            total_count=1,
+        )
+
+        with patch("sys.stdin.isatty", return_value=True):
+            with patch("questionary.select") as mock_select:
+                mock_select.return_value.ask.return_value = None
+                result = select_preset_interactive({"test": preset}, report)
+                assert result is None
+
+    def test_returns_selected_preset(self):
+        from reincheck.installer import Preset, PresetStatus, DependencyReport
+        from reincheck.tui import select_preset_interactive
+
+        preset = Preset(
+            name="mise_binary",
+            strategy="mise",
+            description="Use mise binaries",
+            methods={},
+        )
+        report = DependencyReport(
+            all_deps={},
+            preset_statuses={"mise_binary": PresetStatus.GREEN},
+            missing_deps=[],
+            unsatisfied_versions=[],
+            available_count=1,
+            total_count=1,
+        )
+
+        with patch("sys.stdin.isatty", return_value=True):
+            with patch("questionary.select") as mock_select:
+                mock_select.return_value.ask.return_value = "mise_binary"
+                result = select_preset_interactive({"mise_binary": preset}, report)
+                assert result == "mise_binary"

@@ -66,6 +66,8 @@ bd update bd-42 --priority 1 --json
 
 **Complete work:**
 
+**IMPORTANT**: Have you run the CODE REVIEW & REFINEMENT PROTOCOL? It determines if you're allowed to close or if you need to halt here.
+
 ```bash
 bd close bd-42 --reason "Completed" --json
 ```

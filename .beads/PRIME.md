@@ -53,6 +53,7 @@
 ## 🕵️ CODE REVIEW & REFINEMENT PROTOCOL
 
 **1. Initiating Review**
+If the task was just housekeeping, documentation, things without direct influence on the functionality of the code: skip this protocol, you can go ahead and continue landing the plane.
 When a task is functionally complete:
 - Do NOT close the task yet.
 - Create a review ticket: `bd create --title="Review: <Task Name>" --type=task`
@@ -86,6 +87,7 @@ bd update <id> --status=in_progress  # Claim it
 
 **Completing work:**
 
+**IMPORTANT**: Have you run the CODE REVIEW & REFINEMENT PROTOCOL? It describes the situations where you can close or where your must halt for now.
 ```bash
 bd close <id1> <id2> ...    # Close all completed issues at once
 bd sync --flush-only        # Export to JSONL

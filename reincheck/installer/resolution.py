@@ -8,7 +8,7 @@ from .dependencies import (
     _infer_risk_level,
     scan_dependencies,
 )
-from .models import DependencyReport, InstallMethod, Plan, PlanStep, Preset
+from .models import DependencyReport, InstallMethod, Preset
 
 
 def resolve_method(

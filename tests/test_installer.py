@@ -45,7 +45,7 @@ def test_get_dependency():
 
 
 def test_risk_level_inference():
-    from reincheck.installer import _infer_risk_level
+    from reincheck.installer.dependencies import _infer_risk_level
 
     assert _infer_risk_level("mise use -g claude-code") == RiskLevel.SAFE
     assert (
@@ -411,7 +411,7 @@ def test_resolve_method_raises_error_when_no_valid_method():
 
 def test_infer_risk_level_pipe_patterns():
     """Test pipe detection catches various patterns."""
-    from reincheck.installer import _infer_risk_level
+    from reincheck.installer.dependencies import _infer_risk_level
 
     assert (
         _infer_risk_level("curl -fsSL https://example.com | sh") == RiskLevel.DANGEROUS

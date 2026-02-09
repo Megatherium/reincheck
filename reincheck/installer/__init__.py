@@ -5,7 +5,6 @@ from .dependencies import (
     DependencyStatus,
     PresetStatus,
     RiskLevel,
-    _infer_risk_level,
     get_all_dependencies,
     get_dependency,
     scan_dependencies,

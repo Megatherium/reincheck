@@ -759,6 +759,9 @@ def _select_preset_interactive_with_fallback(
         if debug:
             _logging.debug(f"Terminal error in preset selection: {e}")
         return None
+    except KeyboardInterrupt:
+        # User interrupted with Ctrl+C
+        return None
 
 
 def _select_harnesses_interactive_with_fallback(
@@ -793,6 +796,9 @@ def _select_harnesses_interactive_with_fallback(
     except OSError as e:
         if debug:
             _logging.debug(f"Terminal error in harness selection: {e}")
+        return None
+    except KeyboardInterrupt:
+        # User interrupted with Ctrl+C
         return None
 
 

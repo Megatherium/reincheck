@@ -329,7 +329,9 @@ class TestFormatPresetChoice:
         result = format_preset_choice(preset, PresetStatus.GREEN, report)
         assert "✅" in result
         assert "test_green" in result
-        assert "all deps ready" not in result  # Green doesn't show status text in compact mode
+        assert (
+            "all deps ready" not in result
+        )  # Green doesn't show status text in compact mode
 
     def test_partial_status_formatting(self):
         from reincheck.installer import Preset, PresetStatus, DependencyReport
@@ -438,10 +440,11 @@ class TestSelectPresetInteractive:
         )
 
         with patch("sys.stdin.isatty", return_value=True):
-            with patch("reincheck.tui.Application") as mock_app:
-                mock_app.return_value.run.return_value = None
-                result = select_preset_interactive({"test": preset}, report)
-                assert result is None
+            with patch("sys.stdout.isatty", return_value=True):
+                with patch("reincheck.tui.Application") as mock_app:
+                    mock_app.return_value.run.return_value = None
+                    result = select_preset_interactive({"test": preset}, report)
+                    assert result is None
 
     def test_returns_selected_preset(self):
         from reincheck.installer import Preset, PresetStatus, DependencyReport
@@ -464,12 +467,21 @@ class TestSelectPresetInteractive:
 
         with patch("sys.stdin.isatty", return_value=True):
             with patch("reincheck.tui.Application") as mock_app:
-                mock_app.return_value.run.return_value = "mise_binary"
-                result = select_preset_interactive({"mise_binary": preset}, report)
-                assert result == "mise_binary"
+                with patch("reincheck.tui._SelectorState") as mock_state_cls:
+                    mock_state = mock_state_cls.return_value
+                    mock_state.result = "mise_binary"
+                    result = select_preset_interactive({"mise_binary": preset}, report)
+                    assert result == "mise_binary"
 
     def test_get_preset_dependencies_info(self):
-        from reincheck.installer import Preset, DependencyStatus, DependencyReport, InstallMethod, RiskLevel, PresetStatus
+        from reincheck.installer import (
+            Preset,
+            DependencyStatus,
+            DependencyReport,
+            InstallMethod,
+            RiskLevel,
+            PresetStatus,
+        )
         from reincheck.tui import _get_preset_dependencies_info
 
         preset = Preset(
@@ -506,7 +518,12 @@ class TestSelectPresetInteractive:
             all_deps={
                 "dep1": DependencyStatus(name="dep1", available=True, version="1.0.0"),
                 "dep2": DependencyStatus(name="dep2", available=False),
-                "dep3": DependencyStatus(name="dep3", available=True, version="0.9.0", version_satisfied=False),
+                "dep3": DependencyStatus(
+                    name="dep3",
+                    available=True,
+                    version="0.9.0",
+                    version_satisfied=False,
+                ),
             },
             preset_statuses={"test_preset": PresetStatus.PARTIAL},
             missing_deps=["dep2"],
@@ -516,18 +533,18 @@ class TestSelectPresetInteractive:
         )
 
         info = _get_preset_dependencies_info(preset, report, methods)
-        
+
         # Check that we have info for all 3 dependencies
         assert len(info) == 3
-        
+
         # Check specific formats (icons and content)
         # Note: sorting is alphabetical by dep name
         assert "✅ dep1" in info[0]
         assert "v1.0.0" in info[0]
-        
+
         assert "❌ dep2" in info[1]
         assert "missing" in info[1]
-        
+
         assert "⚠️ dep3" in info[2]
         assert "v0.9.0" in info[2]
 
@@ -569,14 +586,15 @@ def _make_harnesses() -> dict:
     from reincheck.installer import Harness
 
     return {
-        "claude": Harness(name="claude", display_name="Claude", description="Claude Code"),
+        "claude": Harness(
+            name="claude", display_name="Claude", description="Claude Code"
+        ),
         "aider": Harness(name="aider", display_name="Aider", description="Aider"),
         "roo": Harness(name="roo", display_name="Roo", description="Roo"),
     }
 
 
 class TestGetMethodNamesForHarness:
-
     def test_returns_sorted_methods(self):
         methods = _make_methods_dict()
         result = get_method_names_for_harness("claude", methods)
@@ -584,7 +602,9 @@ class TestGetMethodNamesForHarness:
 
     def test_preset_default_first(self):
         methods = _make_methods_dict()
-        result = get_method_names_for_harness("claude", methods, preset_default="mise_binary")
+        result = get_method_names_for_harness(
+            "claude", methods, preset_default="mise_binary"
+        )
         assert result[0] == "mise_binary"
         assert set(result) == {"mise_binary", "homebrew", "language_native"}
 
@@ -600,12 +620,13 @@ class TestGetMethodNamesForHarness:
 
     def test_preset_default_not_in_methods_ignored(self):
         methods = _make_methods_dict()
-        result = get_method_names_for_harness("claude", methods, preset_default="nonexistent")
+        result = get_method_names_for_harness(
+            "claude", methods, preset_default="nonexistent"
+        )
         assert result == ["homebrew", "language_native", "mise_binary"]
 
 
 class TestFormatHarnessChoice:
-
     def test_with_display_name_and_method(self):
         harnesses = _make_harnesses()
         result = _format_harness_choice("claude", harnesses, "mise_binary")
@@ -624,10 +645,11 @@ class TestFormatHarnessChoice:
 
 
 class TestSelectHarnessesInteractive:
-
     def test_raises_without_tty(self):
         preset = Preset(
-            name="test", strategy="test", description="Test",
+            name="test",
+            strategy="test",
+            description="Test",
             methods={"claude": "mise_binary"},
         )
         with pytest.raises(RuntimeError, match="requires a TTY"):
@@ -635,16 +657,22 @@ class TestSelectHarnessesInteractive:
 
     def test_empty_preset_returns_empty(self):
         preset = Preset(
-            name="test", strategy="test", description="Test",
+            name="test",
+            strategy="test",
+            description="Test",
             methods={},
         )
         with patch("sys.stdin.isatty", return_value=True):
-            result = select_harnesses_interactive(preset, _make_methods_dict(), _make_harnesses())
+            result = select_harnesses_interactive(
+                preset, _make_methods_dict(), _make_harnesses()
+            )
             assert result == ([], {})
 
     def test_returns_all_selected_no_overrides(self):
         preset = Preset(
-            name="test", strategy="test", description="Test",
+            name="test",
+            strategy="test",
+            description="Test",
             methods={"claude": "mise_binary", "aider": "homebrew"},
         )
         methods = _make_methods_dict()
@@ -664,29 +692,39 @@ class TestSelectHarnessesInteractive:
 
     def test_returns_none_on_cancel(self):
         preset = Preset(
-            name="test", strategy="test", description="Test",
+            name="test",
+            strategy="test",
+            description="Test",
             methods={"claude": "mise_binary"},
         )
         with patch("sys.stdin.isatty", return_value=True):
             with patch("questionary.checkbox") as mock_cb:
                 mock_cb.return_value.ask.return_value = None
-                result = select_harnesses_interactive(preset, _make_methods_dict(), _make_harnesses())
+                result = select_harnesses_interactive(
+                    preset, _make_methods_dict(), _make_harnesses()
+                )
                 assert result is None
 
     def test_keyboard_interrupt_returns_none(self):
         preset = Preset(
-            name="test", strategy="test", description="Test",
+            name="test",
+            strategy="test",
+            description="Test",
             methods={"claude": "mise_binary"},
         )
         with patch("sys.stdin.isatty", return_value=True):
             with patch("questionary.checkbox") as mock_cb:
                 mock_cb.return_value.ask.side_effect = KeyboardInterrupt
-                result = select_harnesses_interactive(preset, _make_methods_dict(), _make_harnesses())
+                result = select_harnesses_interactive(
+                    preset, _make_methods_dict(), _make_harnesses()
+                )
                 assert result is None
 
     def test_method_override_flow(self):
         preset = Preset(
-            name="test", strategy="test", description="Test",
+            name="test",
+            strategy="test",
+            description="Test",
             methods={"claude": "mise_binary", "roo": "vendor_recommended"},
         )
         methods = _make_methods_dict()
@@ -704,7 +742,9 @@ class TestSelectHarnessesInteractive:
                     mock_confirm.return_value.ask.return_value = True
                     with patch("questionary.select") as mock_select:
                         mock_select.return_value.ask.return_value = "homebrew"
-                        result = select_harnesses_interactive(preset, methods, harnesses)
+                        result = select_harnesses_interactive(
+                            preset, methods, harnesses
+                        )
 
         assert result is not None
         selected, overrides = result
@@ -713,7 +753,9 @@ class TestSelectHarnessesInteractive:
 
     def test_single_method_harness_not_offered_for_customization(self):
         preset = Preset(
-            name="test", strategy="test", description="Test",
+            name="test",
+            strategy="test",
+            description="Test",
             methods={"roo": "vendor_recommended"},
         )
         methods = _make_methods_dict()
@@ -731,7 +773,9 @@ class TestSelectHarnessesInteractive:
 
     def test_choosing_preset_default_not_added_to_overrides(self):
         preset = Preset(
-            name="test", strategy="test", description="Test",
+            name="test",
+            strategy="test",
+            description="Test",
             methods={"claude": "mise_binary"},
         )
         methods = _make_methods_dict()
@@ -747,7 +791,9 @@ class TestSelectHarnessesInteractive:
                     mock_confirm.return_value.ask.return_value = True
                     with patch("questionary.select") as mock_select:
                         mock_select.return_value.ask.return_value = "mise_binary"
-                        result = select_harnesses_interactive(preset, methods, harnesses)
+                        result = select_harnesses_interactive(
+                            preset, methods, harnesses
+                        )
 
         assert result is not None
         _, overrides = result

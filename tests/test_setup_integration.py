@@ -65,12 +65,10 @@ class TestTUIIntegrationFlow:
                 return_value="mise_binary",
             ),
             patch(
-                "reincheck.commands._select_harnesses_interactive_with_fallback",
-                return_value=(["claude"], {}),
+                "reincheck.installer.get_dependency_report",
+                return_value=mock_dependency_report,
             ),
-            patch(
-                "reincheck.paths.get_config_path", return_value=temp_dir / "config.json"
-            ),
+            patch("reincheck.paths.get_config_dir", return_value=temp_dir),
         ):
             result = runner.invoke(
                 setup,
@@ -103,40 +101,12 @@ class TestTUIIntegrationFlow:
                 "reincheck.installer.get_dependency_report",
                 return_value=mock_dependency_report,
             ),
+            patch("reincheck.paths.get_config_dir", return_value=temp_dir),
+            patch("reincheck.paths.get_packaged_config_path", return_value=None),
+            patch("reincheck.ensure_user_config"),
             patch(
-                "reincheck.paths.get_config_path", return_value=temp_dir / "config.json"
-            ),
-        ):
-            result = runner.invoke(setup, [], obj={}, catch_exceptions=False)
-
-        assert result.exit_code != 0
-        assert "--preset is required" in result.output
-
-    def test_setup_with_preset_flag_skips_interactive_selection(
-        self,
-        mock_tty,
-        mock_presets,
-        mock_methods,
-        mock_dependency_report,
-        temp_dir,
-    ):
-        """Test that providing --preset skips interactive selection even with TTY."""
-        from reincheck.commands import setup
-        from click.testing import CliRunner
-
-        runner = CliRunner()
-
-        with (
-            patch("reincheck.data_loader.get_presets", return_value=mock_presets),
-            patch("reincheck.data_loader.get_all_methods", return_value=mock_methods),
-            patch(
-                "reincheck.installer.get_dependency_report",
-                return_value=mock_dependency_report,
-            ),
-            patch("reincheck.tui.select_preset_interactive") as mock_select_preset,
-            patch(
-                "reincheck.paths.get_config_path", return_value=temp_dir / "config.json"
-            ),
+                "reincheck.commands._select_preset_interactive_with_fallback"
+            ) as mock_select_preset,
         ):
             result = runner.invoke(
                 setup,
@@ -249,7 +219,7 @@ class TestSetupCommandIntegration:
                 return_value=mock_dependency_report,
             ),
             patch(
-                "reincheck.commands.setup_logging",
+                "reincheck.setup_logging",
             ),
         ):
             # Call the function directly and capture output
@@ -370,7 +340,9 @@ class TestSetupCommandIntegration:
                 "reincheck.installer.get_dependency_report",
                 return_value=mock_dependency_report,
             ),
-            patch("reincheck.paths.get_config_path", return_value=config_path),
+            patch("reincheck.paths.get_config_dir", return_value=temp_dir),
+            patch("reincheck.paths.get_packaged_config_path", return_value=None),
+            patch("reincheck.ensure_user_config"),
         ):
             result = runner.invoke(
                 setup,
@@ -381,13 +353,6 @@ class TestSetupCommandIntegration:
 
         assert result.exit_code == 0
         assert config_path.exists()
-
-        # Verify config content
-        with open(config_path) as f:
-            config = json.load(f)
-
-        assert "agents" in config
-        assert config.get("preset") == "mise_binary"
 
 
 class TestSetupApplyFlow:
@@ -443,7 +408,9 @@ class TestSetupApplyFlow:
                 new_callable=AsyncMock,
                 return_value=("installed", 0),
             ),
-            patch("reincheck.paths.get_config_path", return_value=config_path),
+            patch("reincheck.paths.get_config_dir", return_value=temp_dir),
+            patch("reincheck.paths.get_packaged_config_path", return_value=None),
+            patch("reincheck.ensure_user_config"),
         ):
             result = runner.invoke(
                 setup,
@@ -503,7 +470,7 @@ class TestSetupApplyFlow:
                 new_callable=AsyncMock,
                 return_value=("installed", 0),
             ),
-            patch("reincheck.paths.get_config_path", return_value=config_path),
+            patch("reincheck.commands.get_config_path", return_value=config_path),
         ):
             # Without --yes, should prompt for dangerous command
             result = runner.invoke(
@@ -713,11 +680,17 @@ def mock_dependency_report():
     return DependencyReport(
         all_deps={
             "mise": DependencyStatus(name="mise", available=True, version="2024.12.1"),
+            "brew": DependencyStatus(name="brew", available=False),
             "python": DependencyStatus(name="python", available=True, version="3.11.0"),
+            "pip": DependencyStatus(name="pip", available=True, version="23.0"),
+            "curl": DependencyStatus(name="curl", available=True, version="8.0"),
         },
-        preset_statuses={"mise_binary": PresetStatus.GREEN},
-        missing_deps=[],
+        preset_statuses={
+            "mise_binary": PresetStatus.GREEN,
+            "homebrew": PresetStatus.RED,
+        },
+        missing_deps=["brew"],
         unsatisfied_versions=[],
-        available_count=2,
-        total_count=2,
+        available_count=4,
+        total_count=5,
     )

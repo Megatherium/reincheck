@@ -262,6 +262,16 @@ def _get_preset_dependencies_info(
     return info
 
 
+class _SelectorState:
+    """State class for preset selector UI."""
+    
+    def __init__(self, default_index: int = 0):
+        self.index = default_index
+        self.show_modal = False
+        self.result: str | None = None
+        self.empty_label: "Label" = Label("")
+
+
 def select_preset_interactive(
     presets: dict[str, Preset],
     report: DependencyReport,
@@ -312,13 +322,7 @@ def select_preset_interactive(
     if default in preset_names:
         default_index = preset_names.index(default)
 
-    class SelectorState:
-        def __init__(self):
-            self.index = default_index
-            self.show_modal = False
-            self.empty_label = Label("")
-
-    state = SelectorState()
+    state = _SelectorState(default_index)
 
     kb = KeyBindings()
 
@@ -340,7 +344,8 @@ def select_preset_interactive(
         if state.show_modal:
             _close_modal()
         else:
-            event.app.exit(result=preset_names[state.index])
+            state.result = preset_names[state.index]
+            event.app.exit()
 
     @kb.add("u")
     def _(event):
@@ -352,7 +357,8 @@ def select_preset_interactive(
         if state.show_modal:
             _close_modal()
         else:
-            event.app.exit(result=None)
+            state.result = None
+            event.app.exit()
 
     def get_list_text():
         tokens = []
@@ -431,7 +437,8 @@ def select_preset_interactive(
         layout=Layout(layout), key_bindings=kb, style=style, full_screen=False
     )
 
-    return app.run()
+    app.run()
+    return state.result
 
 
 def get_method_names_for_harness(

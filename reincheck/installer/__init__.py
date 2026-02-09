@@ -27,7 +27,6 @@ from .resolution import (
 )
 
 __all__ = [
-    "RiskLevel",
     "PresetStatus",
     "Dependency",
     "DependencyStatus",

@@ -4,7 +4,7 @@ import click
 
 from reincheck import run_command_async
 
-from .dependencies import PresetStatus, get_dependency
+from .dependencies import PresetStatus, RiskLevel, get_dependency
 from .models import Plan, StepResult
 
 
@@ -27,7 +27,7 @@ def confirm_installation(
     click.echo("=" * 60)
     click.echo("")
     click.echo(f"  Harnesses to install: {len(plan.steps)}")
-    click.echo(f"  Commands to execute: {len([s for s in plan.steps])}")
+    click.echo(f"  Commands to execute: {len(plan.steps)}")
 
     if preset_status != PresetStatus.GREEN:
         click.echo("")
@@ -76,17 +76,12 @@ def confirm_installation(
             default=False,
         )
 
-    if skip_confirmation and preset_status == PresetStatus.GREEN and not has_dangerous:
-        return True
-
     return click.confirm("\nContinue with installation?", default=False)
 
 
 async def apply_plan(
     plan: Plan, dry_run: bool = False, skip_confirmation: bool = False
 ) -> list[StepResult]:
-    from .dependencies import RiskLevel
-
     if not plan.is_ready() and not skip_confirmation:
         if not _confirm("Dependencies missing. Continue anyway?"):
             return []

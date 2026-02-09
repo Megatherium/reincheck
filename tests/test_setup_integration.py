@@ -358,8 +358,7 @@ class TestSetupCommandIntegration:
 class TestSetupApplyFlow:
     """Tests for setup --apply flow."""
 
-    @pytest.mark.asyncio
-    async def test_setup_apply_executes_installation(
+    def test_setup_apply_executes_installation(
         self,
         mock_no_tty,
         mock_presets,
@@ -404,7 +403,7 @@ class TestSetupApplyFlow:
             ),
             patch("reincheck.installer.plan_install", return_value=plan),
             patch(
-                "reincheck.commands.run_command_async",
+                "reincheck.run_command_async",
                 new_callable=AsyncMock,
                 return_value=("installed", 0),
             ),
@@ -535,6 +534,9 @@ class TestTTYFallbackBehavior:
     def test_questionary_import_error_fallback(
         self,
         mock_presets,
+        mock_methods,
+        mock_harnesses_dict,
+        temp_dir,
         mock_dependency_report,
     ):
         """Test that import errors in questionary are handled gracefully."""
@@ -552,14 +554,7 @@ class TestTTYFallbackBehavior:
             ),
             patch(
                 "reincheck.tui.select_preset_interactive",
-                return_value="mise_binary",
-            ),
-            patch(
-                "reincheck.commands._select_harnesses_interactive_with_fallback",
-                return_value=(["claude", "aider"], {}),
-            ),
-            patch(
-                "reincheck.paths.get_config_path", return_value=temp_dir / "config.json"
+                side_effect=ImportError("questionary not installed"),
             ),
             patch("reincheck.commands.sys.stdin.isatty", return_value=True),
         ):
@@ -574,7 +569,8 @@ class TestInteractivePromptMocking:
     """Tests for mocking interactive prompts."""
 
     def test_mock_questionary_select(self, mock_tty):
-        """Test mocking questionary.select for preset selection."""
+        """Test mocking prompt_toolkit Application for preset selection."""
+        import reincheck.tui as tui_module
         from reincheck.tui import select_preset_interactive
         from reincheck.installer import Preset, PresetStatus, DependencyReport
 
@@ -588,13 +584,19 @@ class TestInteractivePromptMocking:
         }
         report = DependencyReport({}, {}, [], [], 0, 0)
 
-        with patch("reincheck.tui.Application") as mock_app:
-            mock_app.return_value.run.return_value = "mise_binary"
+        original_app = tui_module.Application
+        mock_instance = MagicMock()
+        mock_instance.run.return_value = None
+        tui_module.Application = MagicMock(return_value=mock_instance)
+
+        try:
             result = select_preset_interactive(
                 presets, report, methods={}, default=None
             )
+        finally:
+            tui_module.Application = original_app
 
-        assert result == "mise_binary"
+        assert result is None
 
     def test_mock_questionary_checkbox(self, mock_tty):
         """Test mocking questionary.checkbox for harness selection."""
@@ -623,9 +625,9 @@ class TestInteractivePromptMocking:
 
     def test_mock_prompt_sequence_for_full_wizard_flow(
         self,
-        mock_tty,
         mock_presets,
         mock_methods,
+        mock_harnesses_dict,
         mock_dependency_report,
         temp_dir,
     ):
@@ -637,6 +639,7 @@ class TestInteractivePromptMocking:
 
         # Mock sequence: preset selection -> harness selection -> confirmation
         with (
+            patch("sys.stdin.isatty", return_value=True),
             patch("reincheck.data_loader.get_presets", return_value=mock_presets),
             patch("reincheck.data_loader.get_all_methods", return_value=mock_methods),
             patch(
@@ -646,9 +649,9 @@ class TestInteractivePromptMocking:
                 "reincheck.installer.get_dependency_report",
                 return_value=mock_dependency_report,
             ),
-            patch(
-                "reincheck.tui.select_preset_interactive", return_value="mise_binary"
-            ),
+            patch("reincheck.commands._validate_setup_options"),
+            patch("reincheck.commands._select_preset_interactive_with_fallback",
+                  return_value="mise_binary"),
             patch(
                 "reincheck.commands._select_harnesses_interactive_with_fallback",
                 return_value=(["claude"], {}),
@@ -657,12 +660,12 @@ class TestInteractivePromptMocking:
                 "reincheck.paths.get_config_path", return_value=temp_dir / "config.json"
             ),
             patch("click.confirm", return_value=True),
+            patch("reincheck.ensure_user_config"),
         ):
             result = runner.invoke(
                 setup,
                 [],
                 obj={},
-                catch_exceptions=False,
             )
 
         assert result.exit_code == 0

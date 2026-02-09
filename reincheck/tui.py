@@ -339,7 +339,7 @@ def select_preset_interactive(
         if not state.show_modal and len(preset_names) > 1:
             state.index = (state.index + 1) % len(preset_names)
 
-    @kb.add("enter")
+    @kb.add("enter", eager=True)
     def _(event):
         if state.show_modal:
             _close_modal()

@@ -10,7 +10,15 @@ import sys
 
 import click
 from prompt_toolkit.application import Application
-from prompt_toolkit.layout import Layout, FloatContainer, Float, Window, HSplit, ConditionalContainer, DynamicContainer
+from prompt_toolkit.layout import (
+    Layout,
+    FloatContainer,
+    Float,
+    Window,
+    HSplit,
+    ConditionalContainer,
+    DynamicContainer,
+)
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.widgets import Dialog, Label, Button
@@ -192,12 +200,12 @@ def format_preset_choice(
         PresetStatus.PARTIAL: "⚠️ ",
         PresetStatus.RED: "❌",
     }
-    
+
     icon = status_icons.get(status, "❓")
-    
+
     # Build the choice text
     choice_text = f"{icon} {preset.name:<15} - {preset.description}"
-    
+
     # Add dependency info if report available and not green
     if report and status != PresetStatus.GREEN and methods:
         required_deps = set()
@@ -206,15 +214,16 @@ def format_preset_choice(
             method = methods.get(method_key)
             if method:
                 required_deps.update(method.dependencies)
-        
+
         if required_deps:
             missing_for_preset = [
-                dep for dep in required_deps 
+                dep
+                for dep in required_deps
                 if dep in report.missing_deps or dep in report.unsatisfied_versions
             ]
             if missing_for_preset:
                 choice_text += f" [{len(missing_for_preset)} missing]"
-    
+
     return choice_text
 
 
@@ -264,7 +273,7 @@ def _get_preset_dependencies_info(
 
 class _SelectorState:
     """State class for preset selector UI."""
-    
+
     def __init__(self, default_index: int = 0):
         self.index = default_index
         self.show_modal = False
@@ -373,7 +382,10 @@ def select_preset_interactive(
 
         tokens.append(("", "\n"))
         tokens.append(
-            ("class:help", " Use ↑↓ to navigate, Enter to select, 'u' for details, 'c' to cancel")
+            (
+                "class:help",
+                " Use ↑↓ to navigate, Enter to select, 'u' for details, 'c' to cancel",
+            )
         )
         return tokens
 
@@ -421,11 +433,7 @@ def select_preset_interactive(
                     content=Dialog(
                         title="Dependency Details",
                         body=DynamicContainer(get_modal_content),
-                        buttons=[
-                            Button(
-                                text="Close", handler=_close_modal
-                            )
-                        ],
+                        buttons=[Button(text="Close", handler=_close_modal)],
                     ),
                     filter=Condition(lambda: state.show_modal),
                 )
@@ -457,11 +465,7 @@ def get_method_names_for_harness(
         List of method name strings (e.g., ["mise_binary", "homebrew", ...])
     """
     prefix = f"{harness_name}."
-    names = sorted(
-        key[len(prefix) :]
-        for key in methods
-        if key.startswith(prefix)
-    )
+    names = sorted(key[len(prefix) :] for key in methods if key.startswith(prefix))
 
     if preset_default and preset_default in names:
         names.remove(preset_default)
@@ -676,4 +680,108 @@ __all__ = [
     "select_preset_interactive",
     "get_method_names_for_harness",
     "select_harnesses_interactive",
+    "resolve_failed_harnesses_interactive",
 ]
+
+
+def resolve_failed_harnesses_interactive(
+    failed_harnesses: list[str],
+    methods: dict,
+    harnesses: dict,
+    dep_report: DependencyReport | None = None,
+) -> dict[str, str] | None:
+    """Interactive loop to resolve failed harness methods.
+
+    Prompts the user to select a method for each harness that failed resolution.
+
+    Args:
+        failed_harnesses: List of harness names that failed
+        methods: All install methods
+        harnesses: All harness metadata
+        dep_report: Optional dependency report to check method availability
+
+    Returns:
+        Dict of harness_name -> selected_method_name (for overrides),
+        or None if user cancels.
+    """
+    if not sys.stdin.isatty():
+        raise RuntimeError("Interactive resolution requires a TTY")
+
+    try:
+        import questionary
+        from prompt_toolkit.styles import Style
+    except ImportError:
+        return None
+
+    overrides = {}
+
+    # Custom style for red missing dependencies
+    style = Style(
+        [
+            ("missing", "fg:ansired"),
+            ("available", ""),
+        ]
+    )
+
+    for harness_name in failed_harnesses:
+        # Get all available methods for this harness
+        available = get_method_names_for_harness(harness_name, methods)
+
+        if not available:
+            # Nothing to offer
+            click.echo(f"No methods available for {harness_name}, skipping.")
+            continue
+
+        harness = harnesses.get(harness_name)
+        display_name = harness.display_name if harness else harness_name
+
+        choices = []
+        for method_name in available:
+            method_key = f"{harness_name}.{method_name}"
+            method = methods.get(method_key)
+            install_cmd = method.install if method else "unknown command"
+
+            # Check dependencies if report provided
+            missing_deps = False
+            if dep_report and method:
+                for dep in method.dependencies:
+                    if dep in dep_report.missing_deps:
+                        missing_deps = True
+                        break
+
+            label = f"{method_name}: {install_cmd}"
+
+            if missing_deps:
+                # Add warning suffix
+                label += " (missing dependencies)"
+                choices.append(
+                    questionary.Choice(
+                        title=[("class:missing", label)], value=method_name
+                    )
+                )
+            else:
+                choices.append(
+                    questionary.Choice(
+                        title=[("class:available", label)], value=method_name
+                    )
+                )
+
+        # Add "Don't configure" option
+        choices.append(questionary.Choice(title="Don't configure (skip)", value=None))
+
+        try:
+            selection = questionary.select(
+                f"Select install method for {display_name}:",
+                choices=choices,
+                style=style,
+            ).ask()
+        except KeyboardInterrupt:
+            return None
+
+        if selection:
+            overrides[harness_name] = selection
+        else:
+            # User chose to skip
+            pass
+
+    return overrides

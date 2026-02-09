@@ -386,23 +386,31 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
     # Try to get effective method from preset first, fall back to config
     install_command = None
     effective_method = None
-    
+
     if config.preset:
         try:
-            effective_method = get_effective_method(agent_name, preset_name=config.preset)
+            effective_method = get_effective_method(
+                agent_name, preset_name=config.preset
+            )
             if effective_method:
                 install_command = effective_method.install_command
                 if debug:
-                    _logging.debug(f"Using install command from preset '{config.preset}': {install_command}")
+                    _logging.debug(
+                        f"Using install command from preset '{config.preset}': {install_command}"
+                    )
             else:
                 # Harness not in preset - will fall back to config
                 if debug:
-                    _logging.debug(f"Harness '{agent_name}' not found in preset '{config.preset}', falling back to config")
+                    _logging.debug(
+                        f"Harness '{agent_name}' not found in preset '{config.preset}', falling back to config"
+                    )
         except (ValueError, Exception) as e:
             # Resolution failed - fall back to config
             if debug:
-                _logging.debug(f"Failed to resolve method from preset: {e}, falling back to config")
-    
+                _logging.debug(
+                    f"Failed to resolve method from preset: {e}, falling back to config"
+                )
+
     # Fall back to config's install_command if preset method not available
     if install_command is None:
         install_command = agent_config.install_command
@@ -433,7 +441,9 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
 
 
 @cli.command(name="list")
-@click.option("--verbose", "-v", is_flag=True, help="Show detailed information including methods")
+@click.option(
+    "--verbose", "-v", is_flag=True, help="Show detailed information including methods"
+)
 @click.pass_context
 def list_agents(ctx, verbose: bool):
     """List all configured agents."""
@@ -488,7 +498,9 @@ async def run_list_agents(verbose: bool, debug: bool):
             click.echo("")
         else:
             # Default: one line per agent
-            version_str = current if current and status == "success" else "not installed"
+            version_str = (
+                current if current and status == "success" else "not installed"
+            )
             click.echo(f"{agent.name}: {version_str}")
 
 
@@ -736,7 +748,10 @@ def _select_preset_interactive_with_fallback(
     """
     import sys
 
-    from reincheck.tui import select_preset_interactive
+    from reincheck.tui import (
+        select_preset_interactive,
+        resolve_failed_harnesses_interactive,
+    )
     from reincheck.data_loader import get_all_methods
 
     # Check if we can do interactive selection
@@ -997,7 +1012,9 @@ async def _execute_installation_with_progress(
     click.echo(render_plan(plan))
 
     # Prominent curl|sh warning summary if any dangerous steps
-    dangerous_count = sum(1 for step in plan.steps if step.risk_level == RiskLevel.DANGEROUS)
+    dangerous_count = sum(
+        1 for step in plan.steps if step.risk_level == RiskLevel.DANGEROUS
+    )
     if dangerous_count > 0:
         click.echo("")
         click.echo("=" * 60)
@@ -1094,6 +1111,7 @@ def setup(
     from reincheck import setup_logging
     from reincheck.data_loader import get_presets, get_harnesses, get_all_methods
     from reincheck.installer import plan_install, Preset as InstallerPreset
+    from reincheck.tui import resolve_failed_harnesses_interactive
 
     debug = ctx.obj.get("debug", False)
     setup_logging(debug)
@@ -1125,8 +1143,13 @@ def setup(
         selected = _select_preset_interactive_with_fallback(presets, report, debug)
 
         if selected is None:
-            click.echo("Error: --preset is required (or use interactive mode).", err=True)
-            click.echo("Run 'reincheck setup --list-presets' to see available presets.", err=True)
+            click.echo(
+                "Error: --preset is required (or use interactive mode).", err=True
+            )
+            click.echo(
+                "Run 'reincheck setup --list-presets' to see available presets.",
+                err=True,
+            )
             sys.exit(EXIT_CONFIG_ERROR)
 
         preset = selected
@@ -1175,12 +1198,7 @@ def setup(
 
     # Interactive harness selection (when no --harness flags and TTY available)
     interactive_harness_selection = None
-    if (
-        not harness
-        and not yes
-        and preset != "custom"
-        and sys.stdin.isatty()
-    ):
+    if not harness and not yes and preset != "custom" and sys.stdin.isatty():
         interactive_harness_selection = _select_harnesses_interactive_with_fallback(
             selected_preset, all_methods, available_harnesses, debug
         )
@@ -1211,6 +1229,45 @@ def setup(
     resolved_methods = _resolve_all_methods(
         selected_preset, overrides, available_harnesses, all_methods
     )
+
+    # Check for failed resolutions and offer interactive fix
+    if sys.stdin.isatty() and not yes:
+        expected_harnesses = set()
+        if selected_preset.name == "custom":
+            expected_harnesses = {
+                h for h in overrides.keys() if h in available_harnesses
+            }
+        else:
+            expected_harnesses = {
+                h for h in selected_preset.methods.keys() if h in available_harnesses
+            }
+
+        failed_harnesses = list(expected_harnesses - set(resolved_methods.keys()))
+        failed_harnesses.sort()
+
+        if failed_harnesses:
+            click.echo("")
+            click.secho(
+                f"⚠️  Could not resolve install methods for {len(failed_harnesses)} harnesses.",
+                fg="yellow",
+            )
+
+            from reincheck.installer import get_dependency_report
+
+            # We need to pass presets to get_dependency_report, checking if it's available
+            # It should be available from earlier in the function
+            dep_report = get_dependency_report(presets, all_methods)
+
+            new_overrides = resolve_failed_harnesses_interactive(
+                failed_harnesses, all_methods, available_harnesses, dep_report
+            )
+
+            if new_overrides:
+                overrides.update(new_overrides)
+                click.echo("Retrying resolution with selected methods...")
+                resolved_methods = _resolve_all_methods(
+                    selected_preset, overrides, available_harnesses, all_methods
+                )
 
     if not resolved_methods:
         click.echo("Error: No valid install methods found for any harnesses.", err=True)
@@ -1248,13 +1305,14 @@ def setup(
                 click.echo("=" * 60)
                 click.echo("INSTALLATION PLAN PREVIEW")
                 click.echo("=" * 60)
-                
+
                 # Generate and display the full installation plan
                 try:
                     plan = plan_install(
                         selected_preset, harnesses_to_install, all_methods, overrides
                     )
                     from reincheck.installer import render_plan
+
                     click.echo(render_plan(plan))
                 except Exception as e:
                     click.echo(f"  [DRY-RUN] Would install harnesses:")
@@ -1262,7 +1320,7 @@ def setup(
                     click.echo(f"    {harness_install_list}")
                     if debug:
                         click.echo(f"  Error generating plan: {e}")
-                
+
                 click.echo("=" * 60)
 
         click.echo("")

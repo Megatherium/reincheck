@@ -1204,7 +1204,9 @@ def test_path_validation_with_multiline_output(mocker):
         result = mocker.Mock(returncode=0, stdout="", stderr="")
         # Simulate multi-line output (e.g., from which with verbose flags)
         if "which python3 || which python" in cmd:
-            result.stdout = "/home/user/.mise/shims/python\n/home/user/.mise/shims/python3\n"
+            result.stdout = (
+                "/home/user/.mise/shims/python\n/home/user/.mise/shims/python3\n"
+            )
         elif "python3 --version" in cmd:
             result.stdout = "Python 3.13.0"
         return result
@@ -1221,7 +1223,7 @@ def test_path_validation_with_multiline_output(mocker):
 
 def test_helper_functions():
     """Test helper functions for which command handling."""
-    from reincheck.installer import (
+    from reincheck.installer.dependencies import (
         _is_simple_which_command,
         _extract_binary_from_which,
     )

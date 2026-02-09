@@ -563,12 +563,20 @@ class TestUpgradeCommand:
                 adapter_called["count"] += 1
                 return original_adapter(config)
 
+            # Import upgrade module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.upgrade")
+
             # Mock get_current_version to return lower version
             async def mock_get_current_version(agent_config):
                 return "1.0.0", "success"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.upgrade"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             # Mock run_command_async for upgrade
@@ -576,12 +584,16 @@ class TestUpgradeCommand:
                 return "upgraded successfully", 0
 
             monkeypatch.setattr(
-                "reincheck.commands.run_command_async", mock_run_command_async
+                sys.modules["reincheck.commands.upgrade"],
+                "run_command_async",
+                mock_run_command_async,
             )
 
-            # Patch the adapter at the source module
+            # Patch the adapter on the upgrade module
             monkeypatch.setattr(
-                "reincheck.adapter.get_effective_method_from_config", mock_adapter
+                sys.modules["reincheck.commands.upgrade"],
+                "get_effective_method_from_config",
+                mock_adapter,
             )
 
             result = runner.invoke(cli, ["upgrade"])
@@ -627,6 +639,12 @@ class TestUpgradeCommand:
             # Mock get_config_dir to return tmpdir
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import upgrade module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.upgrade")
+
             # Mock get_current_version to return lower versions
             async def mock_get_current_version(agent_config):
                 if agent_config.name == "agent-a":
@@ -634,7 +652,9 @@ class TestUpgradeCommand:
                 return "1.5.0", "success"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.upgrade"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             result = runner.invoke(cli, ["upgrade", "--dry-run"])
@@ -681,6 +701,12 @@ class TestUpgradeCommand:
             # Mock get_config_dir to return tmpdir
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import upgrade module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.upgrade")
+
             # Mock get_current_version to return lower versions
             async def mock_get_current_version(agent_config):
                 if agent_config.name == "agent-a":
@@ -688,7 +714,9 @@ class TestUpgradeCommand:
                 return "1.5.0", "success"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.upgrade"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             # Track which upgrade commands were executed
@@ -699,7 +727,9 @@ class TestUpgradeCommand:
                 return "upgraded", 0
 
             monkeypatch.setattr(
-                "reincheck.commands.run_command_async", mock_run_command_async
+                sys.modules["reincheck.commands.upgrade"],
+                "run_command_async",
+                mock_run_command_async,
             )
 
             result = runner.invoke(cli, ["upgrade", "--agent", "agent-a"])
@@ -737,12 +767,20 @@ class TestUpgradeCommand:
             # Mock get_config_dir to return tmpdir
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import upgrade module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.upgrade")
+
             # Mock get_current_version to return latest version
             async def mock_get_current_version(agent_config):
                 return "2.0.0", "success"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.upgrade"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             result = runner.invoke(cli, ["upgrade"])
@@ -778,12 +816,20 @@ class TestUpgradeCommand:
             # Mock get_config_dir to return tmpdir
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import upgrade module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.upgrade")
+
             # Mock get_current_version to return lower version
             async def mock_get_current_version(agent_config):
                 return "1.0.0", "success"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.upgrade"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             result = runner.invoke(cli, ["upgrade"])
@@ -825,19 +871,29 @@ class TestUpgradeCommand:
             # Mock get_config_dir to return tmpdir
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import upgrade module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.upgrade")
+
             # Mock get_current_version to return lower version
             async def mock_get_current_version(agent_config):
                 return "1.0.0", "success"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.upgrade"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             async def mock_run_command_async(command, **kwargs):
                 return "upgraded", 0
 
             monkeypatch.setattr(
-                "reincheck.commands.run_command_async", mock_run_command_async
+                sys.modules["reincheck.commands.upgrade"],
+                "run_command_async",
+                mock_run_command_async,
             )
 
             result = runner.invoke(cli, ["--debug", "upgrade"])
@@ -884,18 +940,26 @@ class TestUpdateCommand:
 
     def test_update_uses_adapter_layer(self, runner, monkeypatch):
         """Test that update command uses adapter layer for version checking."""
-        from reincheck.adapter import get_effective_method_from_config
+        # Import update module to enable monkeypatching
+        import sys
+        import importlib
+
+        importlib.import_module("reincheck.commands.update")
 
         # Track if adapter was called
         adapter_called = {"count": 0}
-        original_adapter = get_effective_method_from_config
+        original_adapter = sys.modules[
+            "reincheck.commands.update"
+        ].get_effective_method_from_config
 
         def mock_adapter(config):
             adapter_called["count"] += 1
             return original_adapter(config)
 
         monkeypatch.setattr(
-            "reincheck.commands.get_effective_method_from_config", mock_adapter
+            sys.modules["reincheck.commands.update"],
+            "get_effective_method_from_config",
+            mock_adapter,
         )
 
         with runner.isolated_filesystem() as tmpdir:
@@ -1282,12 +1346,20 @@ class TestListCommand:
             config_file.write_text(json.dumps(test_config))
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import list module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.list")
+
             # Mock get_current_version to return not installed
             async def mock_get_current_version(agent_config):
                 return None, "not_installed"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.list"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             result = runner.invoke(cli, ["list"])
@@ -1326,6 +1398,12 @@ class TestListCommand:
             config_file.write_text(json.dumps(test_config))
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import list module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.list")
+
             # Mock get_current_version with mixed results
             async def mock_get_current_version(agent_config):
                 if agent_config.name == "agent-a":
@@ -1333,7 +1411,9 @@ class TestListCommand:
                 return None, "not_installed"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.list"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             result = runner.invoke(cli, ["list"])
@@ -1452,11 +1532,19 @@ class TestListCommand:
             config_file.write_text(json.dumps(test_config))
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import list module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.list")
+
             async def mock_get_current_version(agent_config):
                 return None, "not_installed"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.list"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             result = runner.invoke(cli, ["list", "-v"])
@@ -1688,12 +1776,20 @@ class TestInstallCommand:
             config_file.write_text(json.dumps(test_config))
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import install module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.install")
+
             # Mock get_current_version to return not installed
             async def mock_get_current_version(agent_config):
                 return None, "not_installed"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.install"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             # Track which install command was executed
@@ -1704,7 +1800,9 @@ class TestInstallCommand:
                 return "installed successfully", 0
 
             monkeypatch.setattr(
-                "reincheck.commands.run_command_async", mock_run_command_async
+                sys.modules["reincheck.commands.install"],
+                "run_command_async",
+                mock_run_command_async,
             )
 
             result = runner.invoke(cli, ["install", "claude"])
@@ -1743,12 +1841,20 @@ class TestInstallCommand:
             config_file.write_text(json.dumps(test_config))
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import install module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.install")
+
             # Mock get_current_version to return not installed
             async def mock_get_current_version(agent_config):
                 return None, "not_installed"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.install"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             # Track which install command was executed
@@ -1759,7 +1865,9 @@ class TestInstallCommand:
                 return "installed successfully", 0
 
             monkeypatch.setattr(
-                "reincheck.commands.run_command_async", mock_run_command_async
+                sys.modules["reincheck.commands.install"],
+                "run_command_async",
+                mock_run_command_async,
             )
 
             result = runner.invoke(cli, ["install", "custom-agent"])
@@ -1795,12 +1903,20 @@ class TestInstallCommand:
             config_file.write_text(json.dumps(test_config))
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import install module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.install")
+
             # Mock get_current_version to return not installed
             async def mock_get_current_version(agent_config):
                 return None, "not_installed"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.install"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             # Track which install command was executed
@@ -1811,7 +1927,9 @@ class TestInstallCommand:
                 return "installed successfully", 0
 
             monkeypatch.setattr(
-                "reincheck.commands.run_command_async", mock_run_command_async
+                sys.modules["reincheck.commands.install"],
+                "run_command_async",
+                mock_run_command_async,
             )
 
             result = runner.invoke(cli, ["install", "test-agent"])
@@ -1845,12 +1963,20 @@ class TestInstallCommand:
             config_file.write_text(json.dumps(test_config))
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import install module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.install")
+
             # Mock get_current_version to return installed version
             async def mock_get_current_version(agent_config):
                 return "1.0.0", "success"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.install"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             result = runner.invoke(cli, ["install", "test-agent"])
@@ -1882,12 +2008,20 @@ class TestInstallCommand:
             config_file.write_text(json.dumps(test_config))
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import install module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.install")
+
             # Mock get_current_version to return installed version
             async def mock_get_current_version(agent_config):
                 return "1.0.0", "success"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.install"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             executed_commands = []
@@ -1897,7 +2031,9 @@ class TestInstallCommand:
                 return "reinstalled successfully", 0
 
             monkeypatch.setattr(
-                "reincheck.commands.run_command_async", mock_run_command_async
+                sys.modules["reincheck.commands.install"],
+                "run_command_async",
+                mock_run_command_async,
             )
 
             result = runner.invoke(cli, ["install", "test-agent", "--force"])
@@ -1930,11 +2066,19 @@ class TestInstallCommand:
             config_file.write_text(json.dumps(test_config))
             monkeypatch.setattr("reincheck.paths.get_config_dir", lambda: config_dir)
 
+            # Import install module to enable monkeypatching
+            import sys
+            import importlib
+
+            importlib.import_module("reincheck.commands.install")
+
             async def mock_get_current_version(agent_config):
                 return None, "not_installed"
 
             monkeypatch.setattr(
-                "reincheck.commands.get_current_version", mock_get_current_version
+                sys.modules["reincheck.commands.install"],
+                "get_current_version",
+                mock_get_current_version,
             )
 
             result = runner.invoke(cli, ["install", "failing-agent"])

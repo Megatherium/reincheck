@@ -35,10 +35,10 @@ async def run_command_async(
         except asyncio.TimeoutError:
             process.kill()
             _ = await process.wait()
+            _logging.error(f"Command timed out after {timeout} seconds: {command}")
             return f"Command timed out after {timeout} seconds", 1
     except Exception as e:
-        if debug:
-            _logging.debug(f"Exception: {type(e).__name__}: {e}")
+        _logging.error(f"Command execution failed: {type(e).__name__}: {e} | Command: {command}")
         return f"Error: {str(e)}", 1
     finally:
         if process:

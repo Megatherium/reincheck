@@ -4,7 +4,7 @@ import json
 import tempfile
 import yaml
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock, AsyncMock
 from pathlib import Path
 
 from reincheck import (
@@ -414,6 +414,59 @@ class TestRunCommandAsync:
         with patch("reincheck.__init__._logging.debug") as mock_debug:
             await run_command_async("echo 'debug test'", debug=True)
             _ = mock_debug.call_count  # type: ignore[assignment]
+
+    @pytest.mark.asyncio
+    async def test_run_command_exception_logging(self):
+        """Test that exceptions are logged at error level."""
+        import asyncio.subprocess
+        
+        with patch("reincheck.execution._logging.error") as mock_error:
+            with patch.object(asyncio, "create_subprocess_shell", side_effect=OSError("Command not found")):
+                result = await run_command_async("nonexistent_command")
+                
+                assert result[1] == 1
+                assert "Error" in result[0]
+                assert mock_error.called
+                error_msg = mock_error.call_args[0][0]
+                assert "Command execution failed" in error_msg
+                assert "OSError" in error_msg
+
+    @pytest.mark.asyncio
+    async def test_run_command_timeout_logging(self):
+        """Test that timeouts are logged at error level."""
+        with patch("reincheck.execution._logging.error") as mock_error:
+            result = await run_command_async("sleep 100", timeout=1)
+            
+            assert result[1] == 1
+            assert "timed out" in result[0].lower()
+            assert mock_error.called
+            error_msg = mock_error.call_args[0][0]
+            assert "Command timed out" in error_msg
+            assert "100" in error_msg  # Should include the timeout duration
+
+    @pytest.mark.asyncio
+    async def test_run_command_cleanup_on_exception(self):
+        """Test that process cleanup works correctly when create_subprocess fails."""
+        import asyncio.subprocess
+        mock_process = MagicMock()
+        mock_process.kill = MagicMock()
+        mock_process.wait = AsyncMock(return_value=None)
+        mock_process.returncode = None
+        
+        with patch.object(asyncio, "create_subprocess_shell", side_effect=ValueError("Bad command")):
+            result = await run_command_async("bad")
+            
+            assert result[1] == 1
+            assert "Error" in result[0]
+
+    @pytest.mark.asyncio
+    async def test_run_command_stderr_logging(self):
+        """Test that stderr is logged when debug mode is enabled."""
+        with patch("reincheck.execution._logging.debug") as mock_debug:
+            await run_command_async("echo 'error message' >&2", debug=True)
+            
+            debug_calls = [call[0][0] for call in mock_debug.call_args_list]
+            assert any("stderr:" in str(call) for call in debug_calls)
 
 
 class TestGetNpmReleaseInfo:

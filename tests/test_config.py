@@ -10,9 +10,17 @@ from reincheck.config import (
     AgentConfig,
     Config,
     validate_config,
-    preprocess_jsonish,
     load_config,
     _format_syntax_error,
+)
+from reincheck.json_parser import (
+    preprocess_jsonish,
+    JsonPreprocessor,
+    _NORMAL,
+    _IN_STRING,
+    _ESCAPE,
+    _SLASH,
+    _IN_COMMENT,
 )
 
 from reincheck import (
@@ -120,6 +128,197 @@ class TestPreprocessJsonish:
         input_text = '{"a": 1,  // comment\n}'
         result = preprocess_jsonish(input_text)
         assert json.loads(result) == {"a": 1}
+
+
+class TestJsonPreprocessorInternal:
+    """Tests for internal JsonPreprocessor state machine methods."""
+
+    def test_is_trailing_comma_simple(self):
+        """Test trailing comma detection for simple cases."""
+        preprocessor = JsonPreprocessor()
+        text = "[1,]"
+        n = len(text)
+        assert preprocessor._is_trailing_comma(text, 2, n) is True
+
+    def test_is_trailing_comma_with_whitespace(self):
+        """Test trailing comma with whitespace."""
+        preprocessor = JsonPreprocessor()
+        text = "[1,  ]"
+        n = len(text)
+        assert preprocessor._is_trailing_comma(text, 2, n) is True
+
+    def test_is_trailing_comma_with_comment(self):
+        """Test trailing comma with // comment."""
+        preprocessor = JsonPreprocessor()
+        text = '[1,  // comment\n]'
+        n = len(text)
+        assert preprocessor._is_trailing_comma(text, 2, n) is True
+
+    def test_is_not_trailing_comma(self):
+        """Test comma that is not trailing."""
+        preprocessor = JsonPreprocessor()
+        text = "[1, 2]"
+        n = len(text)
+        assert preprocessor._is_trailing_comma(text, 2, n) is False
+
+    def test_comma_in_string_not_trailing(self):
+        """Test comma inside string is not considered trailing."""
+        preprocessor = JsonPreprocessor()
+        text = '{"a": "1,2"}'
+        n = len(text)
+        assert preprocessor._is_trailing_comma(text, 7, n) is False
+
+    def test_normal_state_enters_string(self):
+        """Test NORMAL state enters IN_STRING on quote."""
+        preprocessor = JsonPreprocessor()
+        text = '"test"'
+        result = []
+        i = preprocessor._process_normal_state(text[0], result, text, 0, len(text))
+        assert preprocessor.state == _IN_STRING
+        assert result == ['"']
+        assert i == 1
+
+    def test_normal_state_enters_slash(self):
+        """Test NORMAL state enters SLASH on forward slash."""
+        preprocessor = JsonPreprocessor()
+        text = '/test'
+        result = []
+        i = preprocessor._process_normal_state(text[0], result, text, 0, len(text))
+        assert preprocessor.state == _SLASH
+        assert result == ['/']
+        assert i == 1
+
+    def test_slash_state_enters_comment(self):
+        """Test SLASH state enters IN_COMMENT on second slash."""
+        preprocessor = JsonPreprocessor()
+        preprocessor.state = _SLASH
+        text = '//test'
+        result = ['/']
+        i = preprocessor._process_slash_state(text[1], result, text, 1, len(text))
+        assert preprocessor.state == _IN_COMMENT
+        assert result == [' ', ' ']
+        assert i == 2
+
+    def test_slash_state_returns_normal(self):
+        """Test SLASH returns to NORMAL if not comment."""
+        preprocessor = JsonPreprocessor()
+        preprocessor.state = _SLASH
+        text = '/path'
+        result = ['/']
+        i = preprocessor._process_slash_state(text[1], result, text, 1, len(text))
+        assert preprocessor.state == _NORMAL
+        assert result == ['/', 'p']
+        assert i == 2
+
+    def test_comment_state_ignores_until_newline(self):
+        """Test IN_COMMENT replaces chars with spaces until newline."""
+        preprocessor = JsonPreprocessor()
+        preprocessor.state = _IN_COMMENT
+        text = 'test\n'
+        result = []
+        i = preprocessor._process_comment_state(text[0], result, 0)
+        assert preprocessor.state == _IN_COMMENT
+        assert result == [' ']
+        i = preprocessor._process_comment_state(text[1], result, 1)
+        assert preprocessor.state == _IN_COMMENT
+        assert result == [' ', ' ']
+        i = preprocessor._process_comment_state(text[2], result, 2)
+        assert preprocessor.state == _IN_COMMENT
+        assert result == [' ', ' ', ' ']
+        i = preprocessor._process_comment_state(text[3], result, 3)
+        assert preprocessor.state == _IN_COMMENT
+        assert result == [' ', ' ', ' ', ' ']
+        i = preprocessor._process_comment_state(text[4], result, 4)
+        assert preprocessor.state == _NORMAL
+        assert result == [' ', ' ', ' ', ' ', '\n']
+
+    def test_string_state_exits_on_quote(self):
+        """Test IN_STRING returns to NORMAL on closing quote."""
+        preprocessor = JsonPreprocessor()
+        preprocessor.state = _IN_STRING
+        text = '"'
+        result = []
+        i = preprocessor._process_string_state(text[0], result, 0)
+        assert preprocessor.state == _NORMAL
+        assert result == ['"']
+        assert i == 1
+
+    def test_string_state_enters_escape(self):
+        """Test IN_STRING enters ESCAPE on backslash."""
+        preprocessor = JsonPreprocessor()
+        preprocessor.state = _IN_STRING
+        text = '\\'
+        result = []
+        i = preprocessor._process_string_state(text[0], result, 0)
+        assert preprocessor.state == _ESCAPE
+        assert result == ['\\']
+        assert i == 1
+
+    def test_escape_state_returns_to_string(self):
+        """Test ESCAPE returns to IN_STRING after processing char."""
+        preprocessor = JsonPreprocessor()
+        preprocessor.state = _ESCAPE
+        text = 'n'
+        result = []
+        i = preprocessor._process_escape_state(text[0], result, 0)
+        assert preprocessor.state == _IN_STRING
+        assert result == ['n']
+        assert i == 1
+
+    def test_full_state_machine_flow(self):
+        """Test complete flow through states for complex input."""
+        preprocessor = JsonPreprocessor()
+        text = '{"a": "test // not comment",}'
+        result = []
+        i = 0
+        n = len(text)
+        while i < n:
+            if preprocessor.state == _NORMAL:
+                i = preprocessor._process_normal_state(text[i], result, text, i, n)
+            elif preprocessor.state == _IN_STRING:
+                i = preprocessor._process_string_state(text[i], result, i)
+            elif preprocessor.state == _ESCAPE:
+                i = preprocessor._process_escape_state(text[i], result, i)
+            elif preprocessor.state == _SLASH:
+                i = preprocessor._process_slash_state(text[i], result, text, i, n)
+            elif preprocessor.state == _IN_COMMENT:
+                i = preprocessor._process_comment_state(text[i], result, i)
+
+        # Result should be valid JSON
+        output = "".join(result)
+        assert json.loads(output) == {"a": "test // not comment"}
+
+    def test_preprocessor_instance_reusability(self):
+        """Test that JsonPreprocessor can be reused for multiple texts."""
+        preprocessor = JsonPreprocessor()
+        text1 = '{"a": 1,}'
+        result1 = preprocessor.preprocess(text1)
+        assert json.loads(result1) == {"a": 1}
+
+        text2 = '{"b": 2} // comment'
+        result2 = preprocessor.preprocess(text2)
+        assert json.loads(result2) == {"b": 2}
+
+    def test_empty_text(self):
+        """Test preprocessing empty text."""
+        preprocessor = JsonPreprocessor()
+        result = preprocessor.preprocess("")
+        assert result == ""
+
+    def test_text_with_only_newlines(self):
+        """Test text with only newline characters."""
+        preprocessor = JsonPreprocessor()
+        result = preprocessor.preprocess("\n\n\n")
+        assert result == "\n\n\n"
+
+    def test_handle_end_state_slash(self):
+        """Test handling end state when in SLASH."""
+        preprocessor = JsonPreprocessor()
+        preprocessor.state = _SLASH
+        result = ['/']
+        preprocessor._handle_end_state(result)
+        assert result == ['/']
+        assert preprocessor.state == _SLASH
 
 
 class TestFormatSyntaxError:

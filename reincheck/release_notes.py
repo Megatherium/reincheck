@@ -1,8 +1,8 @@
 """Release notes fetching utilities."""
 
-import asyncio
 import json
 import re
+from abc import ABC, abstractmethod
 from typing import cast
 
 from .config import AgentConfig
@@ -14,6 +14,201 @@ from .versions import (
 )
 
 
+class PackageRegistry(ABC):
+    """Abstract base class for package registry fetchers.
+    
+    Provides a consistent interface for fetching release information
+    from different package registries (NPM, PyPI, etc.).
+    """
+    
+    @abstractmethod
+    async def fetch_version_info(self, package_name: str) -> dict | None:
+        """Fetch version information from the registry.
+        
+        Args:
+            package_name: Name of the package to query
+            
+        Returns:
+            Dict with version info or None if fetch failed
+        """
+        pass
+    
+    @abstractmethod
+    def format_release_info(self, data: dict) -> str | None:
+        """Format version data into release info string.
+        
+        Args:
+            data: Parsed version data from the registry
+            
+        Returns:
+            Formatted release info string or None if formatting failed
+        """
+        pass
+    
+    async def get_release_info(self, package_name: str) -> str | None:
+        """Get formatted release info for a package.
+        
+        Args:
+            package_name: Name of the package to query
+            
+        Returns:
+            Formatted release info string or None if fetch failed
+        """
+        data = await self.fetch_version_info(package_name)
+        if data is None:
+            return None
+        return self.format_release_info(data)
+
+
+class NPMRegistry(PackageRegistry):
+    """Fetch release info from NPM registry."""
+    
+    async def fetch_version_info(self, package_name: str) -> dict | None:
+        # Get dist-tags to find the true 'latest'
+        cmd_tags = f"npm view {package_name} dist-tags --json"
+        output_tags, returncode_tags = await run_command_async(cmd_tags)
+
+        latest_ver = None
+        if returncode_tags == 0:
+            try:
+                tags = json.loads(output_tags)
+                latest_ver = tags.get("latest")
+            except (json.JSONDecodeError, KeyError, TypeError):
+                pass
+
+        # Get time info
+        cmd_time = f"npm view {package_name} time --json"
+        output_time, returncode_time = await run_command_async(cmd_time)
+
+        latest_time = "Unknown"
+        if returncode_time == 0:
+            try:
+                data = json.loads(output_time)
+                # If we didn't find latest from tags, try the last key
+                if not latest_ver:
+                    versions = [k for k in data.keys() if k not in ["modified", "created"]]
+                    if versions:
+                        latest_ver = versions[-1]
+
+                if latest_ver:
+                    latest_time = data.get(latest_ver, "Unknown")
+            except (json.JSONDecodeError, KeyError, TypeError):
+                pass
+
+        if latest_ver:
+            return {
+                "version": latest_ver,
+                "time": latest_time,
+                "url": f"https://www.npmjs.com/package/{package_name}",
+            }
+
+        return None
+    
+    def format_release_info(self, data: dict) -> str | None:
+        if not data or "version" not in data:
+            return None
+        
+        return (
+            f"### Latest NPM Release: {data['version']}\n"
+            f"**Published:** {data['time']}\n\n"
+            f"View on NPM: {data['url']}\n"
+        )
+
+
+class PyPIRegistry(PackageRegistry):
+    """Fetch release info from PyPI registry."""
+    
+    async def fetch_version_info(self, package_name: str) -> dict | None:
+        url = f"https://pypi.org/pypi/{package_name}/json"
+        output, returncode = await run_command_async(f"curl -s {url}")
+
+        if returncode != 0:
+            return None
+
+        try:
+            data = json.loads(output)
+            info = data.get("info", {})
+            latest_ver = info.get("version")
+
+            if not latest_ver:
+                return None
+
+            # Try to find release time
+            releases = data.get("releases", {})
+            latest_release_data = releases.get(latest_ver, [])
+            upload_time = "Unknown"
+            if latest_release_data:
+                upload_time = latest_release_data[0].get("upload_time", "Unknown")
+
+            project_urls = info.get("project_urls") or {}
+            changelog_url = (
+                project_urls.get("Changelog")
+                or project_urls.get("Changes")
+                or project_urls.get("History")
+            )
+
+            return {
+                "version": latest_ver,
+                "time": upload_time,
+                "summary": info.get("summary", ""),
+                "url": f"https://pypi.org/project/{package_name}/",
+                "changelog_url": changelog_url,
+            }
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return None
+    
+    def format_release_info(self, data: dict) -> str | None:
+        if not data or "version" not in data:
+            return None
+
+        notes = (
+            f"### Latest PyPI Release: {data['version']}\n"
+            f"**Uploaded:** {data['time']}\n"
+            f"**Summary:** {data['summary']}\n\n"
+            f"View on PyPI: {data['url']}\n"
+        )
+
+        if data.get("changelog_url"):
+            notes += f"Changelog: {data['changelog_url']}\n"
+
+        return notes
+
+
+# Registry instances for backward compatibility
+_npm_registry = NPMRegistry()
+_pypi_registry = PyPIRegistry()
+
+
+async def get_npm_release_info(package_name: str) -> str | None:
+    """Get release info from NPM.
+    
+    Args:
+        package_name: Name of the NPM package
+        
+    Returns:
+        Formatted release info string or None if fetch failed
+        
+    Note:
+        This is a convenience wrapper around NPMRegistry.
+    """
+    return await _npm_registry.get_release_info(package_name)
+
+
+async def get_pypi_release_info(package_name: str) -> str | None:
+    """Get release info from PyPI.
+    
+    Args:
+        package_name: Name of the PyPI package
+        
+    Returns:
+        Formatted release info string or None if fetch failed
+        
+    Note:
+        This is a convenience wrapper around PyPIRegistry.
+    """
+    return await _pypi_registry.get_release_info(package_name)
+
+
 async def fetch_url_content(url: str) -> tuple[str | None, str]:
     """Fetch content from a URL using curl."""
     cmd = f"curl -s -L {url}"
@@ -21,94 +216,6 @@ async def fetch_url_content(url: str) -> tuple[str | None, str]:
     if returncode != 0:
         return None, f"Failed to fetch URL: {output}"
     return output, "success"
-
-
-async def get_npm_release_info(package_name: str) -> str | None:
-    """Get release info from NPM."""
-    # Get dist-tags to find the true 'latest'
-    cmd_tags = f"npm view {package_name} dist-tags --json"
-    output_tags, returncode_tags = await run_command_async(cmd_tags)
-
-    latest_ver = None
-    if returncode_tags == 0:
-        try:
-            tags = json.loads(output_tags)
-            latest_ver = tags.get("latest")
-        except (json.JSONDecodeError, KeyError, TypeError):
-            pass
-
-    # Get time info
-    cmd_time = f"npm view {package_name} time --json"
-    output_time, returncode_time = await run_command_async(cmd_time)
-
-    latest_time = "Unknown"
-    if returncode_time == 0:
-        try:
-            data = json.loads(output_time)
-            # If we didn't find latest from tags, try the last key
-            if not latest_ver:
-                versions = [k for k in data.keys() if k not in ["modified", "created"]]
-                if versions:
-                    latest_ver = versions[-1]
-
-            if latest_ver:
-                latest_time = data.get(latest_ver, "Unknown")
-        except (json.JSONDecodeError, KeyError, TypeError):
-            pass
-
-    if latest_ver:
-        return (
-            f"### Latest NPM Release: {latest_ver}\n"
-            f"**Published:** {latest_time}\n\n"
-            f"View on NPM: https://www.npmjs.com/package/{package_name}\n"
-        )
-
-    return None
-
-
-async def get_pypi_release_info(package_name: str) -> str | None:
-    """Get release info from PyPI."""
-    url = f"https://pypi.org/pypi/{package_name}/json"
-    output, returncode = await run_command_async(f"curl -s {url}")
-
-    if returncode != 0:
-        return None
-
-    try:
-        data = json.loads(output)
-        info = data.get("info", {})
-        latest_ver = info.get("version")
-
-        if not latest_ver:
-            return None
-
-        # Try to find release time
-        releases = data.get("releases", {})
-        latest_release_data = releases.get(latest_ver, [])
-        upload_time = "Unknown"
-        if latest_release_data:
-            upload_time = latest_release_data[0].get("upload_time", "Unknown")
-
-        project_urls = info.get("project_urls") or {}
-        changelog_url = (
-            project_urls.get("Changelog")
-            or project_urls.get("Changes")
-            or project_urls.get("History")
-        )
-
-        notes = (
-            f"### Latest PyPI Release: {latest_ver}\n"
-            f"**Uploaded:** {upload_time}\n"
-            f"**Summary:** {info.get('summary', '')}\n\n"
-            f"View on PyPI: https://pypi.org/project/{package_name}/\n"
-        )
-
-        if changelog_url:
-            notes += f"Changelog: {changelog_url}\n"
-
-        return notes
-    except (json.JSONDecodeError, KeyError, TypeError):
-        return None
 
 
 async def fetch_github_release_notes(

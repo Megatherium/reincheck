@@ -423,7 +423,7 @@ class TestGetNpmReleaseInfo:
     async def test_get_npm_release_info_valid(self):
         """Test getting valid npm release info."""
         mock_output = json.dumps({"latest": "1.2.3", "modified": "2024-01-01"})
-        with patch("reincheck.run_command_async") as mock_run:
+        with patch("reincheck.release_notes.run_command_async") as mock_run:
             mock_run.side_effect = [
                 (mock_output, 0),  # tags
                 (json.dumps({"1.2.3": "2024-01-01"}), 0),  # time
@@ -446,7 +446,7 @@ class TestGetNpmReleaseInfo:
                 return mock_time_output, 0
             return "", 1
 
-        with patch("reincheck.run_command_async", side_effect=mock_run):
+        with patch("reincheck.release_notes.run_command_async", side_effect=mock_run):
             result = await get_npm_release_info("test-package")
             assert result is None or result == ""
 
@@ -458,7 +458,7 @@ class TestGetNpmReleaseInfo:
         async def mock_run(_cmd: str):
             return mock_tags_output, 0
 
-        with patch("reincheck.run_command_async", side_effect=mock_run):
+        with patch("reincheck.release_notes.run_command_async", side_effect=mock_run):
             result = await get_npm_release_info("test-package")
             assert result is None
 
@@ -469,7 +469,7 @@ class TestGetNpmReleaseInfo:
         async def mock_run(_cmd: str):
             return ("Command timed out after 30 seconds", 1)
 
-        with patch("reincheck.run_command_async", side_effect=mock_run):
+        with patch("reincheck.release_notes.run_command_async", side_effect=mock_run):
             result = await get_npm_release_info("test-package")
             assert result is None
 
@@ -490,7 +490,7 @@ class TestGetPyPIReleaseInfo:
                 "releases": {"1.2.3": [{"upload_time": "2024-01-01"}]},
             }
         )
-        with patch("reincheck.run_command_async") as mock_run:
+        with patch("reincheck.release_notes.run_command_async") as mock_run:
             mock_run.return_value = (mock_output, 0)
             result = await get_pypi_release_info("test-package")
             # Should return markdown formatted text with version
@@ -505,7 +505,7 @@ class TestGetPyPIReleaseInfo:
         async def mock_run(_cmd: str):
             return mock_output, 0
 
-        with patch("reincheck.run_command_async", side_effect=mock_run):
+        with patch("reincheck.release_notes.run_command_async", side_effect=mock_run):
             result = await get_pypi_release_info("test-package")
             assert result is None
 
@@ -517,7 +517,7 @@ class TestGetPyPIReleaseInfo:
         async def mock_run(_cmd: str):
             return mock_output, 0
 
-        with patch("reincheck.run_command_async", side_effect=mock_run):
+        with patch("reincheck.release_notes.run_command_async", side_effect=mock_run):
             result = await get_pypi_release_info("test-package")
             assert result is None
 
@@ -525,7 +525,7 @@ class TestGetPyPIReleaseInfo:
     async def test_get_pypi_release_info_no_releases(self):
         """Test PyPI info when no releases found."""
         mock_output = json.dumps({"info": {"version": "1.0.0"}, "releases": {}})
-        with patch("reincheck.run_command_async") as mock_run:
+        with patch("reincheck.release_notes.run_command_async") as mock_run:
             mock_run.return_value = (mock_output, 0)
             result = await get_pypi_release_info("test-package")
             # Should return markdown formatted text even if releases is empty

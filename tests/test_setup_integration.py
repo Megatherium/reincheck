@@ -105,7 +105,7 @@ class TestTUIIntegrationFlow:
             patch("reincheck.paths.get_packaged_config_path", return_value=None),
             patch("reincheck.ensure_user_config"),
             patch(
-                "reincheck.commands._select_preset_interactive_with_fallback"
+                "reincheck.commands.setup._select_preset_interactive_with_fallback"
             ) as mock_select_preset,
         ):
             result = runner.invoke(
@@ -127,13 +127,14 @@ class TestTUIIntegrationFlow:
         mock_dependency_report,
     ):
         """Test handling of KeyboardInterrupt during preset selection."""
-        from reincheck.commands import _select_preset_interactive_with_fallback
+        from reincheck.commands.setup import _select_preset_interactive_with_fallback
 
         with (
             patch(
-                "reincheck.tui.select_preset_interactive", side_effect=KeyboardInterrupt
+                "reincheck.commands.setup.select_preset_interactive",
+                side_effect=KeyboardInterrupt,
             ),
-            patch("reincheck.commands.sys.stdin.isatty", return_value=True),
+            patch("reincheck.commands.setup.sys.stdin.isatty", return_value=True),
         ):
             result = _select_preset_interactive_with_fallback(
                 mock_presets, mock_dependency_report, debug=False
@@ -149,16 +150,16 @@ class TestTUIIntegrationFlow:
         mock_methods,
     ):
         """Test handling of KeyboardInterrupt during harness selection."""
-        from reincheck.commands import _select_harnesses_interactive_with_fallback
+        from reincheck.commands.setup import _select_harnesses_interactive_with_fallback
 
         preset = mock_presets["mise_binary"]
 
         with (
             patch(
-                "reincheck.tui.select_harnesses_interactive",
+                "reincheck.commands.setup.select_harnesses_interactive",
                 side_effect=KeyboardInterrupt,
             ),
-            patch("reincheck.commands.sys.stdin.isatty", return_value=True),
+            patch("reincheck.commands.setup.sys.stdin.isatty", return_value=True),
         ):
             result = _select_harnesses_interactive_with_fallback(
                 preset, mock_methods, harnesses={}, debug=False
@@ -174,9 +175,9 @@ class TestTUIIntegrationFlow:
         mock_dependency_report,
     ):
         """Test fallback to None when TTY unavailable during preset selection."""
-        from reincheck.commands import _select_preset_interactive_with_fallback
+        from reincheck.commands.setup import _select_preset_interactive_with_fallback
 
-        with patch("reincheck.commands.sys.stdin.isatty", return_value=False):
+        with patch("reincheck.commands.setup.sys.stdin.isatty", return_value=False):
             result = _select_preset_interactive_with_fallback(
                 mock_presets, mock_dependency_report, debug=False
             )
@@ -189,11 +190,11 @@ class TestTUIIntegrationFlow:
         mock_methods,
     ):
         """Test fallback to None when TTY unavailable during harness selection."""
-        from reincheck.commands import _select_harnesses_interactive_with_fallback
+        from reincheck.commands.setup import _select_harnesses_interactive_with_fallback
 
         preset = mock_presets["mise_binary"]
 
-        with patch("reincheck.commands.sys.stdin.isatty", return_value=False):
+        with patch("reincheck.commands.setup.sys.stdin.isatty", return_value=False):
             result = _select_harnesses_interactive_with_fallback(
                 preset, mock_methods, harnesses={}, debug=False
             )
@@ -208,7 +209,7 @@ class TestSetupCommandIntegration:
         self, mock_presets, mock_methods, mock_dependency_report
     ):
         """Test listing presets with dependency status."""
-        from reincheck.commands import _list_presets_with_status
+        from reincheck.commands.setup import _list_presets_with_status
         from click.testing import CliRunner
 
         with (
@@ -469,7 +470,7 @@ class TestSetupApplyFlow:
                 new_callable=AsyncMock,
                 return_value=("installed", 0),
             ),
-            patch("reincheck.commands.get_config_path", return_value=config_path),
+            patch("reincheck.paths.get_config_path", return_value=config_path),
         ):
             # Without --yes, should prompt for dangerous command
             result = runner.invoke(
@@ -493,14 +494,14 @@ class TestTTYFallbackBehavior:
         mock_dependency_report,
     ):
         """Test that preset selector returns None on OSError (terminal errors)."""
-        from reincheck.commands import _select_preset_interactive_with_fallback
+        from reincheck.commands.setup import _select_preset_interactive_with_fallback
 
         with (
             patch(
-                "reincheck.tui.select_preset_interactive",
+                "reincheck.commands.setup.select_preset_interactive",
                 side_effect=OSError("No TERM"),
             ),
-            patch("reincheck.commands.sys.stdin.isatty", return_value=True),
+            patch("reincheck.commands.setup.sys.stdin.isatty", return_value=True),
         ):
             result = _select_preset_interactive_with_fallback(
                 mock_presets, mock_dependency_report, debug=True
@@ -514,16 +515,16 @@ class TestTTYFallbackBehavior:
         mock_methods,
     ):
         """Test that harness selector returns None on OSError (terminal errors)."""
-        from reincheck.commands import _select_harnesses_interactive_with_fallback
+        from reincheck.commands.setup import _select_harnesses_interactive_with_fallback
 
         preset = mock_presets["mise_binary"]
 
         with (
             patch(
-                "reincheck.tui.select_harnesses_interactive",
+                "reincheck.commands.setup.select_harnesses_interactive",
                 side_effect=OSError("No TERM"),
             ),
-            patch("reincheck.commands.sys.stdin.isatty", return_value=True),
+            patch("reincheck.commands.setup.sys.stdin.isatty", return_value=True),
         ):
             result = _select_harnesses_interactive_with_fallback(
                 preset, mock_methods, harnesses={}, debug=True
@@ -540,7 +541,7 @@ class TestTTYFallbackBehavior:
         mock_dependency_report,
     ):
         """Test that import errors in questionary are handled gracefully."""
-        from reincheck.commands import _select_preset_interactive_with_fallback
+        from reincheck.commands.setup import _select_preset_interactive_with_fallback
 
         with (
             patch("reincheck.data_loader.get_presets", return_value=mock_presets),
@@ -553,10 +554,10 @@ class TestTTYFallbackBehavior:
                 return_value=mock_dependency_report,
             ),
             patch(
-                "reincheck.tui.select_preset_interactive",
+                "reincheck.commands.setup.select_preset_interactive",
                 side_effect=ImportError("questionary not installed"),
             ),
-            patch("reincheck.commands.sys.stdin.isatty", return_value=True),
+            patch("reincheck.commands.setup.sys.stdin.isatty", return_value=True),
         ):
             result = _select_preset_interactive_with_fallback(
                 mock_presets, mock_dependency_report, debug=False
@@ -634,7 +635,6 @@ class TestInteractivePromptMocking:
 
         # Mock sequence: preset selection -> harness selection -> confirmation
         with (
-            patch("sys.stdin.isatty", return_value=True),
             patch("reincheck.data_loader.get_presets", return_value=mock_presets),
             patch("reincheck.data_loader.get_all_methods", return_value=mock_methods),
             patch(
@@ -644,12 +644,9 @@ class TestInteractivePromptMocking:
                 "reincheck.installer.get_dependency_report",
                 return_value=mock_dependency_report,
             ),
-            patch("reincheck.commands._validate_setup_options"),
-            patch("reincheck.commands._select_preset_interactive_with_fallback",
-                  return_value="mise_binary"),
             patch(
-                "reincheck.commands._select_harnesses_interactive_with_fallback",
-                return_value=(["claude"], {}),
+                "reincheck.commands.setup._apply_interactive_harness_selection",
+                return_value=(mock_presets["mise_binary"], {}),
             ),
             patch(
                 "reincheck.paths.get_config_path", return_value=temp_dir / "config.json"
@@ -659,7 +656,7 @@ class TestInteractivePromptMocking:
         ):
             result = runner.invoke(
                 setup,
-                [],
+                ["--preset", "mise_binary"],
                 obj={},
             )
 

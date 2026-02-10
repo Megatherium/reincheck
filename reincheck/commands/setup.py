@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import click
@@ -43,6 +44,18 @@ EXIT_INVALID_ARGS = 2
 EXIT_PRESET_NOT_FOUND = 3
 EXIT_CONFIG_ERROR = 4
 EXIT_INSTALL_FAILED = 5
+
+
+@dataclass
+class SetupContext:
+    """Shared context for setup workflow."""
+    presets: dict[str, Preset]
+    available_harnesses: dict[str, Harness]
+    all_methods: dict[str, InstallMethod]
+    overrides: dict[str, str]
+    debug: bool
+    yes: bool
+    verbose: bool
 
 
 def _validate_setup_options(
@@ -356,7 +369,6 @@ def _write_agent_config(
     Raises:
         ConfigError: If write fails
     """
-    from reincheck import ConfigError
 
     try:
         config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -508,6 +520,379 @@ async def _execute_installation_with_progress(
     return results
 
 
+def _load_setup_data(debug: bool = False) -> tuple[
+    dict[str, Preset], dict[str, Harness], dict[str, InstallMethod]
+]:
+    """Load required data for setup workflow.
+
+    Args:
+        debug: Enable debug logging
+
+    Returns:
+        Tuple of (presets, harnesses, methods)
+
+    Raises:
+        ConfigError: If data loading fails
+    """
+    setup_logging(debug)
+    try:
+        presets = get_presets()
+        available_harnesses = get_harnesses()
+        all_methods = get_all_methods()
+        return presets, available_harnesses, all_methods
+    except Exception as e:
+        raise ConfigError(f"Error loading data: {e}")
+
+
+def _resolve_selected_preset(
+    preset_name: str | None,
+    presets: dict[str, Preset],
+    all_methods: dict[str, InstallMethod],
+    debug: bool = False,
+) -> Preset:
+    """Resolve selected preset (interactive or explicit).
+
+    Args:
+        preset_name: Explicit preset name or None for interactive
+        presets: Available presets
+        all_methods: All install methods
+        debug: Enable debug output
+
+    Returns:
+        Resolved Preset object
+
+    Raises:
+        ConfigError: If preset resolution fails
+    """
+    if preset_name is None:
+        report = get_dependency_report(presets, all_methods)
+        selected = _select_preset_interactive_with_fallback(presets, report, debug)
+
+        if selected is None:
+            raise ConfigError(
+                "--preset is required (or use interactive mode). "
+                "Run 'reincheck setup --list-presets' to see available presets."
+            )
+
+        preset_name = selected
+        click.echo(f"Selected preset: {preset_name}")
+        click.echo("")
+
+    selected_preset = presets.get(preset_name)
+
+    if not selected_preset:
+        if preset_name == "custom":
+            from reincheck.installer import Preset as InstallerPreset
+
+            selected_preset = InstallerPreset(
+                name="custom",
+                strategy="custom",
+                description="Custom configuration with overrides",
+                methods={},
+            )
+        else:
+            available_names = ", ".join(sorted(presets.keys()))
+            raise ConfigError(
+                f"Preset '{preset_name}' not found. Available presets: {available_names}"
+            )
+
+    return selected_preset
+
+
+def _resolve_install_methods(
+    preset: Preset,
+    ctx: SetupContext,
+) -> dict[str, InstallMethod]:
+    """Resolve install methods with interactive fix for failed harnesses.
+
+    Args:
+        preset: Selected preset
+        ctx: Setup context containing all required data
+
+    Returns:
+        Dict mapping harness name to resolved InstallMethod
+    """
+    resolved_methods = _resolve_all_methods(
+        preset, ctx.overrides, ctx.available_harnesses, ctx.all_methods
+    )
+
+    if not sys.stdin.isatty() or ctx.yes:
+        return resolved_methods
+
+    expected_harnesses = set()
+    if preset.name == "custom":
+        expected_harnesses = {
+            h for h in ctx.overrides.keys() if h in ctx.available_harnesses
+        }
+    else:
+        expected_harnesses = {
+            h for h in preset.methods.keys() if h in ctx.available_harnesses
+        }
+
+    failed_harnesses = list(expected_harnesses - set(resolved_methods.keys()))
+    failed_harnesses.sort()
+
+    if not failed_harnesses:
+        return resolved_methods
+
+    click.echo("")
+    click.secho(
+        f"⚠️  Could not resolve install methods for {len(failed_harnesses)} harnesses.",
+        fg="yellow",
+    )
+
+    dep_report = get_dependency_report(ctx.presets, ctx.all_methods)
+    new_overrides = resolve_failed_harnesses_interactive(
+        failed_harnesses, ctx.all_methods, ctx.available_harnesses, dep_report
+    )
+
+    if new_overrides:
+        ctx.overrides.update(new_overrides)
+        click.echo("Retrying resolution with selected methods...")
+        resolved_methods = _resolve_all_methods(
+            preset, ctx.overrides, ctx.available_harnesses, ctx.all_methods
+        )
+
+    return resolved_methods
+
+
+def _apply_interactive_harness_selection(
+    preset: Preset,
+    overrides: dict[str, str],
+    all_methods: dict[str, InstallMethod],
+    available_harnesses: dict[str, Harness],
+    debug: bool = False,
+) -> tuple[Preset, dict[str, str]] | None:
+    """Apply interactive harness selection if possible.
+
+    Args:
+        preset: Selected preset
+        overrides: Existing overrides
+        all_methods: All install methods
+        available_harnesses: Available harnesses
+        debug: Enable debug output
+
+    Returns:
+        Tuple of (updated_preset, merged_overrides) or None if interactive not available
+    """
+    if not sys.stdin.isatty():
+        return None
+
+    interactive_selection = _select_harnesses_interactive_with_fallback(
+        preset, all_methods, available_harnesses, debug
+    )
+
+    if interactive_selection is None:
+        return None
+
+    selected_harnesses, interactive_overrides = interactive_selection
+
+    if not selected_harnesses:
+        click.echo("No harnesses selected. Cancelled.")
+        sys.exit(EXIT_SUCCESS)
+
+    merged_overrides = overrides.copy()
+    for k, v in interactive_overrides.items():
+        if k not in merged_overrides:
+            merged_overrides[k] = v
+
+    from reincheck.installer import Preset as InstallerPreset
+
+    updated_preset = InstallerPreset(
+        name=preset.name,
+        strategy=preset.strategy,
+        description=preset.description,
+        methods={
+            h: preset.methods[h]
+            for h in selected_harnesses
+            if h in preset.methods
+        },
+        fallback_strategy=preset.fallback_strategy,
+        priority=preset.priority,
+    )
+
+    return updated_preset, merged_overrides
+
+
+def _display_dry_run(
+    preset_name: str,
+    selected_preset: Preset,
+    agent_configs: list[dict],
+    harness_options: tuple[str, ...],
+    ctx: SetupContext,
+    resolved_methods: dict[str, InstallMethod],
+) -> None:
+    """Display dry-run preview.
+
+    Args:
+        preset_name: Preset name
+        selected_preset: Selected preset
+        agent_configs: Generated agent configs
+        harness_options: Harness options from CLI
+        ctx: Setup context
+        resolved_methods: Resolved methods
+    """
+    harness_list = ", ".join(c["name"] for c in agent_configs)
+    click.echo(f"[DRY-RUN] Would generate config from preset '{preset_name}':")
+    click.echo(f"  Configuring {len(agent_configs)} harnesses")
+    click.echo(f"  Harnesses: {harness_list}")
+
+    if not harness_options:
+        click.echo("")
+        click.echo("[DRY-RUN] No changes made.")
+        click.echo("Run 'reincheck setup --preset <name> --apply' to execute.")
+        return
+
+    harnesses_to_install = _get_harnesses_to_install(
+        selected_preset,
+        harness_options,
+        ctx.overrides,
+        ctx.available_harnesses,
+        resolved_methods,
+    )
+
+    if not harnesses_to_install:
+        click.echo("")
+        click.echo("[DRY-RUN] No changes made.")
+        click.echo("Run 'reincheck setup --preset <name> --apply' to execute.")
+        return
+
+    click.echo("")
+    click.echo("=" * 60)
+    click.echo("INSTALLATION PLAN PREVIEW")
+    click.echo("=" * 60)
+
+    try:
+        plan = plan_install(
+            selected_preset, harnesses_to_install, ctx.all_methods, ctx.overrides
+        )
+        click.echo(render_plan(plan))
+    except Exception as e:
+        click.echo("  [DRY-RUN] Would install harnesses:")
+        harness_install_list = ", ".join(harnesses_to_install)
+        click.echo(f"    {harness_install_list}")
+        if ctx.debug:
+            click.echo(f"  Error generating plan: {e}")
+
+    click.echo("=" * 60)
+    click.echo("")
+    click.echo("[DRY-RUN] No changes made.")
+    click.echo("Run 'reincheck setup --preset <name> --apply' to execute.")
+
+
+def _write_config_with_backup(
+    agent_configs: list[dict],
+    preset_name: str,
+    yes: bool = False,
+) -> bool:
+    """Write config with backup handling.
+
+    Args:
+        agent_configs: Agent configs to write
+        preset_name: Preset name to store
+        yes: Skip confirmation
+
+    Returns:
+        True if config was written, False if user cancelled
+
+    Raises:
+        ConfigError: If write fails
+    """
+    config_path = get_config_path(create=True)
+
+    if config_path.exists():
+        backup_path = config_path.with_suffix(".json.bak")
+        click.echo(f"⚠️  Existing config will be backed up to {backup_path}")
+        if not yes:
+            if not click.confirm("Continue?", default=False):
+                click.echo("Cancelled.")
+                return False
+        config_path.rename(backup_path)
+
+    try:
+        _write_agent_config(agent_configs, config_path, preset_name=preset_name)
+        click.echo(f"✅ Configured {len(agent_configs)} harnesses")
+        harness_list = ", ".join(c["name"] for c in agent_configs)
+        if len(harness_list) <= 60:
+            click.echo(f"  {harness_list}")
+        else:
+            click.echo(
+                f"  {', '.join(c['name'] for c in agent_configs[:5])}, ... ({len(agent_configs)} total)"
+            )
+    except Exception as e:
+        raise ConfigError(f"Failed to write config: {e}")
+
+    return True
+
+
+async def _execute_installation_flow(
+    preset: Preset,
+    harness_options: tuple[str, ...],
+    ctx: SetupContext,
+    resolved_methods: dict[str, InstallMethod],
+) -> None:
+    """Execute installation workflow.
+
+    Args:
+        preset: Selected preset
+        harness_options: Harness options from CLI
+        ctx: Setup context
+        resolved_methods: Resolved install methods
+
+    Raises:
+        ConfigError: If installation fails
+    """
+    harnesses_to_install = _get_harnesses_to_install(
+        preset, harness_options, ctx.overrides, ctx.available_harnesses, resolved_methods
+    )
+
+    if not harnesses_to_install:
+        click.echo("")
+        click.echo(
+            "No harnesses selected for installation (use --harness and --apply to install)"
+        )
+        return
+
+    try:
+        plan = plan_install(preset, harnesses_to_install, ctx.all_methods, ctx.overrides)
+    except Exception as e:
+        raise ConfigError(f"Error generating installation plan: {e}")
+
+    if plan.unsatisfied_deps and not ctx.yes:
+        click.echo("")
+        click.echo("⚠️  Missing dependencies:")
+
+        for dep in plan.unsatisfied_deps:
+            dep_obj = get_dependency(dep)
+            hint = dep_obj.install_hint if dep_obj else "Unknown"
+            click.echo(f"  • {dep}: {hint}")
+        click.echo("")
+        if not click.confirm(
+            "Dependencies missing. Continue anyway?", default=False
+        ):
+            click.echo("Installation cancelled.")
+            return
+
+    try:
+        results = await _execute_installation_with_progress(
+            plan, ctx.yes, ctx.verbose, ctx.debug
+        )
+    except Exception as e:
+        raise ConfigError(f"Error during installation: {e}")
+
+    click.echo("")
+    successful = [r for r in results if r.status == "success"]
+    failed = [r for r in results if r.status == "failed"]
+
+    if failed:
+        click.echo(f"❌ Installation failed for {len(failed)} harness(es):")
+        for r in failed:
+            click.echo(f"  • {r.harness}: {r.output[:100]}")
+        raise ConfigError(f"Installation failed for {len(failed)} harness(es)")
+    else:
+        click.echo(f"✅ Installation complete ({len(successful)}/{len(results)})")
+
+
 @click.command()
 @click.option("--list-presets", is_flag=True, help="List available presets")
 @click.option("--preset", type=str, help="Preset to generate config from")
@@ -541,302 +926,94 @@ def setup(
 ):
     """Generate agents.json config and optionally install harnesses."""
     debug = ctx.obj.get("debug", False)
-    setup_logging(debug)
 
-    # Validate options
     _validate_setup_options(
         list_presets, preset, override, harness, dry_run, apply, yes
     )
 
-    # List presets
     if list_presets:
         _list_presets_with_status(debug)
         return
 
-    # Load data (needed for preset selection and validation)
     try:
-        presets = get_presets()
-        available_harnesses = get_harnesses()
-        all_methods = get_all_methods()
-    except Exception as e:
-        click.echo(f"Error loading data: {e}", err=True)
+        presets, available_harnesses, all_methods = _load_setup_data(debug)
+    except ConfigError as e:
+        click.echo(f"Error: {e}", err=True)
         sys.exit(EXIT_CONFIG_ERROR)
 
-    # Interactive preset selection if not provided
-    if preset is None:
-        report = get_dependency_report(presets, all_methods)
-        selected = _select_preset_interactive_with_fallback(presets, report, debug)
-
-        if selected is None:
-            click.echo(
-                "Error: --preset is required (or use interactive mode).", err=True
-            )
-            click.echo(
-                "Run 'reincheck setup --list-presets' to see available presets.",
-                err=True,
-            )
-            sys.exit(EXIT_CONFIG_ERROR)
-
-        preset = selected
-        click.echo(f"Selected preset: {preset}")
-        click.echo("")
-
-    # Validate options (now that we have preset)
-    _validate_setup_options(
-        list_presets, preset, override, harness, dry_run, apply, yes
-    )
-
-    # Parse overrides
     overrides = _parse_overrides(override)
 
-    # Get preset
-    selected_preset = presets.get(preset)
-
-    if not selected_preset:
-        # Check if it's "custom" special keyword
-        if preset == "custom":
-            # Will be handled below after parsing overrides
-            pass
-        else:
-            available_names = ", ".join(sorted(presets.keys()))
-            click.echo(f"Error: Preset '{preset}' not found.", err=True)
-            click.echo(f"Available presets: {available_names}", err=True)
-            sys.exit(EXIT_PRESET_NOT_FOUND)
-
-    # Resolve methods and build config
-    click.echo(f"Generating agents.json from preset '{preset}'...")
-
-    # For custom preset, create a temporary preset object for resolution
-    if preset == "custom":
-        from reincheck.installer import Preset as InstallerPreset
-
-        selected_preset = InstallerPreset(
-            name="custom",
-            strategy="custom",
-            description="Custom configuration with overrides",
-            methods={},
-        )
-
-    if selected_preset is None:
-        click.echo("Error: Preset resolution failed.", err=True)
-        sys.exit(EXIT_CONFIG_ERROR)
-
-    # Interactive harness selection (when no --harness flags and TTY available)
-    interactive_harness_selection = None
-    if not harness and not yes and preset != "custom" and sys.stdin.isatty():
-        interactive_harness_selection = _select_harnesses_interactive_with_fallback(
-            selected_preset, all_methods, available_harnesses, debug
-        )
-
-        if interactive_harness_selection is not None:
-            selected_h, interactive_overrides = interactive_harness_selection
-            if not selected_h:
-                click.echo("No harnesses selected. Cancelled.")
-                sys.exit(EXIT_SUCCESS)
-            # Merge: CLI --override flags take precedence over interactive
-            for k, v in interactive_overrides.items():
-                if k not in overrides:
-                    overrides[k] = v
-            # Narrow preset methods to only selected harnesses
-            from reincheck.installer import Preset as InstallerPreset
-
-            selected_preset = InstallerPreset(
-                name=selected_preset.name,
-                strategy=selected_preset.strategy,
-                description=selected_preset.description,
-                methods={
-                    h: selected_preset.methods[h]
-                    for h in selected_h
-                    if h in selected_preset.methods
-                },
-                fallback_strategy=selected_preset.fallback_strategy,
-                priority=selected_preset.priority,
-            )
-
-    resolved_methods = _resolve_all_methods(
-        selected_preset, overrides, available_harnesses, all_methods
+    ctx_obj = SetupContext(
+        presets=presets,
+        available_harnesses=available_harnesses,
+        all_methods=all_methods,
+        overrides=overrides,
+        debug=debug,
+        yes=yes,
+        verbose=verbose,
     )
 
-    # Check for failed resolutions and offer interactive fix
-    if sys.stdin.isatty() and not yes:
-        expected_harnesses = set()
-        if selected_preset.name == "custom":
-            expected_harnesses = {
-                h for h in overrides.keys() if h in available_harnesses
-            }
-        else:
-            expected_harnesses = {
-                h for h in selected_preset.methods.keys() if h in available_harnesses
-            }
+    try:
+        selected_preset = _resolve_selected_preset(preset, presets, all_methods, debug)
+    except ConfigError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(EXIT_PRESET_NOT_FOUND)
 
-        failed_harnesses = list(expected_harnesses - set(resolved_methods.keys()))
-        failed_harnesses.sort()
+    interactive_result = _apply_interactive_harness_selection(
+        selected_preset,
+        overrides,
+        all_methods,
+        available_harnesses,
+        debug,
+    )
+    if interactive_result:
+        selected_preset, overrides = interactive_result
+        ctx_obj.overrides = overrides
 
-        if failed_harnesses:
-            click.echo("")
-            click.secho(
-                f"⚠️  Could not resolve install methods for {len(failed_harnesses)} harnesses.",
-                fg="yellow",
-            )
-
-            # We need to pass presets to get_dependency_report, checking if it's available
-            # It should be available from earlier in the function
-            dep_report = get_dependency_report(presets, all_methods)
-
-            new_overrides = resolve_failed_harnesses_interactive(
-                failed_harnesses, all_methods, available_harnesses, dep_report
-            )
-
-            if new_overrides:
-                overrides.update(new_overrides)
-                click.echo("Retrying resolution with selected methods...")
-                resolved_methods = _resolve_all_methods(
-                    selected_preset, overrides, available_harnesses, all_methods
-                )
+    resolved_methods = _resolve_install_methods(selected_preset, ctx_obj)
 
     if not resolved_methods:
         click.echo("Error: No valid install methods found for any harnesses.", err=True)
         sys.exit(EXIT_CONFIG_ERROR)
 
-    # Build agent configs
+    click.echo(f"Generating agents.json from preset '{selected_preset.name}'...")
+
     agent_configs = []
     for harness_name, method in resolved_methods.items():
         harness_obj = available_harnesses[harness_name]
         agent_config = _build_agent_config(harness_obj, method)
         agent_configs.append(agent_config)
 
-    # Sort by name for consistency
     agent_configs.sort(key=lambda c: c["name"])
 
-    # Dry-run mode
     if dry_run:
-        harness_list = ", ".join(c["name"] for c in agent_configs)
-        click.echo(f"[DRY-RUN] Would generate config from preset '{preset}':")
-        click.echo(f"  Configuring {len(agent_configs)} harnesses")
-        click.echo(f"  Harnesses: {harness_list}")
-
-        # Show installation plan if harnesses specified
-        if harness:
-            harnesses_to_install = _get_harnesses_to_install(
-                selected_preset,
-                harness,
-                overrides,
-                available_harnesses,
-                resolved_methods,
-            )
-
-            if harnesses_to_install:
-                click.echo("")
-                click.echo("=" * 60)
-                click.echo("INSTALLATION PLAN PREVIEW")
-                click.echo("=" * 60)
-
-                # Generate and display the full installation plan
-                try:
-                    plan = plan_install(
-                        selected_preset, harnesses_to_install, all_methods, overrides
-                    )
-                    click.echo(render_plan(plan))
-                except Exception as e:
-                    click.echo(f"  [DRY-RUN] Would install harnesses:")
-                    harness_install_list = ", ".join(harnesses_to_install)
-                    click.echo(f"    {harness_install_list}")
-                    if debug:
-                        click.echo(f"  Error generating plan: {e}")
-
-                click.echo("=" * 60)
-
-        click.echo("")
-        click.echo("[DRY-RUN] No changes made.")
-        click.echo("Run 'reincheck setup --preset <name> --apply' to execute.")
+        _display_dry_run(
+            selected_preset.name,
+            selected_preset,
+            agent_configs,
+            harness,
+            ctx_obj,
+            resolved_methods,
+        )
         return
 
-    # Write config
-    config_path = get_config_path(create=True)
+    config_written = _write_config_with_backup(agent_configs, selected_preset.name, yes)
+    if not config_written:
+        sys.exit(EXIT_SUCCESS)
 
-    # Warn if overwriting
-    if config_path.exists():
-        backup_path = config_path.with_suffix(".json.bak")
-        click.echo(f"⚠️  Existing config will be backed up to {backup_path}")
-        if not yes:
-            if not click.confirm("Continue?", default=False):
-                click.echo("Cancelled.")
-                sys.exit(EXIT_SUCCESS)
-        config_path.rename(backup_path)
-
-    try:
-        _write_agent_config(agent_configs, config_path, preset_name=preset)
-        click.echo(f"✅ Configured {len(agent_configs)} harnesses")
-        harness_list = ", ".join(c["name"] for c in agent_configs)
-        if len(harness_list) <= 60:
-            click.echo(f"  {harness_list}")
-        else:
-            click.echo(
-                f"  {', '.join(c['name'] for c in agent_configs[:5])}, ... ({len(agent_configs)} total)"
-            )
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(EXIT_CONFIG_ERROR)
-
-    # Installation
     if apply:
-        harnesses_to_install = _get_harnesses_to_install(
-            selected_preset, harness, overrides, available_harnesses, resolved_methods
-        )
-
-        if not harnesses_to_install:
-            click.echo("")
-            click.echo(
-                "No harnesses selected for installation (use --harness and --apply to install)"
-            )
-            return
-
-        # Generate installation plan
         try:
-            plan = plan_install(
-                selected_preset, harnesses_to_install, all_methods, overrides
+            asyncio.run(
+                _execute_installation_flow(
+                    selected_preset,
+                    harness,
+                    ctx_obj,
+                    resolved_methods,
+                )
             )
-        except Exception as e:
-            click.echo(f"Error generating installation plan: {e}", err=True)
-            sys.exit(EXIT_CONFIG_ERROR)
-
-        # Check for missing dependencies
-        if plan.unsatisfied_deps and not yes:
-            click.echo("")
-            click.echo("⚠️  Missing dependencies:")
-
-            for dep in plan.unsatisfied_deps:
-                dep_obj = get_dependency(dep)
-                hint = dep_obj.install_hint if dep_obj else "Unknown"
-                click.echo(f"  • {dep}: {hint}")
-            click.echo("")
-            if not click.confirm(
-                "Dependencies missing. Continue anyway?", default=False
-            ):
-                click.echo("Installation cancelled.")
-                sys.exit(EXIT_SUCCESS)
-
-        # Execute installation
-        try:
-            results = asyncio.run(
-                _execute_installation_with_progress(plan, yes, verbose, debug)
-            )
-        except Exception as e:
-            click.echo(f"\nError during installation: {e}", err=True)
+        except ConfigError as e:
+            click.echo(f"\nError: {e}", err=True)
             sys.exit(EXIT_INSTALL_FAILED)
-
-        # Report results
-        click.echo("")
-        successful = [r for r in results if r.status == "success"]
-        failed = [r for r in results if r.status == "failed"]
-
-        if failed:
-            click.echo(f"❌ Installation failed for {len(failed)} harness(es):")
-            for r in failed:
-                click.echo(f"  • {r.harness}: {r.output[:100]}")
-            sys.exit(EXIT_INSTALL_FAILED)
-        else:
-            click.echo(f"✅ Installation complete ({len(successful)}/{len(results)})")
     else:
         click.echo("")
         click.echo(

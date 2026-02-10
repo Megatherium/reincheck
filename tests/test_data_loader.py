@@ -312,6 +312,109 @@ class TestClearCache:
         assert get_presets() is not None
         assert get_all_methods() is not None
 
+    def test_clear_cache_selective_harnesses(self):
+        """Clears only harnesses cache, leaves others intact."""
+        get_harnesses()
+        get_dependencies()
+        get_presets()
+        get_all_methods()
+
+        harnesses1 = get_harnesses()
+        deps1 = get_dependencies()
+        presets1 = get_presets()
+        methods1 = get_all_methods()
+
+        clear_cache('harnesses')
+
+        harnesses2 = get_harnesses()
+        deps2 = get_dependencies()
+        presets2 = get_presets()
+        methods2 = get_all_methods()
+
+        # Harnesses should be different object
+        assert harnesses1 is not harnesses2
+        # Others should be same cached objects
+        assert deps1 is deps2
+        assert presets1 is presets2
+        assert methods1 is methods2
+
+    def test_clear_cache_selective_dependencies(self):
+        """Clears only dependencies cache, leaves others intact."""
+        get_harnesses()
+        get_dependencies()
+        get_presets()
+        get_all_methods()
+
+        harnesses1 = get_harnesses()
+        deps1 = get_dependencies()
+        presets1 = get_presets()
+        methods1 = get_all_methods()
+
+        clear_cache('dependencies')
+
+        harnesses2 = get_harnesses()
+        deps2 = get_dependencies()
+        presets2 = get_presets()
+        methods2 = get_all_methods()
+
+        assert harnesses1 is harnesses2
+        assert deps1 is not deps2
+        assert presets1 is presets2
+        assert methods1 is methods2
+
+    def test_clear_cache_selective_presets(self):
+        """Clears only presets cache, leaves others intact."""
+        get_harnesses()
+        get_dependencies()
+        get_presets()
+        get_all_methods()
+
+        harnesses1 = get_harnesses()
+        deps1 = get_dependencies()
+        presets1 = get_presets()
+        methods1 = get_all_methods()
+
+        clear_cache('presets')
+
+        harnesses2 = get_harnesses()
+        deps2 = get_dependencies()
+        presets2 = get_presets()
+        methods2 = get_all_methods()
+
+        assert harnesses1 is harnesses2
+        assert deps1 is deps2
+        assert presets1 is not presets2
+        assert methods1 is methods2
+
+    def test_clear_cache_selective_methods(self):
+        """Clears only methods cache, leaves others intact."""
+        get_harnesses()
+        get_dependencies()
+        get_presets()
+        get_all_methods()
+
+        harnesses1 = get_harnesses()
+        deps1 = get_dependencies()
+        presets1 = get_presets()
+        methods1 = get_all_methods()
+
+        clear_cache('methods')
+
+        harnesses2 = get_harnesses()
+        deps2 = get_dependencies()
+        presets2 = get_presets()
+        methods2 = get_all_methods()
+
+        assert harnesses1 is harnesses2
+        assert deps1 is deps2
+        assert presets1 is presets2
+        assert methods1 is not methods2
+
+    def test_clear_cache_invalid_type(self):
+        """Raises ValueError for invalid cache type."""
+        with pytest.raises(ValueError, match="Invalid cache_type 'invalid'"):
+            clear_cache('invalid')
+
 
 class TestErrorHandling:
     """Tests for error handling."""

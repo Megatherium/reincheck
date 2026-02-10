@@ -1,4 +1,22 @@
-"""Data loader for harness configuration files."""
+"""Data loader for harness configuration files.
+
+This module provides cached access to harness, dependency, preset, and install
+method data loaded from JSON files in the bundled data directory.
+
+Caching Strategy:
+- Data is loaded once on first access and cached in module-level variables
+- Caches persist for the lifetime of the program to avoid repeated disk I/O
+- Use clear_cache() to force a reload of all or specific caches
+
+Cache Invalidation:
+- Clear caches when testing to ensure fresh data between test cases
+- Clear caches if bundled data files are modified at runtime (rare)
+- No automatic invalidation - data is read-only after program start
+
+Testing:
+- Tests use clear_cache() to prevent state pollution between tests
+- clear_cache() can selectively clear individual caches or all caches
+"""
 
 from pathlib import Path
 
@@ -463,16 +481,44 @@ def get_method(harness: str, method_name: str) -> InstallMethod | None:
     return methods.get(key)
 
 
-def clear_cache() -> None:
-    """Clear all cached data.
+def clear_cache(cache_type: str | None = None) -> None:
+    """Clear cached data to force reload on next access.
 
-    Forces reload on next access. Useful for testing and configuration reload.
+    Args:
+        cache_type: Optional cache type to clear. If None, clears all caches.
+            Valid values: 'harnesses', 'dependencies', 'presets', 'methods'
+            Defaults to None (clear all caches).
+
+    Raises:
+        ValueError: If cache_type is not one of the valid values
+
+    Examples:
+        >>> clear_cache()  # Clear all caches
+        >>> clear_cache('harnesses')  # Clear only harnesses cache
     """
     global _harnesses_cache, _dependencies_cache, _presets_cache, _methods_cache
-    _harnesses_cache = None
-    _dependencies_cache = None
-    _presets_cache = None
-    _methods_cache = None
+
+    valid_cache_types = {'harnesses', 'dependencies', 'presets', 'methods'}
+
+    if cache_type is None:
+        _harnesses_cache = None
+        _dependencies_cache = None
+        _presets_cache = None
+        _methods_cache = None
+    else:
+        if cache_type not in valid_cache_types:
+            raise ValueError(
+                f"Invalid cache_type '{cache_type}'. "
+                f"Must be one of: {', '.join(sorted(valid_cache_types))}"
+            )
+        if cache_type == 'harnesses':
+            _harnesses_cache = None
+        elif cache_type == 'dependencies':
+            _dependencies_cache = None
+        elif cache_type == 'presets':
+            _presets_cache = None
+        elif cache_type == 'methods':
+            _methods_cache = None
 
 
 __all__ = [

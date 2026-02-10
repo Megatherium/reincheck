@@ -78,6 +78,13 @@ from .adapter import (
     list_available_methods,
 )
 
+# Error formatting
+from .errors import (
+    format_error,
+    format_field_error,
+    format_suggestion,
+)
+
 # Timeouts
 from .execution import DEFAULT_TIMEOUT, UPGRADE_TIMEOUT, INSTALL_TIMEOUT
 

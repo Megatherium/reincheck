@@ -9,6 +9,7 @@ import click
 from reincheck import (
     AgentConfig,
     ConfigError,
+    format_error,
     compare_versions,
     format_error,
     get_current_version,

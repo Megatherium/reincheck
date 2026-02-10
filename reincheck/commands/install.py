@@ -53,7 +53,7 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
 
     agent_config = next((a for a in agents if a.name == agent_name), None)
     if not agent_config:
-        click.echo(format_error(f"agent '{agent_name}' not found"), err=True)
+        click.echo(format_error(f"Agent '{agent_name}' not found in configuration"), err=True)
         sys.exit(1)
 
     if debug:
@@ -101,10 +101,7 @@ async def run_install(agent_name: str, force: bool, timeout: int, debug: bool):
             _logging.debug(f"Using install command from config: {install_command}")
 
     if not install_command:
-        click.echo(
-            format_error(f"no install command defined for agent '{agent_name}'"),
-            err=True,
-        )
+        click.echo(format_error(f"No install command defined for agent '{agent_name}'"), err=True)
         sys.exit(1)
 
     click.echo(f"Installing {agent_name}...")

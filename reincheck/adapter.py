@@ -144,7 +144,8 @@ def get_effective_method(
     Args:
         harness_name: Name of the harness (e.g., "claude", "aider")
         preset_name: Name of the preset to use for resolution (e.g., "mise_binary")
-        overrides: Dict mapping harness names to method names for overrides
+        overrides: Optional mapping of harness names to method names for overrides.
+                   Takes precedence over preset methods. Example: {"claude": "npm"}
         
     Returns:
         EffectiveMethod if resolution succeeds, None if harness not found

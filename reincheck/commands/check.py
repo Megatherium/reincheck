@@ -36,7 +36,7 @@ async def run_check(agent: str | None, quiet: bool, debug: bool):
     if agent:
         agents = [a for a in agents if a.name == agent]
         if not agents:
-            click.echo(format_error(f"agent '{agent}' not found"), err=True)
+            click.echo(format_error(f"Agent '{agent}' not found in configuration"), err=True)
             sys.exit(1)
 
     update_count = 0

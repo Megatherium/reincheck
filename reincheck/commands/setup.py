@@ -812,7 +812,7 @@ def _write_config_with_backup(
 
     try:
         _write_agent_config(agent_configs, config_path, preset_name=preset_name)
-        click.echo(f"✅ Configured {len(agent_configs)} harnesses")
+        click.echo(f"Configured {len(agent_configs)} harnesses")
         harness_list = ", ".join(c["name"] for c in agent_configs)
         if len(harness_list) <= 60:
             click.echo(f"  {harness_list}")
@@ -821,7 +821,7 @@ def _write_config_with_backup(
                 f"  {', '.join(c['name'] for c in agent_configs[:5])}, ... ({len(agent_configs)} total)"
             )
     except Exception as e:
-        raise ConfigError(f"Failed to write config: {e}")
+        raise ConfigError(format_error(f"Failed to write config: {e}"))
 
     return True
 
@@ -857,7 +857,7 @@ async def _execute_installation_flow(
     try:
         plan = plan_install(preset, harnesses_to_install, ctx.all_methods, ctx.overrides)
     except Exception as e:
-        raise ConfigError(f"Error generating installation plan: {e}")
+        raise ConfigError(format_error(f"Error generating installation plan: {e}"))
 
     if plan.unsatisfied_deps and not ctx.yes:
         click.echo("")
@@ -879,7 +879,7 @@ async def _execute_installation_flow(
             plan, ctx.yes, ctx.verbose, ctx.debug
         )
     except Exception as e:
-        raise ConfigError(f"Error during installation: {e}")
+        raise ConfigError(format_error(f"Error during installation: {e}"))
 
     click.echo("")
     successful = [r for r in results if r.status == "success"]
@@ -974,7 +974,7 @@ def setup(
     resolved_methods = _resolve_install_methods(selected_preset, ctx_obj)
 
     if not resolved_methods:
-        click.echo(format_error("no valid install methods found for any harnesses"), err=True)
+        click.echo(format_error("No valid install methods found for any harnesses"), err=True)
         sys.exit(EXIT_CONFIG_ERROR)
 
     click.echo(f"Generating agents.json from preset '{selected_preset.name}'...")

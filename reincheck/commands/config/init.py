@@ -7,6 +7,7 @@ import click
 
 from reincheck import (
     ConfigError,
+    format_error,
     ensure_user_config,
     format_error,
     get_config_dir,
@@ -58,17 +59,17 @@ def config_init(ctx, force: bool):
             )
 
             if yaml_path.exists():
-                click.echo(f"⚠️  Found legacy YAML config at {yaml_path}")
+                click.echo(f"Found legacy YAML config at {yaml_path}")
                 click.echo(f"   Migrating to {config_path}...")
                 migrate_yaml_to_json(yaml_path, config_path)
             elif project_yaml.exists():
-                click.echo(f"⚠️  Found legacy YAML config at {project_yaml}")
+                click.echo(f"Found legacy YAML config at {project_yaml}")
                 click.echo(f"   Migrating to {config_path}...")
                 migrate_yaml_to_json(project_yaml, config_path)
             else:
                 packaged_default = get_packaged_config_path()
                 if packaged_default.exists():
-                    click.echo("📋 Creating user config from packaged defaults...")
+                    click.echo("Creating user config from packaged defaults...")
                     config_path.parent.mkdir(parents=True, exist_ok=True)
                     config_path.write_text(packaged_default.read_text())
                 else:
@@ -77,7 +78,7 @@ def config_init(ctx, force: bool):
         else:
             ensure_user_config(config_path)
 
-        click.echo("✅ Config initialized successfully")
+        click.echo("Config initialized successfully")
     except ConfigError as e:
-        click.echo(format_error(f"initialization failed: {e}"), err=True)
+        click.echo(format_error(f"Initialization failed: {e}"), err=True)
         sys.exit(1)

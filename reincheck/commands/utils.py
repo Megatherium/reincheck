@@ -1,11 +1,20 @@
 """Shared utility functions for commands."""
 
 import os
-import click
+
+from reincheck.config import AgentConfig
 
 
-def filter_agent_by_name(agents: list, name: str) -> list:
-    """Filter agents list by name, returning empty list if not found."""
+def filter_agent_by_name(agents: list[AgentConfig], name: str) -> list[AgentConfig]:
+    """Filter agents list by name, returning empty list if not found.
+
+    Args:
+        agents: List of AgentConfig instances to filter
+        name: Agent name to match (exact match)
+
+    Returns:
+        List of AgentConfig instances matching the given name, or empty list
+    """
     return [a for a in agents if a.name == name]
 
 

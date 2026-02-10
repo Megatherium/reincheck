@@ -39,7 +39,7 @@ def config_fmt(ctx, file: str | None, write: bool):
 
     # Check if file exists
     if not file_path.exists():
-        click.echo(format_error(f"file not found: {file_path}"), err=True)
+        click.echo(format_error(f"File not found: {file_path}"), err=True)
         sys.exit(1)
 
     try:
@@ -49,7 +49,7 @@ def config_fmt(ctx, file: str | None, write: bool):
         click.echo(format_error(str(e)), err=True)
         sys.exit(1)
     except Exception as e:
-        click.echo(format_error(f"reading config: {e}"), err=True)
+        click.echo(format_error(f"Error reading config: {e}"), err=True)
         sys.exit(1)
 
     # Output strict JSON
@@ -70,7 +70,7 @@ def config_fmt(ctx, file: str | None, write: bool):
             # Clean up temp file if it exists
             if temp_path.exists():
                 temp_path.unlink()
-            click.echo(format_error(f"writing file: {e}"), err=True)
+            click.echo(format_error(f"Error writing file: {e}"), err=True)
             sys.exit(1)
     else:
         click.echo(formatted)

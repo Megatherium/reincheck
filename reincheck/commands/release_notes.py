@@ -27,7 +27,7 @@ async def run_release_notes(agent: str | None, debug: bool):
     if agent:
         agents = [a for a in agents if a.name == agent]
         if not agents:
-            click.echo(format_error(f"agent '{agent}' not found"), err=True)
+            click.echo(format_error(f"Agent '{agent}' not found"), err=True)
             sys.exit(1)
 
     # Create releasenotes directory
@@ -53,7 +53,7 @@ async def run_release_notes(agent: str | None, debug: bool):
     try:
         pager_cmd = validate_pager(raw_pager)
     except ValueError as e:
-        click.echo(format_error(str(e)), err=True)
+        click.echo(format_error(f"Security error: {e}"), err=True)
         sys.exit(1)
 
     combined_path = rn_dir / "all_release_notes.md"
@@ -78,16 +78,12 @@ async def run_release_notes(agent: str | None, debug: bool):
         file_path = rn_dir / f"{agents[0].name}.md"
         result = subprocess.run([pager_cmd, str(file_path)], check=False)
         if result.returncode != 0:
-            click.echo(
-                format_error(f"pager exited with code {result.returncode}"), err=True
-            )
+            click.echo(format_error(f"Pager exited with code {result.returncode}"), err=True)
     else:
         # Render all
         result = subprocess.run([pager_cmd, str(combined_path)], check=False)
         if result.returncode != 0:
-            click.echo(
-                format_error(f"pager exited with code {result.returncode}"), err=True
-            )
+            click.echo(format_error(f"Pager exited with code {result.returncode}"), err=True)
 
 
 @click.command(name="release-notes")

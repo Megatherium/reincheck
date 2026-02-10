@@ -32,7 +32,7 @@ def format_preset_choice(
     preset: Preset,
     status: PresetStatus,
     report: DependencyReport | None = None,
-    methods: dict | None = None,
+    methods: dict[str, InstallMethod] | None = None,
 ) -> str:
     """Format a preset choice for interactive selection.
 
@@ -138,7 +138,7 @@ def select_preset_interactive(
     presets: dict[str, Preset],
     report: DependencyReport,
     default: str | None = None,
-    methods: dict | None = None,
+    methods: dict[str, InstallMethod] | None = None,
 ) -> str | None:
     """Display interactive preset selector with status colors and details modal.
 

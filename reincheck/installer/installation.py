@@ -9,6 +9,14 @@ from .models import Plan, StepResult
 
 
 def _confirm(message: str) -> bool:
+    """Prompt user for confirmation via click.
+    
+    Args:
+        message: The confirmation question to display
+        
+    Returns:
+        True if user confirms (y/yes), False if user declines (n/no)
+    """
     return click.confirm(message, default=False)
 
 

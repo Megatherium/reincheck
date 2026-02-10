@@ -86,15 +86,6 @@ def setup_logging(debug: bool = False):
         _logging.setLevel(logging.DEBUG if debug else logging.INFO)
 
 
-def _dict_to_config(data: dict) -> Config:
-    """Convert a raw dict to a Config object.
-
-    Temporary bridge function - delegates to validate_config from config.py.
-    Kept for backward compatibility during migration.
-    """
-    return validate_config(data)
-
-
 def load_config(config_path: Path | None = None) -> Config:
     """Load agents configuration from a JSON file.
 
@@ -124,7 +115,7 @@ def load_config(config_path: Path | None = None) -> Config:
             f"Run 'reincheck config init' to restore defaults."
         ) from e
 
-    return _dict_to_config(data)
+    return validate_config(data)
 
 
 def save_config(config: Config, config_path: Path | None = None) -> None:

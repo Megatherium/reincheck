@@ -570,7 +570,6 @@ class TestInteractivePromptMocking:
 
     def test_mock_questionary_select(self, mock_tty):
         """Test mocking prompt_toolkit Application for preset selection."""
-        import reincheck.tui as tui_module
         from reincheck.tui import select_preset_interactive
         from reincheck.installer import Preset, PresetStatus, DependencyReport
 
@@ -584,17 +583,13 @@ class TestInteractivePromptMocking:
         }
         report = DependencyReport({}, {}, [], [], 0, 0)
 
-        original_app = tui_module.Application
         mock_instance = MagicMock()
         mock_instance.run.return_value = None
-        tui_module.Application = MagicMock(return_value=mock_instance)
 
-        try:
+        with patch("reincheck.tui.presets.Application", return_value=mock_instance):
             result = select_preset_interactive(
                 presets, report, methods={}, default=None
             )
-        finally:
-            tui_module.Application = original_app
 
         assert result is None
 

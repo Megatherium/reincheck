@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from reincheck.tui import resolve_failed_harnesses_interactive
-from reincheck.installer import Harness, InstallMethod, RiskLevel, DependencyReport
+from reincheck.installer import Harness, InstallMethod, DependencyReport
 
 
 @pytest.fixture

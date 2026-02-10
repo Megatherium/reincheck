@@ -231,7 +231,7 @@ class TestScanAndDisplayDeps:
     """Tests for _scan_and_display_deps function."""
 
     def test_non_interactive_skips_display(self):
-        with patch("reincheck.tui.scan_dependencies") as mock_scan:
+        with patch("reincheck.tui.dependencies.scan_dependencies") as mock_scan:
             mock_scan.return_value = {
                 "npm": DependencyStatus(
                     name="npm",
@@ -247,7 +247,7 @@ class TestScanAndDisplayDeps:
 
     def test_non_tty_skips_display(self):
         with patch("sys.stdout.isatty", return_value=False):
-            with patch("reincheck.tui.scan_dependencies") as mock_scan:
+            with patch("reincheck.tui.dependencies.scan_dependencies") as mock_scan:
                 mock_scan.return_value = {
                     "npm": DependencyStatus(
                         name="npm",
@@ -263,8 +263,8 @@ class TestScanAndDisplayDeps:
 
     def test_returns_statuses_dict(self):
         with patch("sys.stdout.isatty", return_value=True):
-            with patch("reincheck.tui.scan_dependencies") as mock_scan:
-                with patch("reincheck.tui.display_dependency_table"):
+            with patch("reincheck.tui.dependencies.scan_dependencies") as mock_scan:
+                with patch("reincheck.tui.dependencies.display_dependency_table"):
                     mock_scan.return_value = {
                         "npm": DependencyStatus(
                             name="npm",
@@ -280,8 +280,8 @@ class TestScanAndDisplayDeps:
 
     def test_required_deps_passed_through(self):
         with patch("sys.stdout.isatty", return_value=True):
-            with patch("reincheck.tui.scan_dependencies") as mock_scan:
-                with patch("reincheck.tui.display_dependency_table") as mock_display:
+            with patch("reincheck.tui.dependencies.scan_dependencies") as mock_scan:
+                with patch("reincheck.tui.dependencies.display_dependency_table") as mock_display:
                     mock_scan.return_value = {
                         "npm": DependencyStatus(
                             name="npm",
@@ -441,8 +441,7 @@ class TestSelectPresetInteractive:
 
         with patch("sys.stdin.isatty", return_value=True):
             with patch("sys.stdout.isatty", return_value=True):
-                with patch("reincheck.tui.Application") as mock_app:
-                    mock_app.return_value.run.return_value = None
+                with patch("reincheck.tui.presets.Application"):
                     result = select_preset_interactive({"test": preset}, report)
                     assert result is None
 
@@ -466,8 +465,8 @@ class TestSelectPresetInteractive:
         )
 
         with patch("sys.stdin.isatty", return_value=True):
-            with patch("reincheck.tui.Application") as mock_app:
-                with patch("reincheck.tui._SelectorState") as mock_state_cls:
+            with patch("reincheck.tui.presets.Application"):
+                with patch("reincheck.tui.presets._SelectorState") as mock_state_cls:
                     mock_state = mock_state_cls.return_value
                     mock_state.result = "mise_binary"
                     result = select_preset_interactive({"mise_binary": preset}, report)

@@ -6,7 +6,13 @@ import sys
 
 import click
 
-from reincheck import ConfigError, get_latest_version, load_config, save_config
+from reincheck import (
+    ConfigError,
+    format_error,
+    get_latest_version,
+    load_config,
+    save_config,
+)
 from reincheck.adapter import get_effective_method_from_config
 from reincheck.commands.utils import filter_agent_by_name
 
@@ -24,7 +30,7 @@ def update(ctx, agent: str | None, quiet: bool):
     try:
         asyncio.run(run_update(agent, quiet, debug))
     except ConfigError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(format_error(str(e)), err=True)
         sys.exit(1)
 
 
@@ -38,7 +44,7 @@ async def run_update(agent: str | None, quiet: bool, debug: bool):
     if agent:
         agents = filter_agent_by_name(agents, agent)
         if not agents:
-            click.echo(f"Agent '{agent}' not found in configuration.", err=True)
+            click.echo(format_error(f"agent '{agent}' not found"), err=True)
             sys.exit(2)
 
     if not quiet:

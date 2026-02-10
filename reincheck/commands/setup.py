@@ -11,6 +11,7 @@ import click
 
 from reincheck import (
     ConfigError,
+    format_error,
     run_command_async,
     setup_logging,
 )
@@ -85,7 +86,7 @@ def _validate_setup_options(
     # Allow preset to be None for interactive mode (TTY available)
     # Will be validated again after interactive selection
     if preset is None and not sys.stdin.isatty():
-        click.echo("Error: --preset is required.", err=True)
+        click.echo(format_error("--preset is required"), err=True)
         sys.exit(EXIT_CONFIG_ERROR)
 
     # --override required for custom preset
@@ -938,7 +939,7 @@ def setup(
     try:
         presets, available_harnesses, all_methods = _load_setup_data(debug)
     except ConfigError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(format_error(str(e)), err=True)
         sys.exit(EXIT_CONFIG_ERROR)
 
     overrides = _parse_overrides(override)
@@ -956,7 +957,7 @@ def setup(
     try:
         selected_preset = _resolve_selected_preset(preset, presets, all_methods, debug)
     except ConfigError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(format_error(str(e)), err=True)
         sys.exit(EXIT_PRESET_NOT_FOUND)
 
     interactive_result = _apply_interactive_harness_selection(
@@ -973,7 +974,7 @@ def setup(
     resolved_methods = _resolve_install_methods(selected_preset, ctx_obj)
 
     if not resolved_methods:
-        click.echo("Error: No valid install methods found for any harnesses.", err=True)
+        click.echo(format_error("no valid install methods found for any harnesses"), err=True)
         sys.exit(EXIT_CONFIG_ERROR)
 
     click.echo(f"Generating agents.json from preset '{selected_preset.name}'...")
@@ -1012,7 +1013,7 @@ def setup(
                 )
             )
         except ConfigError as e:
-            click.echo(f"\nError: {e}", err=True)
+            click.echo(format_error(str(e)), err=True)
             sys.exit(EXIT_INSTALL_FAILED)
     else:
         click.echo("")

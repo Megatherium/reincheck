@@ -8,6 +8,7 @@ import click
 from reincheck import (
     ConfigError,
     ensure_user_config,
+    format_error,
     get_config_dir,
     get_packaged_config_path,
     migrate_yaml_to_json,
@@ -78,5 +79,5 @@ def config_init(ctx, force: bool):
 
         click.echo("✅ Config initialized successfully")
     except ConfigError as e:
-        click.echo(f"❌ Initialization failed: {e}", err=True)
+        click.echo(format_error(f"initialization failed: {e}"), err=True)
         sys.exit(1)

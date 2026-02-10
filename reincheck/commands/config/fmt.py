@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from reincheck import ConfigError
+from reincheck import ConfigError, format_error
 from reincheck.config import load_config as load_config_raw
 from reincheck.paths import get_config_path
 
@@ -39,17 +39,17 @@ def config_fmt(ctx, file: str | None, write: bool):
 
     # Check if file exists
     if not file_path.exists():
-        click.echo(f"Error: File not found: {file_path}", err=True)
+        click.echo(format_error(f"file not found: {file_path}"), err=True)
         sys.exit(1)
 
     try:
         # Load with tolerant parser (accepts trailing commas, // comments)
         data = load_config_raw(file_path)
     except ConfigError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(format_error(str(e)), err=True)
         sys.exit(1)
     except Exception as e:
-        click.echo(f"Error reading config: {e}", err=True)
+        click.echo(format_error(f"reading config: {e}"), err=True)
         sys.exit(1)
 
     # Output strict JSON
@@ -70,7 +70,7 @@ def config_fmt(ctx, file: str | None, write: bool):
             # Clean up temp file if it exists
             if temp_path.exists():
                 temp_path.unlink()
-            click.echo(f"Error writing file: {e}", err=True)
+            click.echo(format_error(f"writing file: {e}"), err=True)
             sys.exit(1)
     else:
         click.echo(formatted)

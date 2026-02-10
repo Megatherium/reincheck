@@ -19,6 +19,13 @@ from .config import (
     load_config as load_json_config,
 )
 
+# Error formatting
+from .errors import (
+    format_error,
+    format_field_error,
+    format_suggestion,
+)
+
 # Path helpers
 from .paths import (
     get_config_dir,
@@ -156,7 +163,7 @@ def save_config(config: Config, config_path: Path | None = None) -> None:
             agents_data.append(agent_dict)
 
         data = {"agents": agents_data}
-        
+
         # Include preset if set
         if config.preset is not None:
             data["preset"] = config.preset
@@ -209,4 +216,7 @@ __all__ = [
     "get_effective_method",
     "get_effective_method_from_config",
     "list_available_methods",
+    "format_error",
+    "format_field_error",
+    "format_suggestion",
 ]

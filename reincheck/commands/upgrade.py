@@ -11,6 +11,7 @@ from reincheck import (
     AgentConfig,
     ConfigError,
     compare_versions,
+    format_error,
     get_current_version,
     load_config,
     run_command_async,
@@ -39,7 +40,7 @@ def upgrade(ctx, agent: str | None, dry_run: bool, timeout: int):
     try:
         asyncio.run(run_upgrade(agent, dry_run, timeout, debug))
     except ConfigError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(format_error(str(e)), err=True)
         sys.exit(1)
 
 
@@ -51,7 +52,7 @@ async def run_upgrade(agent: str | None, dry_run: bool, timeout: int, debug: boo
     if agent:
         agents = [a for a in agents if a.name == agent]
         if not agents:
-            click.echo(f"Agent '{agent}' not found in configuration.", err=True)
+            click.echo(format_error(f"agent '{agent}' not found"), err=True)
             sys.exit(1)
 
     click.echo("Checking for available updates...")

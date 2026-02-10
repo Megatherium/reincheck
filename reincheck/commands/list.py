@@ -5,7 +5,12 @@ import sys
 
 import click
 
-from reincheck import ConfigError, get_current_version, load_config
+from reincheck import (
+    ConfigError,
+    format_error,
+    get_current_version,
+    load_config,
+)
 from reincheck.adapter import get_effective_method_from_config, list_available_methods
 
 
@@ -20,7 +25,7 @@ def list_agents(ctx, verbose: bool):
     try:
         asyncio.run(run_list_agents(verbose, debug))
     except ConfigError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(format_error(str(e)), err=True)
         sys.exit(1)
 
 

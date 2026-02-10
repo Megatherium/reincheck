@@ -11,6 +11,7 @@ import click
 from reincheck import (
     ConfigError,
     fetch_release_notes,
+    format_error,
     get_current_version,
     load_config,
     setup_logging,
@@ -26,7 +27,7 @@ async def run_release_notes(agent: str | None, debug: bool):
     if agent:
         agents = [a for a in agents if a.name == agent]
         if not agents:
-            click.echo(f"Agent '{agent}' not found.", err=True)
+            click.echo(format_error(f"agent '{agent}' not found"), err=True)
             sys.exit(1)
 
     # Create releasenotes directory
@@ -52,7 +53,7 @@ async def run_release_notes(agent: str | None, debug: bool):
     try:
         pager_cmd = validate_pager(raw_pager)
     except ValueError as e:
-        click.echo(f"Security error: {e}", err=True)
+        click.echo(format_error(str(e)), err=True)
         sys.exit(1)
 
     combined_path = rn_dir / "all_release_notes.md"
@@ -73,16 +74,20 @@ async def run_release_notes(agent: str | None, debug: bool):
             combined_f.write("\n\n---\n\n")
 
     if agent:
-        # Render the single file
+        # Render single file
         file_path = rn_dir / f"{agents[0].name}.md"
         result = subprocess.run([pager_cmd, str(file_path)], check=False)
         if result.returncode != 0:
-            click.echo(f"Pager exited with code {result.returncode}", err=True)
+            click.echo(
+                format_error(f"pager exited with code {result.returncode}"), err=True
+            )
     else:
         # Render all
         result = subprocess.run([pager_cmd, str(combined_path)], check=False)
         if result.returncode != 0:
-            click.echo(f"Pager exited with code {result.returncode}", err=True)
+            click.echo(
+                format_error(f"pager exited with code {result.returncode}"), err=True
+            )
 
 
 @click.command(name="release-notes")
@@ -94,5 +99,5 @@ def release_notes(ctx, agent: str | None):
     try:
         asyncio.run(run_release_notes(agent, debug))
     except ConfigError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(format_error(str(e)), err=True)
         sys.exit(1)

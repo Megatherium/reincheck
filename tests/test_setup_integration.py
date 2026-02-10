@@ -404,7 +404,7 @@ class TestSetupApplyFlow:
             ),
             patch("reincheck.installer.plan_install", return_value=plan),
             patch(
-                "reincheck.run_command_async",
+                "reincheck.commands.setup.run_command_async",
                 new_callable=AsyncMock,
                 return_value=("installed", 0),
             ),
@@ -466,7 +466,7 @@ class TestSetupApplyFlow:
             ),
             patch("reincheck.installer.plan_install", return_value=plan),
             patch(
-                "reincheck.commands.run_command_async",
+                "reincheck.commands.setup.run_command_async",
                 new_callable=AsyncMock,
                 return_value=("installed", 0),
             ),

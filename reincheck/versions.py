@@ -2,6 +2,8 @@
 
 import os
 import re
+import shlex
+import subprocess
 from typing import Tuple
 
 from .config import AgentConfig
@@ -10,7 +12,17 @@ from .execution import run_command_async
 
 def add_github_auth_if_needed(command: str) -> str:
     """Add Bearer token header to curl commands targeting GitHub API
-    if GITHUB_TOKEN is set."""
+    if GITHUB_TOKEN is set.
+    
+    Uses shlex for proper shell command parsing and reconstructs the command
+    with the Authorization header inserted after the curl command.
+    
+    Args:
+        command: Shell command string that may contain curl
+        
+    Returns:
+        Modified command with GitHub auth header if applicable, otherwise original
+    """
     token = os.environ.get("GITHUB_TOKEN")
     if not token or "api.github.com" not in command:
         return command
@@ -18,14 +30,25 @@ def add_github_auth_if_needed(command: str) -> str:
     if "Authorization:" in command:
         return command
 
-    if "curl " in command or "curl" == command[:4]:
-        header = ' -H "Authorization: Bearer $GITHUB_TOKEN"'
-        if "-H " in command:
-            command = command.replace("curl ", f"curl{header} ", 1)
-        else:
-            command = command.replace("curl", f"curl{header}", 1)
+    try:
+        parts = command.split("|", 1)
+        main_cmd = parts[0].strip()
+        pipe_cmd = parts[1].strip() if len(parts) > 1 else None
 
-    return command
+        tokens = shlex.split(main_cmd)
+        if not tokens or tokens[0] != "curl":
+            return command
+
+        auth_header = ["-H", f"Authorization: Bearer {token}"]
+        new_tokens = [tokens[0]] + auth_header + tokens[1:]
+
+        new_main_cmd = subprocess.list2cmdline(new_tokens)
+        result = new_main_cmd
+        if pipe_cmd:
+            result = f"{new_main_cmd} | {pipe_cmd}"
+        return result
+    except (ValueError, IndexError):
+        return command
 
 
 def extract_version_number(version_str: str) -> str:

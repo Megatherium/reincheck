@@ -49,6 +49,114 @@ def _load_json_file(path: Path) -> dict:
         raise ConfigError(f"Failed to load data file {path}: {e}") from e
 
 
+def _require_str_field(data: dict, field: str, entity_name: str) -> None:
+    """Validate required string field.
+
+    Args:
+        data: Raw dict
+        field: Field name to validate
+        entity_name: Entity name for error messages
+
+    Raises:
+        ConfigError: If field missing, not str, or empty
+    """
+    if field not in data:
+        raise ConfigError(f"{entity_name} missing required field: {field}")
+    if not isinstance(data[field], str) or not data[field].strip():
+        raise ConfigError(f"{entity_name} field '{field}' must be a non-empty string")
+
+
+def _optional_field(data: dict, field: str, entity_name: str, field_type: type) -> None:
+    """Validate optional field with type check.
+
+    Args:
+        data: Raw dict
+        field: Field name to validate
+        entity_name: Entity name for error messages
+        field_type: Expected type (str, int, etc.)
+
+    Raises:
+        ConfigError: If field present, not None, and wrong type
+    """
+    if field in data and data[field] is not None:
+        if not isinstance(data[field], field_type):
+            type_name = field_type.__name__
+            raise ConfigError(f"{entity_name} field '{field}' must be a {type_name} or null")
+
+
+def _require_dict_field(data: dict, field: str, entity_name: str) -> None:
+    """Validate required dict field.
+
+    Args:
+        data: Raw dict
+        field: Field name to validate
+        entity_name: Entity name for error messages
+
+    Raises:
+        ConfigError: If field missing or not a dict
+    """
+    if field not in data:
+        raise ConfigError(f"{entity_name} missing required field: {field}")
+    if not isinstance(data[field], dict):
+        raise ConfigError(f"{entity_name} field '{field}' must be an object")
+
+
+def _require_list_field(data: dict, field: str, entity_name: str) -> None:
+    """Validate required list field.
+
+    Args:
+        data: Raw dict
+        field: Field name to validate
+        entity_name: Entity name for error messages
+
+    Raises:
+        ConfigError: If field missing or not a list
+    """
+    if field not in data:
+        raise ConfigError(f"{entity_name} missing required field: {field}")
+    if not isinstance(data[field], list):
+        raise ConfigError(f"{entity_name} field '{field}' must be an array")
+
+
+def _require_enum_field(data: dict, field: str, entity_name: str, allowed_values: set[str]) -> None:
+    """Validate field against allowed enum values.
+
+    Args:
+        data: Raw dict
+        field: Field name to validate
+        entity_name: Entity name for error messages
+        allowed_values: Set of allowed values
+
+    Raises:
+        ConfigError: If field value not in allowed values
+    """
+    if data[field].lower() not in allowed_values:
+        sorted_allowed = ', '.join(sorted(allowed_values))
+        raise ConfigError(
+            f"{entity_name} has invalid {field}: {data[field]}. "
+            f"Must be one of: {sorted_allowed}"
+        )
+
+
+def _validate_string_list(data: dict, field: str, entity_name: str) -> None:
+    """Validate list contains only non-empty strings.
+
+    Args:
+        data: Raw dict
+        field: Field name to validate
+        entity_name: Entity name for error messages
+
+    Raises:
+        ConfigError: If field not a list or contains invalid strings
+    """
+    if field in data:
+        if not isinstance(data[field], list):
+            raise ConfigError(f"{entity_name} field '{field}' must be an array")
+        for i, item in enumerate(data[field]):
+            if not isinstance(item, str) or not item.strip():
+                raise ConfigError(f"{entity_name} {field}[{i}] must be a non-empty string")
+
+
 def _validate_harness_data(data: dict, harness_name: str) -> None:
     """Validate harness data before creating Harness instance.
 
@@ -60,24 +168,12 @@ def _validate_harness_data(data: dict, harness_name: str) -> None:
         ConfigError: If validation fails
     """
     required_fields = ["name", "display_name", "description"]
-
     for field in required_fields:
-        if field not in data:
-            raise ConfigError(
-                f"Harness '{harness_name}' missing required field: {field}"
-            )
-        if not isinstance(data[field], str) or not data[field].strip():
-            raise ConfigError(
-                f"Harness '{harness_name}' field '{field}' must be a non-empty string"
-            )
+        _require_str_field(data, field, f"Harness '{harness_name}'")
 
-    # Optional fields should be strings if present
-    for field in ["github_repo", "release_notes_url", "binary"]:
-        if field in data and data[field] is not None:
-            if not isinstance(data[field], str):
-                raise ConfigError(
-                    f"Harness '{harness_name}' field '{field}' must be a string or null"
-                )
+    optional_fields = ["github_repo", "release_notes_url", "binary"]
+    for field in optional_fields:
+        _optional_field(data, field, f"Harness '{harness_name}'", str)
 
 
 def _validate_dependency_data(data: dict, dep_name: str) -> None:
@@ -91,25 +187,12 @@ def _validate_dependency_data(data: dict, dep_name: str) -> None:
         ConfigError: If validation fails
     """
     required_fields = ["name", "check_command", "install_hint"]
-
     for field in required_fields:
-        if field not in data:
-            raise ConfigError(
-                f"Dependency '{dep_name}' missing required field: {field}"
-            )
-        if not isinstance(data[field], str) or not data[field].strip():
-            raise ConfigError(
-                f"Dependency '{dep_name}' field '{field}' must be a non-empty string"
-            )
+        _require_str_field(data, field, f"Dependency '{dep_name}'")
 
-    # Optional fields
     optional_fields = ["version_command", "min_version", "max_version"]
     for field in optional_fields:
-        if field in data and data[field] is not None:
-            if not isinstance(data[field], str):
-                raise ConfigError(
-                    f"Dependency '{dep_name}' field '{field}' must be a string or null"
-                )
+        _optional_field(data, field, f"Dependency '{dep_name}'", str)
 
 
 def _validate_preset_data(data: dict, preset_name: str) -> None:
@@ -122,58 +205,11 @@ def _validate_preset_data(data: dict, preset_name: str) -> None:
     Raises:
         ConfigError: If validation fails
     """
-    # Note: 'name' is derived from the dict key, not a field in the data
-    required_fields = ["strategy", "description", "methods"]
-
-    for field in required_fields:
-        if field not in data:
-            raise ConfigError(f"Preset '{preset_name}' missing required field: {field}")
-
-    if not isinstance(data["strategy"], str) or not data["strategy"].strip():
-        raise ConfigError(
-            f"Preset '{preset_name}' field 'strategy' must be a non-empty string"
-        )
-
-    if not isinstance(data["description"], str) or not data["description"].strip():
-        raise ConfigError(
-            f"Preset '{preset_name}' field 'description' must be a non-empty string"
-        )
-
-    if not isinstance(data["methods"], dict):
-        raise ConfigError(f"Preset '{preset_name}' field 'methods' must be an object")
-
-    if "priority" in data and data["priority"] is not None:
-        if not isinstance(data["priority"], int):
-            raise ConfigError(
-                f"Preset '{preset_name}' field 'priority' must be an integer or null"
-            )
-
-    # Validate fallback_strategy if present
-    if "fallback_strategy" in data and data["fallback_strategy"] is not None:
-        if not isinstance(data["fallback_strategy"], str):
-            raise ConfigError(
-                f"Preset '{preset_name}' field 'fallback_strategy' must be a string or null"
-            )
-
-    if not isinstance(data["strategy"], str) or not data["strategy"].strip():
-        raise ConfigError(
-            f"Preset '{preset_name}' field 'strategy' must be a non-empty string"
-        )
-
-    if not isinstance(data["description"], str) or not data["description"].strip():
-        raise ConfigError(
-            f"Preset '{preset_name}' field 'description' must be a non-empty string"
-        )
-
-    if not isinstance(data["methods"], dict):
-        raise ConfigError(f"Preset '{preset_name}' field 'methods' must be an object")
-
-    # Validate fallback_strategy if present
-    if "fallback_strategy" in data and data["fallback_strategy"] is not None:
-        if not isinstance(data["fallback_strategy"], str):
-            raise ConfigError(
-                f"Preset '{preset_name}' field 'fallback_strategy' must be a string or null"
-            )
+    _require_str_field(data, "strategy", f"Preset '{preset_name}'")
+    _require_str_field(data, "description", f"Preset '{preset_name}'")
+    _require_dict_field(data, "methods", f"Preset '{preset_name}'")
+    _optional_field(data, "priority", f"Preset '{preset_name}'", int)
+    _optional_field(data, "fallback_strategy", f"Preset '{preset_name}'", str)
 
 
 def _validate_method_data(data: dict, method_key: str) -> None:
@@ -187,34 +223,13 @@ def _validate_method_data(data: dict, method_key: str) -> None:
         ConfigError: If validation fails
     """
     required_fields = ["install", "upgrade", "version", "check_latest", "risk_level"]
-
     for field in required_fields:
-        if field not in data:
-            raise ConfigError(f"Method '{method_key}' missing required field: {field}")
-        if not isinstance(data[field], str) or not data[field].strip():
-            raise ConfigError(
-                f"Method '{method_key}' field '{field}' must be a non-empty string"
-            )
+        _require_str_field(data, field, f"Method '{method_key}'")
 
-    # Validate risk_level is valid enum value
     valid_risk_levels = {"safe", "interactive", "dangerous"}
-    if data["risk_level"].lower() not in valid_risk_levels:
-        raise ConfigError(
-            f"Method '{method_key}' has invalid risk_level: {data['risk_level']}. "
-            f"Must be one of: {', '.join(sorted(valid_risk_levels))}"
-        )
+    _require_enum_field(data, "risk_level", f"Method '{method_key}'", valid_risk_levels)
 
-    # Validate dependencies if present
-    if "dependencies" in data:
-        if not isinstance(data["dependencies"], list):
-            raise ConfigError(
-                f"Method '{method_key}' field 'dependencies' must be an array"
-            )
-        for i, dep in enumerate(data["dependencies"]):
-            if not isinstance(dep, str) or not dep.strip():
-                raise ConfigError(
-                    f"Method '{method_key}' dependencies[{i}] must be a non-empty string"
-                )
+    _validate_string_list(data, "dependencies", f"Method '{method_key}'")
 
 
 def _parse_risk_level(value: str) -> RiskLevel:

@@ -53,7 +53,7 @@
 ## 🕵️ CODE REVIEW & REFINEMENT PROTOCOL
 
 **1. Initiating Review**
-If the task was just housekeeping, documentation, things without direct influence on the functionality of the code: skip this protocol, you can go ahead and continue landing the plane.
+If the task was just housekeeping, documentation or small refactors that are ver unlikely to have messed with the functionality: skip this protocol, you can go ahead and continue landing the plane.
 When a task is functionally complete:
 - Do NOT close the task yet.
 - Create a review ticket: `bd create --title="Review: <Task Name>" --type=task`

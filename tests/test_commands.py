@@ -123,10 +123,12 @@ class TestConfigFmt:
         """Test error handling when file doesn't exist."""
         runner = CliRunner()
 
-        result = runner.invoke(cli, ["config", "fmt", "/nonexistent/path/config.json"])
+        result = runner.invoke(
+            cli, ["config", "fmt", "/nonexistent/path/config.json"]
+        )
 
         assert result.exit_code == 1
-        assert "Error: file not found" in result.output
+        assert "Error: File not found:" in result.output
 
     def test_fmt_invalid_json(self):
         """Test error handling for invalid JSON."""
@@ -932,7 +934,10 @@ class TestUpgradeCommand:
             result = runner.invoke(cli, ["upgrade", "--agent", "nonexistent"])
 
             assert result.exit_code == 1
-            assert "Error: agent 'nonexistent' not found" in result.output
+            assert (
+                "Error: Agent 'nonexistent' not found in configuration"
+                in result.output
+            )
 
 
 class TestUpdateCommand:
@@ -1215,7 +1220,7 @@ class TestUpdateCommand:
             result = runner.invoke(cli, ["update", "--agent", "nonexistent"])
 
             assert result.exit_code == 2
-            assert "Error: agent 'nonexistent' not found" in result.output
+            assert "Error: Agent 'nonexistent' not found in configuration" in result.output
 
 
 class TestListCommand:
@@ -2035,4 +2040,4 @@ class TestInstallCommand:
             result = runner.invoke(cli, ["install", "nonexistent"])
 
             assert result.exit_code == 1
-            assert "Error: agent 'nonexistent' not found" in result.output
+            assert "Error: Agent 'nonexistent' not found in configuration" in result.output

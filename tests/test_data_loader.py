@@ -1,7 +1,5 @@
 """Tests for data_loader module."""
 
-import json
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -324,7 +322,7 @@ class TestClearCache:
         presets1 = get_presets()
         methods1 = get_all_methods()
 
-        clear_cache('harnesses')
+        clear_cache("harnesses")
 
         harnesses2 = get_harnesses()
         deps2 = get_dependencies()
@@ -350,7 +348,7 @@ class TestClearCache:
         presets1 = get_presets()
         methods1 = get_all_methods()
 
-        clear_cache('dependencies')
+        clear_cache("dependencies")
 
         harnesses2 = get_harnesses()
         deps2 = get_dependencies()
@@ -374,7 +372,7 @@ class TestClearCache:
         presets1 = get_presets()
         methods1 = get_all_methods()
 
-        clear_cache('presets')
+        clear_cache("presets")
 
         harnesses2 = get_harnesses()
         deps2 = get_dependencies()
@@ -398,7 +396,7 @@ class TestClearCache:
         presets1 = get_presets()
         methods1 = get_all_methods()
 
-        clear_cache('methods')
+        clear_cache("methods")
 
         harnesses2 = get_harnesses()
         deps2 = get_dependencies()
@@ -413,7 +411,7 @@ class TestClearCache:
     def test_clear_cache_invalid_type(self):
         """Raises ValueError for invalid cache type."""
         with pytest.raises(ValueError, match="Invalid cache_type 'invalid'"):
-            clear_cache('invalid')
+            clear_cache("invalid")
 
 
 class TestErrorHandling:

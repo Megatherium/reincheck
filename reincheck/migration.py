@@ -25,8 +25,8 @@ def migrate_yaml_to_json(yaml_path, json_path) -> None:
     except ImportError:
         _logging.warning("pyyaml not installed. Install with: pip install pyyaml")
         raise ConfigError(
-            f"Cannot migrate YAML config: pyyaml not installed.\n"
-            f"Install with: pip install pyyaml"
+            "Cannot migrate YAML config: pyyaml not installed.\n"
+            "Install with: pip install pyyaml"
         )
 
     try:
@@ -44,9 +44,9 @@ def migrate_yaml_to_json(yaml_path, json_path) -> None:
         yaml_backup = yaml_path.with_suffix(".yaml.bak")
         yaml_path.rename(yaml_backup)
 
-        click.echo(f"✅ Migrated config from {yaml_path} to {json_path}")
-        click.echo(f"   Old YAML backed up to {yaml_backup}")
-        click.echo(f"   You can manually remove the backup when you're ready.")
+        click.echo("✅ Migrated config from {yaml_path} to {json_path}")
+        click.echo("   Old YAML backed up to {yaml_backup}")
+        click.echo("   You can manually remove the backup when you're ready.")
 
     except Exception as e:
         _logging.error(f"Migration failed: {e}")
@@ -68,7 +68,7 @@ def ensure_user_config(user_config_path) -> None:
     if user_config_path.exists():
         return
 
-    _logging.debug(f"User config not found, checking migration sources...")
+    _logging.debug("User config not found, checking migration sources...")
 
     yaml_sources = [
         get_config_dir() / "agents.yaml",
@@ -90,7 +90,7 @@ def ensure_user_config(user_config_path) -> None:
 
     packaged_default = get_packaged_config_path()
     if packaged_default.exists():
-        click.echo(f"📋 Creating user config from packaged defaults...")
+        click.echo("📋 Creating user config from packaged defaults...")
         user_config_path.parent.mkdir(parents=True, exist_ok=True)
         user_config_path.write_text(packaged_default.read_text())
         _logging.debug(f"Seeded config from {packaged_default}")

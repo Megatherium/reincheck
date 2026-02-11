@@ -1,10 +1,8 @@
 """Pytest fixtures and utilities for reincheck tests."""
 
-import os
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-from dataclasses import dataclass
 from typing import Generator
 
 import pytest

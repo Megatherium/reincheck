@@ -162,7 +162,7 @@ def save_config(config: Config, config_path: Path | None = None) -> None:
                 agent_dict["release_notes_url"] = agent.release_notes_url
             agents_data.append(agent_dict)
 
-        data = {"agents": agents_data}
+        data: dict[str, object] = {"agents": agents_data}
 
         # Include preset if set
         if config.preset is not None:

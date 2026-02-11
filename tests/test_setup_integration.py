@@ -1,26 +1,34 @@
 """Integration tests for TUI wizard flow and setup command."""
 
-import sys
-import asyncio
-import json
-from pathlib import Path
-from unittest.mock import patch, MagicMock, AsyncMock
-import pytest
+import io
+from contextlib import redirect_stdout
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+from click.testing import CliRunner
+
+from reincheck.commands import setup
+from reincheck.commands.setup import (
+    _list_presets_with_status,
+    _select_harnesses_interactive_with_fallback,
+    _select_preset_interactive_with_fallback,
+)
 from reincheck.installer import (
-    Preset,
-    DependencyStatus,
     DependencyReport,
+    DependencyStatus,
+    Harness,
+    Plan,
+    PlanStep,
+    Preset,
     PresetStatus,
-    InstallMethod,
     RiskLevel,
 )
+from reincheck.tui import select_harnesses_interactive, select_preset_interactive
 
 
 @pytest.fixture
 def mock_harnesses_dict():
     """Mock harness data as dict."""
-    from reincheck.installer import Harness
 
     return {
         "claude": Harness(
@@ -44,8 +52,6 @@ class TestTUIIntegrationFlow:
         temp_dir,
     ):
         """Test complete setup flow with preset flag (no interactive selection)."""
-        from reincheck.commands import setup
-        from click.testing import CliRunner
 
         runner = CliRunner()
 
@@ -89,8 +95,6 @@ class TestTUIIntegrationFlow:
         temp_dir,
     ):
         """Test that setup falls back to error when no TTY and no preset specified."""
-        from reincheck.commands import setup
-        from click.testing import CliRunner
 
         runner = CliRunner()
 
@@ -127,7 +131,6 @@ class TestTUIIntegrationFlow:
         mock_dependency_report,
     ):
         """Test handling of KeyboardInterrupt during preset selection."""
-        from reincheck.commands.setup import _select_preset_interactive_with_fallback
 
         with (
             patch(
@@ -150,7 +153,6 @@ class TestTUIIntegrationFlow:
         mock_methods,
     ):
         """Test handling of KeyboardInterrupt during harness selection."""
-        from reincheck.commands.setup import _select_harnesses_interactive_with_fallback
 
         preset = mock_presets["mise_binary"]
 
@@ -175,7 +177,6 @@ class TestTUIIntegrationFlow:
         mock_dependency_report,
     ):
         """Test fallback to None when TTY unavailable during preset selection."""
-        from reincheck.commands.setup import _select_preset_interactive_with_fallback
 
         with patch("reincheck.commands.setup.sys.stdin.isatty", return_value=False):
             result = _select_preset_interactive_with_fallback(
@@ -190,7 +191,6 @@ class TestTUIIntegrationFlow:
         mock_methods,
     ):
         """Test fallback to None when TTY unavailable during harness selection."""
-        from reincheck.commands.setup import _select_harnesses_interactive_with_fallback
 
         preset = mock_presets["mise_binary"]
 
@@ -209,8 +209,6 @@ class TestSetupCommandIntegration:
         self, mock_presets, mock_methods, mock_dependency_report
     ):
         """Test listing presets with dependency status."""
-        from reincheck.commands.setup import _list_presets_with_status
-        from click.testing import CliRunner
 
         with (
             patch("reincheck.data_loader.get_presets", return_value=mock_presets),
@@ -224,8 +222,6 @@ class TestSetupCommandIntegration:
             ),
         ):
             # Call the function directly and capture output
-            import io
-            from contextlib import redirect_stdout
 
             f = io.StringIO()
             with redirect_stdout(f):
@@ -246,8 +242,6 @@ class TestSetupCommandIntegration:
         mock_dependency_report,
     ):
         """Test setup with custom preset using --override."""
-        from reincheck.commands import setup
-        from click.testing import CliRunner
 
         runner = CliRunner()
 
@@ -285,8 +279,6 @@ class TestSetupCommandIntegration:
         mock_dependency_report,
     ):
         """Test setup with --harness ALL."""
-        from reincheck.commands import setup
-        from click.testing import CliRunner
 
         runner = CliRunner()
 
@@ -324,8 +316,6 @@ class TestSetupCommandIntegration:
         mock_dependency_report,
     ):
         """Test that setup writes config file correctly."""
-        from reincheck.commands import setup
-        from click.testing import CliRunner
 
         config_path = temp_dir / "agents.json"
 
@@ -369,12 +359,8 @@ class TestSetupApplyFlow:
         mock_dependency_report,
     ):
         """Test that setup --apply executes installation."""
-        from reincheck.commands import setup
-        from reincheck.installer import Plan, PlanStep, RiskLevel
-        from click.testing import CliRunner
 
         runner = CliRunner()
-        config_path = temp_dir / "agents.json"
 
         # Mock installation plan
         plan = Plan(
@@ -431,9 +417,6 @@ class TestSetupApplyFlow:
         mock_dependency_report,
     ):
         """Test that dangerous commands require confirmation even with --yes."""
-        from reincheck.commands import setup
-        from reincheck.installer import Plan, PlanStep, RiskLevel
-        from click.testing import CliRunner
 
         runner = CliRunner()
         config_path = temp_dir / "agents.json"
@@ -494,7 +477,6 @@ class TestTTYFallbackBehavior:
         mock_dependency_report,
     ):
         """Test that preset selector returns None on OSError (terminal errors)."""
-        from reincheck.commands.setup import _select_preset_interactive_with_fallback
 
         with (
             patch(
@@ -515,7 +497,6 @@ class TestTTYFallbackBehavior:
         mock_methods,
     ):
         """Test that harness selector returns None on OSError (terminal errors)."""
-        from reincheck.commands.setup import _select_harnesses_interactive_with_fallback
 
         preset = mock_presets["mise_binary"]
 
@@ -541,7 +522,6 @@ class TestTTYFallbackBehavior:
         mock_dependency_report,
     ):
         """Test that import errors in questionary are handled gracefully."""
-        from reincheck.commands.setup import _select_preset_interactive_with_fallback
 
         with (
             patch("reincheck.data_loader.get_presets", return_value=mock_presets),
@@ -571,8 +551,6 @@ class TestInteractivePromptMocking:
 
     def test_mock_questionary_select(self, mock_tty):
         """Test mocking prompt_toolkit Application for preset selection."""
-        from reincheck.tui import select_preset_interactive
-        from reincheck.installer import Preset, PresetStatus, DependencyReport
 
         presets = {
             "mise_binary": Preset(
@@ -596,8 +574,6 @@ class TestInteractivePromptMocking:
 
     def test_mock_questionary_checkbox(self, mock_tty):
         """Test mocking questionary.checkbox for harness selection."""
-        from reincheck.tui import select_harnesses_interactive
-        from reincheck.installer import Preset
 
         preset = Preset(
             name="test",
@@ -628,8 +604,6 @@ class TestInteractivePromptMocking:
         temp_dir,
     ):
         """Test mocking a sequence of prompts for full wizard flow."""
-        from reincheck.commands import setup
-        from click.testing import CliRunner
 
         runner = CliRunner()
 
@@ -666,11 +640,6 @@ class TestInteractivePromptMocking:
 # Helper fixtures
 @pytest.fixture
 def mock_dependency_report():
-    from reincheck.installer import (
-        DependencyStatus,
-        DependencyReport,
-        PresetStatus,
-    )
 
     return DependencyReport(
         all_deps={

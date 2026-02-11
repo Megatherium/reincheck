@@ -9,7 +9,6 @@ from reincheck import (
     ConfigError,
     format_error,
     ensure_user_config,
-    format_error,
     get_config_dir,
     get_packaged_config_path,
     migrate_yaml_to_json,

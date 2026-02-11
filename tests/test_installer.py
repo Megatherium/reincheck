@@ -944,7 +944,7 @@ def test_render_plan_no_extra_whitespace(mocker):
 
     # Check for no excessive blank lines
     lines = output.split("\n")
-    blank_line_count = sum(1 for line in lines if line.strip() == "")
+    sum(1 for line in lines if line.strip() == "")
 
     # Should not have consecutive blank lines
     consecutive_blanks = 0
@@ -1126,7 +1126,6 @@ class TestConfirmInstallation:
 
 def test_complex_which_command_detection(mocker):
     """Test detection with complex which commands using shell operators."""
-    from reincheck.installer import get_all_dependencies
 
     def mock_which(cmd):
         # Only python3 is in PATH (simulating mise scenario where python3 is available)
@@ -1159,7 +1158,6 @@ def test_complex_which_command_detection(mocker):
 
 def test_simple_vs_complex_which_commands(mocker):
     """Test that simple and complex which commands are handled correctly."""
-    from reincheck.installer import get_all_dependencies
 
     def mock_which(cmd):
         if cmd == "npm":
@@ -1198,7 +1196,6 @@ def test_simple_vs_complex_which_commands(mocker):
 
 def test_path_validation_with_multiline_output(mocker):
     """Test that path extraction handles multi-line output correctly."""
-    from reincheck.installer import get_all_dependencies
 
     def mock_run(cmd, **kwargs):
         result = mocker.Mock(returncode=0, stdout="", stderr="")

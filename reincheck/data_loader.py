@@ -99,7 +99,9 @@ def _optional_field(data: dict, field: str, entity_name: str, field_type: type) 
     if field in data and data[field] is not None:
         if not isinstance(data[field], field_type):
             type_name = field_type.__name__
-            raise ConfigError(f"{entity_name} field '{field}' must be a {type_name} or null")
+            raise ConfigError(
+                f"{entity_name} field '{field}' must be a {type_name} or null"
+            )
 
 
 def _require_dict_field(data: dict, field: str, entity_name: str) -> None:
@@ -136,7 +138,9 @@ def _require_list_field(data: dict, field: str, entity_name: str) -> None:
         raise ConfigError(f"{entity_name} field '{field}' must be an array")
 
 
-def _require_enum_field(data: dict, field: str, entity_name: str, allowed_values: set[str]) -> None:
+def _require_enum_field(
+    data: dict, field: str, entity_name: str, allowed_values: set[str]
+) -> None:
     """Validate field against allowed enum values.
 
     Args:
@@ -149,7 +153,7 @@ def _require_enum_field(data: dict, field: str, entity_name: str, allowed_values
         ConfigError: If field value not in allowed values
     """
     if data[field].lower() not in allowed_values:
-        sorted_allowed = ', '.join(sorted(allowed_values))
+        sorted_allowed = ", ".join(sorted(allowed_values))
         raise ConfigError(
             f"{entity_name} has invalid {field}: {data[field]}. "
             f"Must be one of: {sorted_allowed}"
@@ -172,7 +176,9 @@ def _validate_string_list(data: dict, field: str, entity_name: str) -> None:
             raise ConfigError(f"{entity_name} field '{field}' must be an array")
         for i, item in enumerate(data[field]):
             if not isinstance(item, str) or not item.strip():
-                raise ConfigError(f"{entity_name} {field}[{i}] must be a non-empty string")
+                raise ConfigError(
+                    f"{entity_name} {field}[{i}] must be a non-empty string"
+                )
 
 
 def _validate_harness_data(data: dict, harness_name: str) -> None:
@@ -291,11 +297,11 @@ def get_harnesses() -> dict[str, Harness]:
 
     if "harnesses" not in raw_data:
         raise ConfigError(
-            f"Invalid harnesses data file: missing top-level 'harnesses' key"
+            "Invalid harnesses data file: missing top-level 'harnesses' key"
         )
 
     if not isinstance(raw_data["harnesses"], dict):
-        raise ConfigError(f"Invalid harnesses data file: 'harnesses' must be an object")
+        raise ConfigError("Invalid harnesses data file: 'harnesses' must be an object")
 
     harnesses = {}
     for harness_name, harness_data in raw_data["harnesses"].items():
@@ -338,12 +344,12 @@ def get_dependencies() -> dict[str, Dependency]:
 
     if "dependencies" not in raw_data:
         raise ConfigError(
-            f"Invalid dependencies data file: missing top-level 'dependencies' key"
+            "Invalid dependencies data file: missing top-level 'dependencies' key"
         )
 
     if not isinstance(raw_data["dependencies"], dict):
         raise ConfigError(
-            f"Invalid dependencies data file: 'dependencies' must be an object"
+            "Invalid dependencies data file: 'dependencies' must be an object"
         )
 
     dependencies = {}
@@ -387,10 +393,10 @@ def get_presets() -> dict[str, Preset]:
     raw_data = _load_json_file(file_path)
 
     if "presets" not in raw_data:
-        raise ConfigError(f"Invalid presets data file: missing top-level 'presets' key")
+        raise ConfigError("Invalid presets data file: missing top-level 'presets' key")
 
     if not isinstance(raw_data["presets"], dict):
-        raise ConfigError(f"Invalid presets data file: 'presets' must be an object")
+        raise ConfigError("Invalid presets data file: 'presets' must be an object")
 
     presets = {}
     for preset_name, preset_data in raw_data["presets"].items():
@@ -433,10 +439,10 @@ def get_all_methods() -> dict[str, InstallMethod]:
     raw_data = _load_json_file(file_path)
 
     if "methods" not in raw_data:
-        raise ConfigError(f"Invalid methods data file: missing top-level 'methods' key")
+        raise ConfigError("Invalid methods data file: missing top-level 'methods' key")
 
     if not isinstance(raw_data["methods"], dict):
-        raise ConfigError(f"Invalid methods data file: 'methods' must be an object")
+        raise ConfigError("Invalid methods data file: 'methods' must be an object")
 
     methods = {}
     for method_key, method_data in raw_data["methods"].items():
@@ -498,7 +504,7 @@ def clear_cache(cache_type: str | None = None) -> None:
     """
     global _harnesses_cache, _dependencies_cache, _presets_cache, _methods_cache
 
-    valid_cache_types = {'harnesses', 'dependencies', 'presets', 'methods'}
+    valid_cache_types = {"harnesses", "dependencies", "presets", "methods"}
 
     if cache_type is None:
         _harnesses_cache = None
@@ -511,13 +517,13 @@ def clear_cache(cache_type: str | None = None) -> None:
                 f"Invalid cache_type '{cache_type}'. "
                 f"Must be one of: {', '.join(sorted(valid_cache_types))}"
             )
-        if cache_type == 'harnesses':
+        if cache_type == "harnesses":
             _harnesses_cache = None
-        elif cache_type == 'dependencies':
+        elif cache_type == "dependencies":
             _dependencies_cache = None
-        elif cache_type == 'presets':
+        elif cache_type == "presets":
             _presets_cache = None
-        elif cache_type == 'methods':
+        elif cache_type == "methods":
             _methods_cache = None
 
 

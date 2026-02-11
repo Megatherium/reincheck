@@ -1,9 +1,5 @@
 """Tests for version utilities."""
 
-import os
-
-import pytest
-
 
 class TestAddGithubAuthIfNeeded:
     """Tests for add_github_auth_if_needed function."""

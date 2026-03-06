@@ -18,6 +18,7 @@ For non-destructive exploration: you have podman rights. So `podman run docker.i
 ### Git Workflow & Commit Messages
 
 - **Conventional Commits**: All commit messages **must** adhere to the Conventional Commits specification. This is enforced by a `commit-msg` git hook.
+  - **Secrets**: NEVER commit any secrets unless it's an obivious placeholder (gho_xxxyyzzz123456) or you have been explicitly instructed by the user
   - **Format**: `<type>[optional scope]: <description>`
   - **Example**: `feat(converter): add vulkan backend support`
   - **Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`
@@ -34,6 +35,7 @@ For non-destructive exploration: you have podman rights. So `podman run docker.i
 **IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
 
 If you are not aware of the 'SESSION CLOSE PROTOCOL' at this point run `bd prime` to get the full beads instructions
+`PRIME.md` is the canonical checked-in snapshot of that protocol.
 
 ### Why bd?
 
@@ -143,5 +145,3 @@ For more details, see README.md and docs/QUICKSTART.md.
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
-
-

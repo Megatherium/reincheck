@@ -7,3 +7,6 @@ __pycache__
 .sidecar
 # bd worktree
 imp_2/
+
+# bv (beads viewer) local config and caches
+.bv/

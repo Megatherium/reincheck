@@ -2,6 +2,7 @@
 
 import io
 from contextlib import redirect_stdout
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -256,7 +257,7 @@ class TestSetupCommandIntegration:
                 return_value=mock_dependency_report,
             ),
             patch(
-                "reincheck.paths.get_config_path", return_value=temp_dir / "config.json"
+                "reincheck.commands.setup.get_config_path", return_value=temp_dir / "config.json"
             ),
         ):
             result = runner.invoke(
@@ -293,7 +294,7 @@ class TestSetupCommandIntegration:
                 return_value=mock_dependency_report,
             ),
             patch(
-                "reincheck.paths.get_config_path", return_value=temp_dir / "config.json"
+                "reincheck.commands.setup.get_config_path", return_value=temp_dir / "config.json"
             ),
         ):
             result = runner.invoke(
@@ -315,9 +316,16 @@ class TestSetupCommandIntegration:
         temp_dir,
         mock_dependency_report,
     ):
-        """Test that setup writes config file correctly."""
+        """Test that setup writes config file to temp dir, never real user config."""
+
+        import os
 
         config_path = temp_dir / "agents.json"
+        real_config_path = Path(os.path.expanduser("~/.config/reincheck/agents.json"))
+        real_config_existed_before = real_config_path.exists()
+        real_config_content_before = (
+            real_config_path.read_text() if real_config_existed_before else None
+        )
 
         runner = CliRunner()
 
@@ -332,6 +340,9 @@ class TestSetupCommandIntegration:
                 return_value=mock_dependency_report,
             ),
             patch("reincheck.paths.get_config_dir", return_value=temp_dir),
+            patch(
+                "reincheck.commands.setup.get_config_path", return_value=config_path
+            ),
             patch("reincheck.paths.get_packaged_config_path", return_value=None),
             patch("reincheck.ensure_user_config"),
         ):
@@ -344,6 +355,10 @@ class TestSetupCommandIntegration:
 
         assert result.exit_code == 0
         assert config_path.exists()
+
+        assert not real_config_existed_before or real_config_path.read_text() == real_config_content_before, (
+            "Test leaked writes to real user config!"
+        )
 
 
 class TestSetupApplyFlow:
@@ -395,6 +410,10 @@ class TestSetupApplyFlow:
                 return_value=("installed", 0),
             ),
             patch("reincheck.paths.get_config_dir", return_value=temp_dir),
+            patch(
+                "reincheck.commands.setup.get_config_path",
+                return_value=temp_dir / "agents.json",
+            ),
             patch("reincheck.paths.get_packaged_config_path", return_value=None),
             patch("reincheck.ensure_user_config"),
         ):
@@ -453,7 +472,7 @@ class TestSetupApplyFlow:
                 new_callable=AsyncMock,
                 return_value=("installed", 0),
             ),
-            patch("reincheck.paths.get_config_path", return_value=config_path),
+            patch("reincheck.commands.setup.get_config_path", return_value=config_path),
         ):
             # Without --yes, should prompt for dangerous command
             result = runner.invoke(
@@ -623,7 +642,7 @@ class TestInteractivePromptMocking:
                 return_value=(mock_presets["mise_binary"], {}),
             ),
             patch(
-                "reincheck.paths.get_config_path", return_value=temp_dir / "config.json"
+                "reincheck.commands.setup.get_config_path", return_value=temp_dir / "config.json"
             ),
             patch("click.confirm", return_value=True),
             patch("reincheck.ensure_user_config"),

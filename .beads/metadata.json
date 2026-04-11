@@ -1,8 +1,7 @@
 {
   "database": "dolt",
   "backend": "dolt",
-  "dolt_mode": "embedded",
-  "dolt_server_port": 3307,
+  "dolt_mode": "server",
   "dolt_database": "beads_reincheck",
   "project_id": "9a95dbd6-b755-485d-ae73-b74666a7535c"
 }

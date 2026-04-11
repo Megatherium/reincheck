@@ -1,11 +1,25 @@
 """Pytest fixtures and utilities for reincheck tests."""
 
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from typing import Generator
 
 import pytest
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _safe_home(tmp_path_factory: pytest.TempPathFactory) -> Generator[None, None, None]:
+    """Prevent tests from writing to the real user config directory.
+
+    Patches Path.home() to return a session-scoped temp directory so that
+    get_config_dir() / get_config_path() never resolve to ~/.config/reincheck.
+    Individual tests can override this via monkeypatch.setattr(Path, "home", ...).
+    """
+    safe_home = tmp_path_factory.mktemp("safe_home")
+    with patch.object(Path, "home", return_value=safe_home):
+        yield
 
 
 @pytest.fixture

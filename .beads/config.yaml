@@ -32,7 +32,6 @@
 # db: ""
 
 # Auto-start daemon if not running (can also use BEADS_AUTO_START_DAEMON)
-auto-start-daemon: false
 
 # Debounce interval for auto-flush (can also use BEADS_FLUSH_DEBOUNCE)
 # flush-debounce: "5s"
@@ -47,7 +46,6 @@ auto-start-daemon: false
 # This setting persists across clones (unlike database config which is gitignored).
 # Can also use BEADS_SYNC_BRANCH env var for local override.
 # If not set, bd sync will require you to run 'bd config set sync.branch <branch>'.
-sync-branch: "beads-sync"
 
 # Multi-repo configuration (experimental - bd-307)
 # Allows hydrating from multiple repositories and routing writes to the correct JSONL
@@ -65,3 +63,9 @@ sync-branch: "beads-sync"
 # - linear.api-key
 # - github.org
 # - github.repo
+no-git-ops: true
+types:
+  custom: "review,refinement"
+backup:
+  git-push: false
+  git-repo: backup

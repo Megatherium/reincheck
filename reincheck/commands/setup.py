@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -369,7 +370,19 @@ def _write_agent_config(
 
     Raises:
         ConfigError: If write fails
+        RuntimeError: If test attempts to write to real user config
     """
+
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        real_config = Path(os.path.expanduser("~/.config/reincheck/agents.json"))
+        try:
+            if config_path.resolve() == real_config.resolve():
+                raise RuntimeError(
+                    f"Safety guard: test attempted to write to real user config at "
+                    f"{config_path}. Patch get_config_path to use a temp directory."
+                )
+        except (OSError, ValueError):
+            pass
 
     try:
         config_path.parent.mkdir(parents=True, exist_ok=True)

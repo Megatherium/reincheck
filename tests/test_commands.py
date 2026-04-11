@@ -192,19 +192,19 @@ class TestConfigFmt:
             assert result.exit_code == 1
             assert ".config/reincheck/agents.json" in result.output
 
-    def test_fmt_default_path_success(self):
+    def test_fmt_default_path_success(self, monkeypatch):
         """Test that default path works when file exists."""
         runner = CliRunner()
 
         with runner.isolated_filesystem() as tmpdir:
-            # Create the default config path
-            config_dir = Path(tmpdir) / ".config" / "reincheck"
+            tmpdir_path = Path(tmpdir)
+            config_dir = tmpdir_path / ".config" / "reincheck"
             config_dir.mkdir(parents=True)
             config_file = config_dir / "agents.json"
             config_file.write_text('{"agents": []}')
 
-            env = {"HOME": str(tmpdir)}
-            result = runner.invoke(cli, ["config", "fmt"], env=env)
+            monkeypatch.setattr(Path, "home", lambda: tmpdir_path)
+            result = runner.invoke(cli, ["config", "fmt"])
 
             assert result.exit_code == 0
             assert '"agents": []' in result.output

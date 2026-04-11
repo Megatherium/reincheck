@@ -150,6 +150,38 @@
       "github_repo": "RooCodeInc/Roo-Code",
       "release_notes_url": null,
       "binary": "roo"
+    },
+    "qwen": {
+      "name": "qwen",
+      "display_name": "Qwen Code",
+      "description": "Alibaba's AI-powered coding assistant",
+      "github_repo": "QwenLM/qwen-code",
+      "release_notes_url": null,
+      "binary": "qwen"
+    },
+    "qodo": {
+      "name": "qodo",
+      "display_name": "Qodo",
+      "description": "Qodo CLI agent tool for coding workflows",
+      "github_repo": "qodo-ai/command",
+      "release_notes_url": null,
+      "binary": "qodo"
+    },
+    "forge": {
+      "name": "forge",
+      "display_name": "Forge",
+      "description": "Terminal-first AI coding agent that works with any IDE",
+      "github_repo": null,
+      "release_notes_url": null,
+      "binary": "forge"
+    },
+    "mastra": {
+      "name": "mastra",
+      "display_name": "Mastra Code",
+      "description": "Terminal-based coding agent TUI built with Mastra",
+      "github_repo": "mastra-ai/mastra",
+      "release_notes_url": null,
+      "binary": "mastracode"
     }
   }
 }

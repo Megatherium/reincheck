@@ -146,6 +146,38 @@
       "dependencies": ["mise", "npm"],
       "risk_level": "safe"
     },
+    "qwen.mise_language": {
+      "install": "mise use -g npm:@qwen-code/qwen-code@latest",
+      "upgrade": "mise use -g npm:@qwen-code/qwen-code@latest",
+      "version": "qwen --version",
+      "check_latest": "npm info @qwen-code/qwen-code version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "qodo.mise_language": {
+      "install": "mise use -g npm:@qodo/command@latest",
+      "upgrade": "mise use -g npm:@qodo/command@latest",
+      "version": "qodo --version",
+      "check_latest": "npm info @qodo/command version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "forge.mise_language": {
+      "install": "mise use -g npm:codeforge-cli@latest",
+      "upgrade": "mise use -g npm:codeforge-cli@latest",
+      "version": "forge --version",
+      "check_latest": "npm info codeforge-cli version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "mastra.mise_language": {
+      "install": "mise use -g npm:mastracode@latest",
+      "upgrade": "mise use -g npm:mastracode@latest",
+      "version": "mastracode --version",
+      "check_latest": "npm info mastracode version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
 
     "opencode.homebrew": {
       "install": "brew install opencode",
@@ -348,6 +380,38 @@
       "dependencies": ["uv"],
       "risk_level": "safe"
     },
+    "qwen.language_native": {
+      "install": "npm install -g @qwen-code/qwen-code@latest",
+      "upgrade": "npm install -g @qwen-code/qwen-code@latest",
+      "version": "qwen --version",
+      "check_latest": "npm info @qwen-code/qwen-code version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "qodo.language_native": {
+      "install": "npm install -g @qodo/command@latest",
+      "upgrade": "npm install -g @qodo/command@latest",
+      "version": "qodo --version",
+      "check_latest": "npm info @qodo/command version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "forge.language_native": {
+      "install": "npm install -g codeforge-cli@latest",
+      "upgrade": "npm install -g codeforge-cli@latest",
+      "version": "forge --version",
+      "check_latest": "npm info codeforge-cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "mastra.language_native": {
+      "install": "npm install -g mastracode@latest",
+      "upgrade": "npm install -g mastracode@latest",
+      "version": "mastracode --version",
+      "check_latest": "npm info mastracode version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
 
 
     "crush.vendor_recommended": {
@@ -493,6 +557,38 @@
       "check_latest": "curl -s https://api.github.com/repos/RooCodeInc/Roo-Code/releases/latest | python3 -c \"import sys,json; print(json.load(sys.stdin)['tag_name'])\"",
       "dependencies": ["curl"],
       "risk_level": "dangerous"
+    },
+    "qwen.vendor_recommended": {
+      "install": "npm install -g @qwen-code/qwen-code@latest",
+      "upgrade": "npm install -g @qwen-code/qwen-code@latest",
+      "version": "qwen --version",
+      "check_latest": "npm info @qwen-code/qwen-code version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "qodo.vendor_recommended": {
+      "install": "npm install -g @qodo/command@latest",
+      "upgrade": "npm install -g @qodo/command@latest",
+      "version": "qodo --version",
+      "check_latest": "npm info @qodo/command version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "forge.vendor_recommended": {
+      "install": "npm install -g codeforge-cli@latest",
+      "upgrade": "npm install -g codeforge-cli@latest",
+      "version": "forge --version",
+      "check_latest": "npm info codeforge-cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "mastra.vendor_recommended": {
+      "install": "npm install -g mastracode@latest",
+      "upgrade": "npm install -g mastracode@latest",
+      "version": "mastracode --version",
+      "check_latest": "npm info mastracode version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
     },
 
     "droid.curl": {

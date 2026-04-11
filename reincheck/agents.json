@@ -173,6 +173,45 @@
       "check_latest_command": "npm info @sourcegraph/amp version",
       "upgrade_command": "mise use --global npm:@sourcegraph/amp@latest",
       "latest_version": "0.0.1770336135-g27c0ec"
+    },
+    {
+      "name": "qwen",
+      "description": "Qwen Code - Alibaba's AI-powered coding assistant",
+      "install_command": "mise use -g npm:@qwen-code/qwen-code@latest",
+      "version_command": "qwen --version",
+      "check_latest_command": "npm info @qwen-code/qwen-code version",
+      "upgrade_command": "mise use -g npm:@qwen-code/qwen-code@latest",
+      "latest_version": "0.14.3",
+      "github_repo": "QwenLM/qwen-code"
+    },
+    {
+      "name": "qodo",
+      "description": "Qodo CLI agent tool for coding workflows",
+      "install_command": "mise use -g npm:@qodo/command@latest",
+      "version_command": "qodo --version",
+      "check_latest_command": "npm info @qodo/command version",
+      "upgrade_command": "mise use -g npm:@qodo/command@latest",
+      "latest_version": "0.36.0",
+      "github_repo": "qodo-ai/command"
+    },
+    {
+      "name": "forge",
+      "description": "Forge CLI - Terminal-first AI coding agent that works with any IDE",
+      "install_command": "mise use -g npm:codeforge-cli@latest",
+      "version_command": "forge --version",
+      "check_latest_command": "npm info codeforge-cli version",
+      "upgrade_command": "mise use -g npm:codeforge-cli@latest",
+      "latest_version": "0.3.11"
+    },
+    {
+      "name": "mastra",
+      "description": "Mastra Code - Terminal-based coding agent TUI built with Mastra",
+      "install_command": "mise use -g npm:mastracode@latest",
+      "version_command": "mastracode --version",
+      "check_latest_command": "npm info mastracode version",
+      "upgrade_command": "mise use -g npm:mastracode@latest",
+      "latest_version": "0.13.0",
+      "github_repo": "mastra-ai/mastra"
     }
   ]
 }

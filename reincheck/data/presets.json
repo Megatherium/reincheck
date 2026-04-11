@@ -23,7 +23,11 @@
         "kimi": "mise_binary",
         "droid": "mise_binary",
         "goose": "mise_binary",
-        "roo": "mise_binary"
+        "roo": "mise_binary",
+        "qwen": "mise_binary",
+        "qodo": "mise_binary",
+        "forge": "mise_binary",
+        "mastra": "mise_binary"
       },
       "fallback_strategy": "mise_language"
     },
@@ -49,7 +53,11 @@
         "kimi": "mise_language",
         "droid": "mise_language",
         "goose": "mise_language",
-        "roo": "mise_language"
+        "roo": "mise_language",
+        "qwen": "mise_language",
+        "qodo": "mise_language",
+        "forge": "mise_language",
+        "mastra": "mise_language"
       },
       "fallback_strategy": "language_native"
     },
@@ -76,7 +84,11 @@
         "kimi": "homebrew",
         "droid": "homebrew",
         "goose": "homebrew",
-        "roo": "homebrew"
+        "roo": "homebrew",
+        "qwen": "homebrew",
+        "qodo": "homebrew",
+        "forge": "homebrew",
+        "mastra": "homebrew"
       },
       "fallback_strategy": "language_native"
     },
@@ -102,7 +114,11 @@
         "kimi": "language_native",
         "droid": "language_native",
         "goose": "language_native",
-        "roo": "language_native"
+        "roo": "language_native",
+        "qwen": "language_native",
+        "qodo": "language_native",
+        "forge": "language_native",
+        "mastra": "language_native"
       },
       "fallback_strategy": "vendor_recommended"
     },
@@ -128,7 +144,11 @@
         "kimi": "vendor_recommended",
         "droid": "vendor_recommended",
         "goose": "vendor_recommended",
-        "roo": "vendor_recommended"
+        "roo": "vendor_recommended",
+        "qwen": "vendor_recommended",
+        "qodo": "vendor_recommended",
+        "forge": "vendor_recommended",
+        "mastra": "vendor_recommended"
       },
       "fallback_strategy": null
     }

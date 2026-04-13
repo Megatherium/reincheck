@@ -212,6 +212,24 @@
       "upgrade_command": "mise use -g npm:mastracode@latest",
       "latest_version": "0.13.0",
       "github_repo": "mastra-ai/mastra"
+    },
+    {
+      "name": "sypha",
+      "description": "Sypha - Advanced AI-powered CLI assistant for coding",
+      "install_command": "mise use -g npm:sypha@latest",
+      "version_command": "sypha --version",
+      "check_latest_command": "npm info sypha version",
+      "upgrade_command": "mise use -g npm:sypha@latest",
+      "latest_version": null
+    },
+    {
+      "name": "cursor-agent",
+      "description": "Cursor Agent - Cursor's AI coding agent for the terminal",
+      "install_command": "curl https://cursor.com/install -fsS | bash",
+      "version_command": "agent --version",
+      "check_latest_command": "agent --version",
+      "upgrade_command": "agent update",
+      "latest_version": null
     }
   ]
 }

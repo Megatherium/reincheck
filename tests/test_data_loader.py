@@ -26,9 +26,9 @@ class TestGetHarnesses:
         assert isinstance(harnesses, dict)
 
     def test_get_harnesses_correct_count(self):
-        """Returns all 22 harnesses."""
+        """Returns all 24 harnesses."""
         harnesses = get_harnesses()
-        assert len(harnesses) == 22
+        assert len(harnesses) == 24
 
     def test_get_harnesses_all_instances(self):
         """All values are Harness instances."""
@@ -184,10 +184,10 @@ class TestGetPresets:
             assert name in presets
 
     def test_get_presets_methods_coverage(self):
-        """Each preset maps all 22 harnesses."""
+        """Each preset maps all 24 harnesses."""
         presets = get_presets()
         for preset in presets.values():
-            assert len(preset.methods) == 22
+            assert len(preset.methods) == 24
 
 
 class TestGetAllMethods:
@@ -199,9 +199,9 @@ class TestGetAllMethods:
         assert isinstance(methods, dict)
 
     def test_get_all_methods_correct_count(self):
-        """Returns 72+ methods."""
+        """Returns 77+ methods."""
         methods = get_all_methods()
-        assert len(methods) >= 72
+        assert len(methods) >= 77
 
     def test_get_all_methods_all_instances(self):
         """All values are InstallMethod instances."""

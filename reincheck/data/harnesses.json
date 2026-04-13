@@ -182,6 +182,22 @@
       "github_repo": "mastra-ai/mastra",
       "release_notes_url": null,
       "binary": "mastracode"
+    },
+    "sypha": {
+      "name": "sypha",
+      "display_name": "Sypha",
+      "description": "Advanced AI-powered CLI assistant for coding",
+      "github_repo": null,
+      "release_notes_url": null,
+      "binary": "sypha"
+    },
+    "cursor-agent": {
+      "name": "cursor-agent",
+      "display_name": "Cursor Agent",
+      "description": "Cursor's AI coding agent for the terminal",
+      "github_repo": null,
+      "release_notes_url": null,
+      "binary": "agent"
     }
   }
 }

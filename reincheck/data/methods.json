@@ -178,6 +178,14 @@
       "dependencies": ["mise", "npm"],
       "risk_level": "safe"
     },
+    "sypha.mise_language": {
+      "install": "mise use -g npm:sypha@latest",
+      "upgrade": "mise use -g npm:sypha@latest",
+      "version": "sypha --version",
+      "check_latest": "npm info sypha version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
 
     "opencode.homebrew": {
       "install": "brew install opencode",
@@ -412,6 +420,14 @@
       "dependencies": ["npm"],
       "risk_level": "safe"
     },
+    "sypha.language_native": {
+      "install": "npm install -g sypha@latest",
+      "upgrade": "npm install -g sypha@latest",
+      "version": "sypha --version",
+      "check_latest": "npm info sypha version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
 
 
     "crush.vendor_recommended": {
@@ -590,6 +606,22 @@
       "dependencies": ["npm"],
       "risk_level": "safe"
     },
+    "sypha.vendor_recommended": {
+      "install": "npm install -g sypha@latest",
+      "upgrade": "npm install -g sypha@latest",
+      "version": "sypha --version",
+      "check_latest": "npm info sypha version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "cursor-agent.vendor_recommended": {
+      "install": "curl https://cursor.com/install -fsS | bash",
+      "upgrade": "agent update",
+      "version": "agent --version",
+      "check_latest": "curl -sI https://cursor.com/install 2>/dev/null | grep -i location || agent --version",
+      "dependencies": ["curl"],
+      "risk_level": "dangerous"
+    },
 
     "droid.curl": {
       "install": "curl -fsSL https://app.factory.ai/cli | sh",
@@ -636,6 +668,14 @@
       "upgrade": "curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh",
       "version": "roo --version",
       "check_latest": "curl -s https://api.github.com/repos/RooCodeInc/Roo-Code/releases/latest | python3 -c \"import sys,json; print(json.load(sys.stdin)['tag_name'])\"",
+      "dependencies": ["curl"],
+      "risk_level": "dangerous"
+    },
+    "cursor-agent.curl": {
+      "install": "curl https://cursor.com/install -fsS | bash",
+      "upgrade": "agent update",
+      "version": "agent --version",
+      "check_latest": "curl -sI https://cursor.com/install 2>/dev/null | grep -i location || agent --version",
       "dependencies": ["curl"],
       "risk_level": "dangerous"
     }

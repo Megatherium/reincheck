@@ -27,7 +27,9 @@
         "qwen": "mise_binary",
         "qodo": "mise_binary",
         "forge": "mise_binary",
-        "mastra": "mise_binary"
+        "mastra": "mise_binary",
+        "sypha": "mise_language",
+        "cursor-agent": "vendor_recommended"
       },
       "fallback_strategy": "mise_language"
     },
@@ -57,7 +59,9 @@
         "qwen": "mise_language",
         "qodo": "mise_language",
         "forge": "mise_language",
-        "mastra": "mise_language"
+        "mastra": "mise_language",
+        "sypha": "mise_language",
+        "cursor-agent": "vendor_recommended"
       },
       "fallback_strategy": "language_native"
     },
@@ -88,7 +92,9 @@
         "qwen": "homebrew",
         "qodo": "homebrew",
         "forge": "homebrew",
-        "mastra": "homebrew"
+        "mastra": "language_native",
+        "sypha": "language_native",
+        "cursor-agent": "vendor_recommended"
       },
       "fallback_strategy": "language_native"
     },
@@ -118,7 +124,9 @@
         "qwen": "language_native",
         "qodo": "language_native",
         "forge": "language_native",
-        "mastra": "language_native"
+        "mastra": "language_native",
+        "sypha": "language_native",
+        "cursor-agent": "vendor_recommended"
       },
       "fallback_strategy": "vendor_recommended"
     },
@@ -148,7 +156,9 @@
         "qwen": "vendor_recommended",
         "qodo": "vendor_recommended",
         "forge": "vendor_recommended",
-        "mastra": "vendor_recommended"
+        "mastra": "vendor_recommended",
+        "sypha": "vendor_recommended",
+        "cursor-agent": "vendor_recommended"
       },
       "fallback_strategy": null
     }

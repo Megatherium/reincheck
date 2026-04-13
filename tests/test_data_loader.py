@@ -26,9 +26,9 @@ class TestGetHarnesses:
         assert isinstance(harnesses, dict)
 
     def test_get_harnesses_correct_count(self):
-        """Returns all 24 harnesses."""
+        """Returns all 28 harnesses."""
         harnesses = get_harnesses()
-        assert len(harnesses) == 24
+        assert len(harnesses) == 28
 
     def test_get_harnesses_all_instances(self):
         """All values are Harness instances."""
@@ -65,7 +65,7 @@ class TestGetHarnesses:
     def test_get_harnesses_known_harnesses(self):
         """Known harnesses are present."""
         harnesses = get_harnesses()
-        known = ["claude", "amp", "aider", "gemini", "droid"]
+        known = ["claude", "amp", "aider", "gemini", "droid", "dmux", "mco", "tide-commander", "codemachine"]
         for name in known:
             assert name in harnesses
 
@@ -81,8 +81,8 @@ class TestGetDependencies:
     def test_get_dependencies_correct_count(self):
         """Returns all dependencies."""
         deps = get_dependencies()
-        # Should have at least the 7 defined in dependencies.json
-        assert len(deps) >= 7
+        # Should have at least the 8 defined in dependencies.json
+        assert len(deps) >= 8
 
     def test_get_dependencies_all_instances(self):
         """All values are Dependency instances."""
@@ -121,7 +121,7 @@ class TestGetDependencies:
     def test_get_dependencies_known_dependencies(self):
         """Known dependencies are present."""
         deps = get_dependencies()
-        known = ["mise", "npm", "curl", "uv", "brew", "jq", "python"]
+        known = ["mise", "npm", "curl", "uv", "brew", "jq", "python", "tmux"]
         for name in known:
             assert name in deps
 
@@ -184,10 +184,10 @@ class TestGetPresets:
             assert name in presets
 
     def test_get_presets_methods_coverage(self):
-        """Each preset maps all 24 harnesses."""
+        """Each preset maps all 28 harnesses."""
         presets = get_presets()
         for preset in presets.values():
-            assert len(preset.methods) == 24
+            assert len(preset.methods) == 28
 
 
 class TestGetAllMethods:
@@ -199,9 +199,9 @@ class TestGetAllMethods:
         assert isinstance(methods, dict)
 
     def test_get_all_methods_correct_count(self):
-        """Returns 77+ methods."""
+        """Returns 96+ methods."""
         methods = get_all_methods()
-        assert len(methods) >= 77
+        assert len(methods) >= 96
 
     def test_get_all_methods_all_instances(self):
         """All values are InstallMethod instances."""

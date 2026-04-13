@@ -678,6 +678,105 @@
       "check_latest": "curl -sI https://cursor.com/install 2>/dev/null | grep -i location || agent --version",
       "dependencies": ["curl"],
       "risk_level": "dangerous"
+    },
+
+    "dmux.mise_language": {
+      "install": "mise use -g npm:dmux@latest",
+      "upgrade": "mise use -g npm:dmux@latest",
+      "version": "dmux --version",
+      "check_latest": "npm info dmux version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "mco.mise_language": {
+      "install": "mise use -g npm:@tt-a1i/mco@latest",
+      "upgrade": "mise use -g npm:@tt-a1i/mco@latest",
+      "version": "mco --version",
+      "check_latest": "npm info @tt-a1i/mco version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "tide-commander.mise_language": {
+      "install": "mise use -g npm:tide-commander@latest",
+      "upgrade": "mise use -g npm:tide-commander@latest",
+      "version": "tide-commander --version",
+      "check_latest": "npm info tide-commander version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "codemachine.mise_language": {
+      "install": "mise use -g npm:codemachine@latest",
+      "upgrade": "mise use -g npm:codemachine@latest",
+      "version": "codemachine --version",
+      "check_latest": "npm info codemachine version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+
+    "dmux.language_native": {
+      "install": "npm install -g dmux@latest",
+      "upgrade": "npm install -g dmux@latest",
+      "version": "dmux --version",
+      "check_latest": "npm info dmux version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "mco.language_native": {
+      "install": "npm install -g @tt-a1i/mco@latest",
+      "upgrade": "npm install -g @tt-a1i/mco@latest",
+      "version": "mco --version",
+      "check_latest": "npm info @tt-a1i/mco version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "tide-commander.language_native": {
+      "install": "npm install -g tide-commander@latest",
+      "upgrade": "npm install -g tide-commander@latest",
+      "version": "tide-commander --version",
+      "check_latest": "npm info tide-commander version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "codemachine.language_native": {
+      "install": "npm install -g codemachine@latest",
+      "upgrade": "npm install -g codemachine@latest",
+      "version": "codemachine --version",
+      "check_latest": "npm info codemachine version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+
+    "dmux.vendor_recommended": {
+      "install": "npm install -g dmux@latest",
+      "upgrade": "npm install -g dmux@latest",
+      "version": "dmux --version",
+      "check_latest": "npm info dmux version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "mco.vendor_recommended": {
+      "install": "npm install -g @tt-a1i/mco@latest",
+      "upgrade": "npm install -g @tt-a1i/mco@latest",
+      "version": "mco --version",
+      "check_latest": "npm info @tt-a1i/mco version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "tide-commander.vendor_recommended": {
+      "install": "npm install -g tide-commander@latest",
+      "upgrade": "npm install -g tide-commander@latest",
+      "version": "tide-commander --version",
+      "check_latest": "npm info tide-commander version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "codemachine.vendor_recommended": {
+      "install": "npm install -g codemachine@latest",
+      "upgrade": "npm install -g codemachine@latest",
+      "version": "codemachine --version",
+      "check_latest": "npm info codemachine version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
     }
   }
 }

@@ -29,7 +29,11 @@
         "forge": "mise_binary",
         "mastra": "mise_binary",
         "sypha": "mise_language",
-        "cursor-agent": "vendor_recommended"
+        "cursor-agent": "vendor_recommended",
+        "dmux": "mise_language",
+        "mco": "mise_language",
+        "tide-commander": "mise_language",
+        "codemachine": "mise_language"
       },
       "fallback_strategy": "mise_language"
     },
@@ -61,7 +65,11 @@
         "forge": "mise_language",
         "mastra": "mise_language",
         "sypha": "mise_language",
-        "cursor-agent": "vendor_recommended"
+        "cursor-agent": "vendor_recommended",
+        "dmux": "mise_language",
+        "mco": "mise_language",
+        "tide-commander": "mise_language",
+        "codemachine": "mise_language"
       },
       "fallback_strategy": "language_native"
     },
@@ -94,7 +102,11 @@
         "forge": "homebrew",
         "mastra": "language_native",
         "sypha": "language_native",
-        "cursor-agent": "vendor_recommended"
+        "cursor-agent": "vendor_recommended",
+        "dmux": "language_native",
+        "mco": "language_native",
+        "tide-commander": "language_native",
+        "codemachine": "language_native"
       },
       "fallback_strategy": "language_native"
     },
@@ -126,7 +138,11 @@
         "forge": "language_native",
         "mastra": "language_native",
         "sypha": "language_native",
-        "cursor-agent": "vendor_recommended"
+        "cursor-agent": "vendor_recommended",
+        "dmux": "language_native",
+        "mco": "language_native",
+        "tide-commander": "language_native",
+        "codemachine": "language_native"
       },
       "fallback_strategy": "vendor_recommended"
     },
@@ -158,7 +174,11 @@
         "forge": "vendor_recommended",
         "mastra": "vendor_recommended",
         "sypha": "vendor_recommended",
-        "cursor-agent": "vendor_recommended"
+        "cursor-agent": "vendor_recommended",
+        "dmux": "vendor_recommended",
+        "mco": "vendor_recommended",
+        "tide-commander": "vendor_recommended",
+        "codemachine": "vendor_recommended"
       },
       "fallback_strategy": null
     }

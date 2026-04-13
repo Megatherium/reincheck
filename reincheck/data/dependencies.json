@@ -36,6 +36,11 @@
       "name": "python",
       "check_command": "which python3",
       "install_hint": "Install Python 3.10+ from https://python.org"
+    },
+    "tmux": {
+      "name": "tmux",
+      "check_command": "which tmux",
+      "install_hint": "Install via system package manager (e.g., apt install tmux, brew install tmux)"
     }
   }
 }

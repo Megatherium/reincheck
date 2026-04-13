@@ -230,6 +230,46 @@
       "check_latest_command": "agent --version",
       "upgrade_command": "agent update",
       "latest_version": null
+    },
+    {
+      "name": "dmux",
+      "description": "Dev agent multiplexer - runs multiple AI coding agents in parallel with tmux and git worktrees",
+      "install_command": "mise use -g npm:dmux@latest",
+      "version_command": "dmux --version",
+      "check_latest_command": "npm info dmux version",
+      "upgrade_command": "mise use -g npm:dmux@latest",
+      "latest_version": "5.6.3",
+      "github_repo": "standardagents/dmux"
+    },
+    {
+      "name": "mco",
+      "description": "MCO - Multi-CLI Orchestrator for orchestrating teams of AI coding agents",
+      "install_command": "mise use -g npm:@tt-a1i/mco@latest",
+      "version_command": "mco --version",
+      "check_latest_command": "npm info @tt-a1i/mco version",
+      "upgrade_command": "mise use -g npm:@tt-a1i/mco@latest",
+      "latest_version": "0.5.0",
+      "github_repo": "mco-org/mco"
+    },
+    {
+      "name": "tide-commander",
+      "description": "Tide Commander - Visual multi-agent orchestrator for AI coding agents",
+      "install_command": "mise use -g npm:tide-commander@latest",
+      "version_command": "tide-commander --version",
+      "check_latest_command": "npm info tide-commander version",
+      "upgrade_command": "mise use -g npm:tide-commander@latest",
+      "latest_version": "1.36.1",
+      "github_repo": "deivid11/tide-commander"
+    },
+    {
+      "name": "codemachine",
+      "description": "CodeMachine - Orchestration engine for AI coding agent workflows",
+      "install_command": "mise use -g npm:codemachine@latest",
+      "version_command": "codemachine --version",
+      "check_latest_command": "npm info codemachine version",
+      "upgrade_command": "mise use -g npm:codemachine@latest",
+      "latest_version": "0.8.0",
+      "github_repo": "moazbuilds/CodeMachine-CLI"
     }
   ]
 }

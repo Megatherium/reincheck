@@ -198,6 +198,38 @@
       "github_repo": null,
       "release_notes_url": null,
       "binary": "agent"
+    },
+    "dmux": {
+      "name": "dmux",
+      "display_name": "dmux",
+      "description": "Dev agent multiplexer for parallel AI coding with tmux and worktrees",
+      "github_repo": "standardagents/dmux",
+      "release_notes_url": null,
+      "binary": "dmux"
+    },
+    "mco": {
+      "name": "mco",
+      "display_name": "MCO",
+      "description": "Multi-CLI Orchestrator for AI coding agent teams",
+      "github_repo": "mco-org/mco",
+      "release_notes_url": null,
+      "binary": "mco"
+    },
+    "tide-commander": {
+      "name": "tide-commander",
+      "display_name": "Tide Commander",
+      "description": "Visual multi-agent orchestrator for AI coding agents",
+      "github_repo": "deivid11/tide-commander",
+      "release_notes_url": null,
+      "binary": "tide-commander"
+    },
+    "codemachine": {
+      "name": "codemachine",
+      "display_name": "CodeMachine",
+      "description": "CLI-native orchestration engine for AI coding agent workflows",
+      "github_repo": "moazbuilds/CodeMachine-CLI",
+      "release_notes_url": null,
+      "binary": "codemachine"
     }
   }
 }

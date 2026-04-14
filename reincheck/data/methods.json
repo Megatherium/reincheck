@@ -777,6 +777,150 @@
       "check_latest": "npm info codemachine version",
       "dependencies": ["npm"],
       "risk_level": "safe"
+    },
+
+    "t3code.mise_language": {
+      "install": "mise use -g npm:t3@latest",
+      "upgrade": "mise use -g npm:t3@latest",
+      "version": "t3 --version",
+      "check_latest": "npm info t3 version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "t3code.homebrew": {
+      "install": "brew install --cask t3-code",
+      "upgrade": "brew upgrade --cask t3-code",
+      "version": "t3 --version",
+      "check_latest": "brew info --cask t3-code --json | python3 -c \"import sys,json; print(json.load(sys.stdin)[0]['version'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "t3code.language_native": {
+      "install": "npm install -g t3@latest",
+      "upgrade": "npm install -g t3@latest",
+      "version": "t3 --version",
+      "check_latest": "npm info t3 version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "t3code.vendor_recommended": {
+      "install": "npx t3",
+      "upgrade": "npm install -g t3@latest",
+      "version": "t3 --version",
+      "check_latest": "npm info t3 version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+
+    "overstory.mise_language": {
+      "install": "mise use -g npm:@os-eco/overstory-cli@latest",
+      "upgrade": "mise use -g npm:@os-eco/overstory-cli@latest",
+      "version": "ov --version",
+      "check_latest": "npm info @os-eco/overstory-cli version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "overstory.language_native": {
+      "install": "bun install -g @os-eco/overstory-cli",
+      "upgrade": "bun install -g @os-eco/overstory-cli@latest",
+      "version": "ov --version",
+      "check_latest": "npm info @os-eco/overstory-cli version",
+      "dependencies": ["bun"],
+      "risk_level": "safe"
+    },
+    "overstory.vendor_recommended": {
+      "install": "bun install -g @os-eco/overstory-cli",
+      "upgrade": "bun install -g @os-eco/overstory-cli@latest",
+      "version": "ov --version",
+      "check_latest": "npm info @os-eco/overstory-cli version",
+      "dependencies": ["bun"],
+      "risk_level": "safe"
+    },
+
+    "conduit.homebrew": {
+      "install": "brew install conduit-cli/tap/conduit",
+      "upgrade": "brew upgrade conduit",
+      "version": "conduit --version",
+      "check_latest": "brew info conduit --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "conduit.vendor_recommended": {
+      "install": "curl -fsSL https://getconduit.sh/install | sh",
+      "upgrade": "curl -fsSL https://getconduit.sh/install | sh",
+      "version": "conduit --version",
+      "check_latest": "curl -s https://api.github.com/repos/conduit-cli/conduit/releases/latest | python3 -c \"import sys,json; print(json.load(sys.stdin)['tag_name'])\"",
+      "dependencies": ["curl"],
+      "risk_level": "dangerous"
+    },
+
+    "agtx.vendor_recommended": {
+      "install": "curl -fsSL https://raw.githubusercontent.com/fynnfluegge/agtx/main/install.sh | bash",
+      "upgrade": "curl -fsSL https://raw.githubusercontent.com/fynnfluegge/agtx/main/install.sh | bash",
+      "version": "agtx --version",
+      "check_latest": "curl -s https://api.github.com/repos/fynnfluegge/agtx/releases/latest | python3 -c \"import sys,json; print(json.load(sys.stdin)['tag_name'])\"",
+      "dependencies": ["curl"],
+      "risk_level": "dangerous"
+    },
+
+    "amux.vendor_recommended": {
+      "install": "git clone https://github.com/mixpeek/amux ~/.amux-src && cd ~/.amux-src && ./install.sh",
+      "upgrade": "cd ~/.amux-src && git pull && ./install.sh",
+      "version": "amux --version",
+      "check_latest": "curl -s https://api.github.com/repos/mixpeek/amux/releases/latest | python3 -c \"import sys,json; print(json.load(sys.stdin)['tag_name'])\"",
+      "dependencies": ["curl", "tmux", "python"],
+      "risk_level": "interactive"
+    },
+
+    "shep.mise_language": {
+      "install": "mise use -g npm:@shepai/cli@latest",
+      "upgrade": "mise use -g npm:@shepai/cli@latest",
+      "version": "shep --version",
+      "check_latest": "npm info @shepai/cli version",
+      "dependencies": ["mise", "npm"],
+      "risk_level": "safe"
+    },
+    "shep.language_native": {
+      "install": "npm install -g @shepai/cli",
+      "upgrade": "npm install -g @shepai/cli@latest",
+      "version": "shep --version",
+      "check_latest": "npm info @shepai/cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+    "shep.vendor_recommended": {
+      "install": "npm install -g @shepai/cli",
+      "upgrade": "npm install -g @shepai/cli@latest",
+      "version": "shep --version",
+      "check_latest": "npm info @shepai/cli version",
+      "dependencies": ["npm"],
+      "risk_level": "safe"
+    },
+
+    "cas.homebrew": {
+      "install": "brew tap codingagentsystem/cas && brew install cas",
+      "upgrade": "brew upgrade cas",
+      "version": "cas --version",
+      "check_latest": "brew info cas --json | python3 -c \"import sys,json; print(json.load(sys.stdin)['versions']['stable'])\"",
+      "dependencies": ["brew"],
+      "risk_level": "safe"
+    },
+    "cas.vendor_recommended": {
+      "install": "curl -fsSL https://cas.dev/install.sh | sh",
+      "upgrade": "cas update",
+      "version": "cas --version",
+      "check_latest": "curl -s https://api.github.com/repos/codingagentsystem/cas/releases/latest | python3 -c \"import sys,json; print(json.load(sys.stdin)['tag_name'])\"",
+      "dependencies": ["curl"],
+      "risk_level": "dangerous"
+    },
+
+    "codirigent.vendor_recommended": {
+      "install": "curl -fsSL https://github.com/oso95/Codirigent/releases/latest/download/codirigent-linux.tar.gz | tar xz -C ~/.local/bin/",
+      "upgrade": "curl -fsSL https://github.com/oso95/Codirigent/releases/latest/download/codirigent-linux.tar.gz | tar xz -C ~/.local/bin/",
+      "version": "codirigent --version",
+      "check_latest": "curl -s https://api.github.com/repos/oso95/Codirigent/releases/latest | python3 -c \"import sys,json; print(json.load(sys.stdin)['tag_name'])\"",
+      "dependencies": ["curl"],
+      "risk_level": "dangerous"
     }
   }
 }

@@ -230,6 +230,70 @@
       "github_repo": "moazbuilds/CodeMachine-CLI",
       "release_notes_url": null,
       "binary": "codemachine"
+    },
+    "t3code": {
+      "name": "t3code",
+      "display_name": "T3 Code",
+      "description": "Minimal web GUI for AI coding agents (Codex and Claude)",
+      "github_repo": "pingdotgg/t3code",
+      "release_notes_url": null,
+      "binary": "t3"
+    },
+    "overstory": {
+      "name": "overstory",
+      "display_name": "Overstory",
+      "description": "Multi-agent orchestration for AI coding agents via git worktrees and tmux",
+      "github_repo": "jayminwest/overstory",
+      "release_notes_url": null,
+      "binary": "ov"
+    },
+    "conduit": {
+      "name": "conduit",
+      "display_name": "Conduit",
+      "description": "Keyboard-first TUI for running AI coding agents in git-backed workspaces",
+      "github_repo": "conduit-cli/conduit",
+      "release_notes_url": null,
+      "binary": "conduit"
+    },
+    "agtx": {
+      "name": "agtx",
+      "display_name": "agtx",
+      "description": "Multi-session AI coding terminal manager with kanban board orchestration",
+      "github_repo": "fynnfluegge/agtx",
+      "release_notes_url": null,
+      "binary": "agtx"
+    },
+    "amux": {
+      "name": "amux",
+      "display_name": "Amux",
+      "description": "Agent multiplexer for running parallel Claude Code sessions with web dashboard",
+      "github_repo": "mixpeek/amux",
+      "release_notes_url": null,
+      "binary": "amux"
+    },
+    "shep": {
+      "name": "shep",
+      "display_name": "Shep",
+      "description": "Autonomous AI-native SDLC platform for parallel feature development",
+      "github_repo": "shep-ai/cli",
+      "release_notes_url": null,
+      "binary": "shep"
+    },
+    "cas": {
+      "name": "cas",
+      "display_name": "CAS",
+      "description": "Multi-agent coding factory with persistent memory for Claude Code",
+      "github_repo": "codingagentsystem/cas",
+      "release_notes_url": null,
+      "binary": "cas"
+    },
+    "codirigent": {
+      "name": "codirigent",
+      "display_name": "Codirigent",
+      "description": "Terminal workspace for running multiple AI coding CLIs in parallel",
+      "github_repo": "oso95/Codirigent",
+      "release_notes_url": null,
+      "binary": "codirigent"
     }
   }
 }

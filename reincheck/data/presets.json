@@ -33,7 +33,15 @@
         "dmux": "mise_language",
         "mco": "mise_language",
         "tide-commander": "mise_language",
-        "codemachine": "mise_language"
+        "codemachine": "mise_language",
+        "t3code": "mise_language",
+        "overstory": "mise_language",
+        "conduit": "vendor_recommended",
+        "agtx": "vendor_recommended",
+        "amux": "vendor_recommended",
+        "shep": "mise_language",
+        "cas": "vendor_recommended",
+        "codirigent": "vendor_recommended"
       },
       "fallback_strategy": "mise_language"
     },
@@ -69,7 +77,15 @@
         "dmux": "mise_language",
         "mco": "mise_language",
         "tide-commander": "mise_language",
-        "codemachine": "mise_language"
+        "codemachine": "mise_language",
+        "t3code": "mise_language",
+        "overstory": "mise_language",
+        "conduit": "homebrew",
+        "agtx": "vendor_recommended",
+        "amux": "vendor_recommended",
+        "shep": "mise_language",
+        "cas": "homebrew",
+        "codirigent": "vendor_recommended"
       },
       "fallback_strategy": "language_native"
     },
@@ -106,7 +122,15 @@
         "dmux": "language_native",
         "mco": "language_native",
         "tide-commander": "language_native",
-        "codemachine": "language_native"
+        "codemachine": "language_native",
+        "t3code": "homebrew",
+        "overstory": "language_native",
+        "conduit": "homebrew",
+        "agtx": "vendor_recommended",
+        "amux": "vendor_recommended",
+        "shep": "language_native",
+        "cas": "homebrew",
+        "codirigent": "vendor_recommended"
       },
       "fallback_strategy": "language_native"
     },
@@ -142,7 +166,15 @@
         "dmux": "language_native",
         "mco": "language_native",
         "tide-commander": "language_native",
-        "codemachine": "language_native"
+        "codemachine": "language_native",
+        "t3code": "language_native",
+        "overstory": "language_native",
+        "conduit": "vendor_recommended",
+        "agtx": "vendor_recommended",
+        "amux": "vendor_recommended",
+        "shep": "language_native",
+        "cas": "vendor_recommended",
+        "codirigent": "vendor_recommended"
       },
       "fallback_strategy": "vendor_recommended"
     },
@@ -178,7 +210,15 @@
         "dmux": "vendor_recommended",
         "mco": "vendor_recommended",
         "tide-commander": "vendor_recommended",
-        "codemachine": "vendor_recommended"
+        "codemachine": "vendor_recommended",
+        "t3code": "vendor_recommended",
+        "overstory": "vendor_recommended",
+        "conduit": "vendor_recommended",
+        "agtx": "vendor_recommended",
+        "amux": "vendor_recommended",
+        "shep": "vendor_recommended",
+        "cas": "vendor_recommended",
+        "codirigent": "vendor_recommended"
       },
       "fallback_strategy": null
     }

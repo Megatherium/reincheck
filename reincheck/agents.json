@@ -270,6 +270,86 @@
       "upgrade_command": "mise use -g npm:codemachine@latest",
       "latest_version": "0.8.0",
       "github_repo": "moazbuilds/CodeMachine-CLI"
+    },
+    {
+      "name": "t3code",
+      "description": "Minimal web GUI for AI coding agents (Codex and Claude)",
+      "install_command": "npm install -g t3@latest",
+      "version_command": "t3 --version",
+      "check_latest_command": "npm info t3 version",
+      "upgrade_command": "npm install -g t3@latest",
+      "latest_version": "0.0.3",
+      "github_repo": "pingdotgg/t3code"
+    },
+    {
+      "name": "overstory",
+      "description": "Multi-agent orchestration for AI coding agents via git worktrees and tmux",
+      "install_command": "bun install -g @os-eco/overstory-cli",
+      "version_command": "ov --version",
+      "check_latest_command": "npm info @os-eco/overstory-cli version",
+      "upgrade_command": "bun install -g @os-eco/overstory-cli@latest",
+      "latest_version": "0.9.3",
+      "github_repo": "jayminwest/overstory"
+    },
+    {
+      "name": "conduit",
+      "description": "Keyboard-first TUI for running AI coding agents in git-backed workspaces",
+      "install_command": "brew install conduit-cli/tap/conduit",
+      "version_command": "conduit --version",
+      "check_latest_command": "curl -s https://api.github.com/repos/conduit-cli/conduit/releases/latest | grep '\"tag_name\"' | cut -d'\"' -f4",
+      "upgrade_command": "brew upgrade conduit",
+      "latest_version": "v0.4.0",
+      "github_repo": "conduit-cli/conduit"
+    },
+    {
+      "name": "agtx",
+      "description": "Multi-session AI coding terminal manager with kanban board orchestration",
+      "install_command": "curl -fsSL https://raw.githubusercontent.com/fynnfluegge/agtx/main/install.sh | bash",
+      "version_command": "agtx --version",
+      "check_latest_command": "curl -s https://api.github.com/repos/fynnfluegge/agtx/releases/latest | grep '\"tag_name\"' | cut -d'\"' -f4",
+      "upgrade_command": "curl -fsSL https://raw.githubusercontent.com/fynnfluegge/agtx/main/install.sh | bash",
+      "latest_version": "v0.2.0",
+      "github_repo": "fynnfluegge/agtx"
+    },
+    {
+      "name": "amux",
+      "description": "Agent multiplexer for running parallel Claude Code sessions with web dashboard",
+      "install_command": "git clone https://github.com/mixpeek/amux ~/.amux-src && cd ~/.amux-src && ./install.sh",
+      "version_command": "amux --version",
+      "check_latest_command": "curl -s https://api.github.com/repos/mixpeek/amux/releases/latest | grep '\"tag_name\"' | cut -d'\"' -f4",
+      "upgrade_command": "cd ~/.amux-src && git pull && ./install.sh",
+      "latest_version": "v0.3.0",
+      "github_repo": "mixpeek/amux"
+    },
+    {
+      "name": "shep",
+      "description": "Autonomous AI-native SDLC platform for parallel feature development",
+      "install_command": "mise use -g npm:@shepai/cli@latest",
+      "version_command": "shep --version",
+      "check_latest_command": "npm info @shepai/cli version",
+      "upgrade_command": "mise use -g npm:@shepai/cli@latest",
+      "latest_version": "1.142.1",
+      "github_repo": "shep-ai/cli"
+    },
+    {
+      "name": "cas",
+      "description": "Multi-agent coding factory with persistent memory for Claude Code",
+      "install_command": "curl -fsSL https://cas.dev/install.sh | sh",
+      "version_command": "cas --version",
+      "check_latest_command": "curl -s https://api.github.com/repos/codingagentsystem/cas/releases/latest | grep '\"tag_name\"' | cut -d'\"' -f4",
+      "upgrade_command": "cas update",
+      "latest_version": "v1.0",
+      "github_repo": "codingagentsystem/cas"
+    },
+    {
+      "name": "codirigent",
+      "description": "Terminal workspace for running multiple AI coding CLIs in parallel",
+      "install_command": "curl -fsSL https://github.com/oso95/Codirigent/releases/latest/download/codirigent-linux.tar.gz | tar xz -C ~/.local/bin/",
+      "version_command": "codirigent --version",
+      "check_latest_command": "curl -s https://api.github.com/repos/oso95/Codirigent/releases/latest | grep '\"tag_name\"' | cut -d'\"' -f4",
+      "upgrade_command": "curl -fsSL https://github.com/oso95/Codirigent/releases/latest/download/codirigent-linux.tar.gz | tar xz -C ~/.local/bin/",
+      "latest_version": "v0.1.6",
+      "github_repo": "oso95/Codirigent"
     }
   ]
 }

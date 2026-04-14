@@ -37,6 +37,11 @@
       "check_command": "which python3",
       "install_hint": "Install Python 3.10+ from https://python.org"
     },
+    "bun": {
+      "name": "bun",
+      "check_command": "which bun",
+      "install_hint": "Install from https://bun.sh"
+    },
     "tmux": {
       "name": "tmux",
       "check_command": "which tmux",
